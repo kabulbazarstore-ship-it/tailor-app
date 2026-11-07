@@ -12,7 +12,9 @@
     <meta name="apple-mobile-web-app-title" content="Tailor">
     <link rel="apple-touch-icon" href="assets/logo.png">
 
+    <!-- اضافه شدن Firebase Auth برای امنیت واقعی -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <!-- کتابخانه ساخت بارکد آفلاین -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -186,7 +188,7 @@
         .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; line-height: 1.5; }
         .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
 
-        /* مودال ثبت‌نام/تنظیمات (Setup) */
+        /* مودال تنظیمات اولیه (Setup) */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
         .modal-overlay.active { display: flex; }
         .modal-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; box-shadow: var(--shadow); position: relative; max-height: 95vh; overflow-y: auto; }
@@ -296,27 +298,33 @@
             </div>
         </div>
 
-        <!-- صفحه ورود -->
+        <!-- صفحه ورود (با ایمیل و رمز) -->
         <div id="view-login" class="view-section active">
             <div class="card">
                 <div class="header-title"><h1>Tailor</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:5px;">مدیریت حرفه‌ای خیاطی</p></div>
                 <form onsubmit="event.preventDefault(); loginUser();">
-                    <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="login-phone" placeholder="07XXXXXXXX" required></div></div>
+                    <div class="form-group"><label>ایمیل</label><div class="input-box"><input type="email" id="login-email" placeholder="example@mail.com" required></div></div>
                     <div class="form-group"><label>رمز عبور</label><div class="input-box"><input type="password" id="login-pass" placeholder="رمز عبور" required></div></div>
-                    <button type="submit" class="btn btn-primary">ورود به برنامه</button>
+                    <button type="submit" class="btn btn-primary" id="btn-login">ورود به برنامه</button>
                     <button type="button" class="btn-link" onclick="switchView('register')">حساب ندارید؟ ثبت‌نام کنید</button>
                 </form>
             </div>
         </div>
 
-        <!-- صفحه ثبت‌نام (کد قدیمی با منوهای سفارشی جایگزین نشده چون در setup-modal هست) -->
+        <!-- صفحه ثبت‌نام (فرم کامل طبق تصویر) -->
         <div id="view-register" class="view-section">
             <div class="card" style="padding: 20px 15px;">
-                <div class="header-title"><h1>ایجاد حساب</h1></div>
+                <div class="header-title"><h1>ایجاد حساب</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-bottom:15px;">اطلاعات خیاطی خود را وارد کنید</p></div>
                 <form onsubmit="event.preventDefault(); registerUser();">
-                    <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="reg-phone" required></div></div>
-                    <div class="form-group"><label>رمز عبور</label><div class="input-box"><input type="password" id="reg-pass" required></div></div>
-                    <button type="submit" class="btn btn-primary">ثبت‌نام و ادامه</button>
+                    <div class="form-group"><label>نام خیاطی</label><div class="input-box"><input type="text" id="reg-tailor" required placeholder="مثلا خیاطی احمدی"></div></div>
+                    <div class="form-group"><label>نام مالک</label><div class="input-box"><input type="text" id="reg-owner" required placeholder="نام و تخلص"></div></div>
+                    <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="reg-phone" required placeholder="07XXXXXXXX"></div></div>
+                    <div class="form-group"><label>شماره واتساپ</label><div class="input-box"><input type="tel" id="reg-whatsapp" placeholder="93XXXXXXXXX"></div></div>
+                    <div class="form-group"><label>ایمیل</label><div class="input-box"><input type="email" id="reg-email" required placeholder="example@mail.com"></div></div>
+                    <div class="form-group"><label>آدرس</label><div class="input-box"><input type="text" id="reg-address" placeholder="آدرس دقیق"></div></div>
+                    <div class="form-group"><label>رمز عبور (حداقل ۶ کاراکتر)</label><div class="input-box"><input type="password" id="reg-pass" required minlength="6" placeholder="رمز عبور"></div></div>
+                    
+                    <button type="submit" class="btn btn-primary" id="btn-register">ایجاد حساب</button>
                     <button type="button" class="btn-link" onclick="switchView('login')">قبلاً حساب دارید؟ ورود</button>
                 </form>
             </div>
@@ -355,7 +363,9 @@
                 <a href="loans.html" class="menu-item"><div class="icon-box bg-loans"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="10" x2="12" y2="16"/></svg></div><span>قرض شاگردان</span></a>
                 <a href="production.html" class="menu-item"><div class="icon-box bg-production"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><span>ثبت تولید</span></a>
                 
-                <a href="cutting.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
+                <!-- اصلاح شد: این دکمه قبلا به cutting میرفت، حالا به samples میرود -->
+                <a href="samples.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
+                
                 <a href="cutting.html" class="menu-item"><div class="icon-box bg-cutting"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg></div><span>برش کار</span></a>
                 <a href="students.html" class="menu-item"><div class="icon-box bg-students"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><span>شاگردان</span></a>
                 
@@ -366,11 +376,11 @@
         </div>
     </div> 
 
-    <!-- مودال تنظیمات اولیه (Setup) -->
+    <!-- مودال تنظیمات اولیه (Setup) - برای عکس پروفایل -->
     <div class="modal-overlay" id="setup-modal">
         <div class="modal-box">
             <h2 class="modal-title">تکمیل اطلاعات کاربری</h2>
-            <p style="text-align:center; font-size:11px; color:var(--text-muted); margin-bottom:15px;">لطفاً برای شخصی‌سازی برنامه، اطلاعات خود را وارد کنید.</p>
+            <p style="text-align:center; font-size:11px; color:var(--text-muted); margin-bottom:15px;">لطفاً برای شخصی‌سازی برنامه، عکس پروفایل خود را انتخاب کنید.</p>
             
             <div class="img-upload-box">
                 <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -378,30 +388,7 @@
                 <img id="profile-preview">
             </div>
 
-            <div class="form-group"><label>نام و تخلص</label><div class="input-box"><input type="text" id="setup-name" placeholder="مثلا احمد رحیمی"></div></div>
-            <div class="form-group"><label>سمت شما</label>
-                <div class="custom-dropdown" id="dd-role">
-                    <div class="dropdown-trigger" onclick="toggleDropdown('dd-role')"><span id="val-role">صاحب کار (مالک)</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div>
-                    <div class="dropdown-options">
-                        <div class="dropdown-option" onclick="selectOption('dd-role','صاحب کار (مالک)')">صاحب کار (مالک)</div>
-                        <div class="dropdown-option" onclick="selectOption('dd-role','خلیفه / استادکار')">خلیفه / استادکار</div>
-                        <div class="dropdown-option" onclick="selectOption('dd-role','برش کار')">برش کار</div>
-                        <div class="dropdown-option" onclick="selectOption('dd-role','شاگرد')">شاگرد</div>
-                        <div class="dropdown-option" onclick="selectOption('dd-role','حسابدار')">حسابدار</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>تاریخ شروع کار (شمسی)</label>
-                <div class="grid-3">
-                    <div class="custom-dropdown" id="dd-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-day')"><span id="val-day">1</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-day"></div></div>
-                    <div class="custom-dropdown" id="dd-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-month')"><span id="val-month">حمل</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-month"></div></div>
-                    <div class="custom-dropdown" id="dd-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-year')"><span id="val-year">1403</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-year"></div></div>
-                </div>
-            </div>
-
-            <button class="btn-primary" onclick="saveSetup()">ذخیره و ورود به برنامه</button>
+            <button class="btn-primary" onclick="saveSetup()" style="margin-top:15px;">ذخیره و ورود به برنامه</button>
         </div>
     </div>
 
@@ -440,18 +427,17 @@
             messagingSenderId: "16067911685",
             appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
         };
+        
         let database = null;
-        try { firebase.initializeApp(firebaseConfig); database = firebase.database(); } catch (e) { console.log("Firebase Error:", e); }
+        let auth = null;
+        try { 
+            firebase.initializeApp(firebaseConfig); 
+            database = firebase.database(); 
+            auth = firebase.auth();
+        } catch (e) { console.log("Firebase Error:", e); }
 
         let userPhone = localStorage.getItem('tailor_user');
         let base64Profile = null;
-        const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
-        const selections = {
-            'dd-role': 'صاحب کار (مالک)',
-            'dd-day': '1',
-            'dd-month': 'حمل',
-            'dd-year': '1403'
-        };
 
         function showAlert(type, title, msg) {
             const overlay = document.getElementById('custom-alert');
@@ -484,43 +470,141 @@
             }
         }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
+        function logout() { 
+            if(auth) {
+                auth.signOut().then(() => {
+                    localStorage.clear(); 
+                    window.location.reload();
+                });
+            } else {
+                localStorage.clear(); 
+                window.location.reload();
+            }
+        }
+
+        // ================= احراز هویت امن با Firebase Auth =================
+
+        // ورود کاربر
+        function loginUser() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            const btn = document.getElementById('btn-login');
+            
+            btn.innerText = 'در حال ورود...';
+            btn.disabled = true;
+
+            auth.signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    const uid = userCredential.user.uid;
+                    // پیدا کردن شماره تماس از دیتابیس
+                    database.ref('users_auth/' + uid).once('value').then(snap => {
+                        if(snap.exists()) {
+                            const data = snap.val();
+                            userPhone = data.phone;
+                            localStorage.setItem('tailor_user', userPhone);
+                            loadUserData(userPhone);
+                            checkSubscription(userPhone);
+                            switchView('dashboard');
+                            document.getElementById('main-top-bar').style.display = 'flex';
+                            document.getElementById('bottom-nav').classList.add('active');
+                            showAlert('success', 'خوش آمدید', 'ورود موفقیت‌آمیز بود.');
+                        } else {
+                            showAlert('error', 'خطا', 'اطلاعات کاربری ناقص است.');
+                        }
+                    });
+                })
+                .catch((error) => {
+                    if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        showAlert('error', 'خطا', 'ایمیل یا رمز عبور اشتباه است.');
+                    } else {
+                        showAlert('error', 'خطا', error.message);
+                    }
+                })
+                .finally(() => {
+                    btn.innerText = 'ورود به برنامه';
+                    btn.disabled = false;
+                });
+        }
+
+        // ثبت‌نام کاربر
+        function registerUser() {
+            const tailorName = document.getElementById('reg-tailor').value;
+            const ownerName = document.getElementById('reg-owner').value;
+            const phone = document.getElementById('reg-phone').value;
+            const whatsapp = document.getElementById('reg-whatsapp').value;
+            const email = document.getElementById('reg-email').value;
+            const address = document.getElementById('reg-address').value;
+            const pass = document.getElementById('reg-pass').value;
+            const btn = document.getElementById('btn-register');
+
+            btn.innerText = 'در حال ایجاد...';
+            btn.disabled = true;
+
+            // بررسی اینکه آیا این شماره قبلا ثبت شده یا نه
+            database.ref('users/' + phone).once('value').then(snap => {
+                if(snap.exists()) {
+                    showAlert('error', 'خطا', 'این شماره تماس قبلا در سیستم ثبت شده است.');
+                    btn.innerText = 'ایجاد حساب';
+                    btn.disabled = false;
+                    return;
+                }
+
+                auth.createUserWithEmailAndPassword(email, pass)
+                    .then((userCredential) => {
+                        const uid = userCredential.user.uid;
+                        
+                        const profileData = {
+                            uid: uid,
+                            tailorName: tailorName,
+                            ownerName: ownerName,
+                            phone: phone,
+                            whatsapp: whatsapp,
+                            email: email,
+                            address: address,
+                            registeredAt: Date.now()
+                        };
+
+                        // ۱. ذخیره امن در users_auth
+                        database.ref('users_auth/' + uid).set(profileData).then(() => {
+                            // ۲. کپی کردن به users/{phone} تا بقیه صفحات برنامه خراب نشوند
+                            const legacyData = {
+                                tailorName: tailorName,
+                                ownerName: ownerName,
+                                role: 'صاحب کار',
+                                phone: phone,
+                                address: address,
+                                registeredAt: Date.now()
+                            };
+                            
+                            return database.ref('users/' + phone).update(legacyData);
+                        }).then(() => {
+                            userPhone = phone;
+                            localStorage.setItem('tailor_user', userPhone);
+                            
+                            showAlert('success', 'موفق', 'حساب شما ساخته شد.');
+                            setTimeout(() => {
+                                // باز کردن مودال عکس پروفایل
+                                document.getElementById('setup-modal').classList.add('active');
+                            }, 1000);
+                        });
+                    })
+                    .catch((error) => {
+                        if(error.code === 'auth/email-already-in-use') {
+                            showAlert('error', 'خطا', 'این ایمیل قبلاً ثبت شده است.');
+                        } else if(error.code === 'auth/weak-password') {
+                            showAlert('error', 'خطا', 'رمز عبور باید حداقل ۶ کاراکتر باشد.');
+                        } else {
+                            showAlert('error', 'خطا', error.message);
+                        }
+                    })
+                    .finally(() => {
+                        btn.innerText = 'ایجاد حساب';
+                        btn.disabled = false;
+                    });
+            });
+        }
 
         // ================= سیستم منوهای کشویی سفارشی =================
-        function toggleDropdown(id) {
-            document.querySelectorAll('.dropdown-options').forEach(el => { if(el.parentElement.id !== id) el.classList.remove('active'); });
-            const d = document.getElementById(id);
-            d.querySelector('.dropdown-options').classList.toggle('active');
-            d.querySelector('.dropdown-trigger').classList.toggle('active');
-        }
-
-        function selectOption(id, val) {
-            if(event) event.stopPropagation();
-            document.getElementById('val-' + id.replace('dd-', '')).innerText = val;
-            selections[id] = val;
-            document.getElementById(id).querySelector('.dropdown-options').classList.remove('active');
-            document.getElementById(id).querySelector('.dropdown-trigger').classList.remove('active');
-        }
-
-        window.addEventListener('click', e => {
-            if (!e.target.closest('.custom-dropdown')) {
-                document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
-                document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
-            }
-        });
-
-        // ================= تاریخ کشویی =================
-        function initDates() {
-            let dHtml = '', mHtml = '', yHtml = '';
-            for(let i=1; i<=31; i++) dHtml += `<div class="dropdown-option" onclick="selectOption('dd-day', '${i}')">${i}</div>`;
-            shamsiMonths.forEach((m, i) => mHtml += `<div class="dropdown-option" onclick="selectOption('dd-month', '${m}')">${m}</div>`);
-            for(let y=1400; y<=1410; y++) yHtml += `<div class="dropdown-option" onclick="selectOption('dd-year', '${y}')">${y}</div>`;
-            document.getElementById('opt-day').innerHTML = dHtml;
-            document.getElementById('opt-month').innerHTML = mHtml;
-            document.getElementById('opt-year').innerHTML = yHtml;
-        }
-
-        // ================= عکس پروفایل =================
         function processProfileImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -544,79 +628,16 @@
             }
         }
 
-        // ================= ذخیره تنظیمات اولیه =================
         function saveSetup() {
-            const name = document.getElementById('setup-name').value.trim();
-            if(!name) return showAlert('error', 'خطا', 'لطفاً نام خود را وارد کنید');
-
-            const startDate = `${selections['dd-year']}/${shamsiMonths.indexOf(selections['dd-month'])+1}/${selections['dd-day']}`;
-
-            const data = {
-                tailorName: name,
-                role: selections['dd-role'],
-                startDate: startDate,
-                profileImage: base64Profile,
-                registeredAt: Date.now()
-            };
-
-            database.ref('users/' + userPhone).update(data).then(() => {
-                document.getElementById('setup-modal').classList.remove('active');
-                loadUserData(userPhone);
-                checkSubscription(userPhone);
-                switchView('dashboard');
-                document.getElementById('main-top-bar').style.display = 'flex';
-                document.getElementById('bottom-nav').classList.add('active');
-                showAlert('success', 'موفق', 'اطلاعات شما با موفقیت ذخیره شد.');
-            });
-        }
-
-        // ================= ثبت‌نام و ورود =================
-        function registerUser() {
-            const phone = document.getElementById('reg-phone').value;
-            const pass = document.getElementById('reg-pass').value;
-            if(!phone || !pass) return showAlert('error', 'خطا', 'شماره و رمز الزامی است!');
-            
-            if(database) {
-                database.ref('users/' + phone).once('value').then(snap => {
-                    if(snap.exists()) return showAlert('error', 'خطا', 'این شماره قبلاً ثبت‌نام کرده است.');
-                    
-                    localStorage.setItem('tailor_user', phone);
-                    userPhone = phone;
-                    
-                    // نمایش مودال تکمیل اطلاعات
-                    document.getElementById('setup-modal').classList.add('active');
-                    document.getElementById('main-top-bar').style.display = 'none';
-                });
+            if(base64Profile) {
+                database.ref('users/' + userPhone).update({ profileImage: base64Profile });
             }
-        }
-
-        function loginUser() {
-            const phone = document.getElementById('login-phone').value;
-            if(!phone) return showAlert('error', 'خطا', 'شماره تماس را وارد کنید!');
-            
-            if(database) {
-                database.ref('users/' + phone).once('value').then((snapshot) => {
-                    if (snapshot.exists()) {
-                        localStorage.setItem('tailor_user', phone);
-                        userPhone = phone;
-                        
-                        const data = snapshot.val();
-                        if(!data.tailorName) {
-                            // اگر اسم ندارد، مودال تنظیمات باز شود
-                            document.getElementById('setup-modal').classList.add('active');
-                        } else {
-                            loadUserData(phone);
-                            checkSubscription(phone);
-                            switchView('dashboard');
-                            document.getElementById('main-top-bar').style.display = 'flex';
-                            document.getElementById('bottom-nav').classList.add('active');
-                            showAlert('success', 'خوش آمدید', 'ورود موفقیت‌آمیز بود.');
-                        }
-                    } else {
-                        showAlert('error', 'کاربر یافت نشد', 'لطفاً ابتدا ثبت‌نام کنید.');
-                    }
-                });
-            }
+            document.getElementById('setup-modal').classList.remove('active');
+            loadUserData(userPhone);
+            checkSubscription(userPhone);
+            switchView('dashboard');
+            document.getElementById('main-top-bar').style.display = 'flex';
+            document.getElementById('bottom-nav').classList.add('active');
         }
 
         function loadUserData(phone) {
@@ -675,7 +696,6 @@
             });
         }
 
-        // ================= سیستم مدیریت اشتراک =================
         function checkSubscription(phone) {
             if(!database) return;
             database.ref('users/' + phone + '/subscription').once('value').then(snapshot => {
@@ -761,7 +781,6 @@
             });
         }
 
-        // ================= بارکد و اشتراک‌گذاری =================
         function openShareModal(e) {
             if(e) e.preventDefault();
             toggleSidebar();
@@ -805,7 +824,6 @@
             }
         }
 
-        // ================= آمار داشبورد =================
         function updateDate() {
             const d = new Date();
             const shamsi = d2j(g2d(d.getFullYear(), d.getMonth() + 1, d.getDate()));
@@ -889,7 +907,6 @@
                 document.body.classList.add('light-mode');
                 document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
             }
-            initDates();
 
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
@@ -897,12 +914,31 @@
                     document.getElementById('splash-screen').style.display = 'none';
                     document.getElementById('main-top-bar').style.display = 'flex';
                     
-                    if (localStorage.getItem('tailor_user')) {
-                        loadUserData(localStorage.getItem('tailor_user'));
-                        checkSubscription(localStorage.getItem('tailor_user'));
-                        switchView('dashboard');
-                        document.getElementById('bottom-nav').classList.add('active');
+                    // بررسی وضعیت لاگین با Firebase Auth
+                    if(auth) {
+                        auth.onAuthStateChanged((user) => {
+                            if (user) {
+                                // کاربر لاگین است
+                                database.ref('users_auth/' + user.uid).once('value').then(snap => {
+                                    if(snap.exists() && snap.val().phone) {
+                                        userPhone = snap.val().phone;
+                                        localStorage.setItem('tailor_user', userPhone);
+                                        
+                                        loadUserData(userPhone);
+                                        checkSubscription(userPhone);
+                                        switchView('dashboard');
+                                        document.getElementById('bottom-nav').classList.add('active');
+                                    } else {
+                                        switchView('login');
+                                    }
+                                });
+                            } else {
+                                // کاربر لاگین نیست
+                                switchView('login');
+                            }
+                        });
                     } else {
+                        // اگر Firebase لود نشد
                         switchView('login');
                     }
                 }, 500);

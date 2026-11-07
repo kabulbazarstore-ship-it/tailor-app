@@ -80,21 +80,21 @@
 
         .batch-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 10px; }
         .batch-title { font-size: 15px; color: var(--gold); font-weight: bold; display: flex; align-items: center; gap: 8px; }
-        .batch-date { font-size: 11px; color: var(--text-muted); background: rgba(128,128,128,0.1); padding: 3px 8px; border-radius: 6px; }
+        .batch-date { font-size: 11px; color: var(--text-muted); background: var(--bg-card); border: 1px solid var(--border); padding: 3px 8px; border-radius: 6px; }
         .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid var(--border); }
         .status-badge.done { background: rgba(46, 213, 115, 0.1); color: var(--success); border-color: var(--success); }
 
         .batch-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
         .b-item { 
             display: flex; align-items: center; gap: 5px; font-size: 11px; 
-            background: rgba(128, 128, 128, 0.05); padding: 5px 8px; 
-            border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.1); 
+            background: var(--bg-card); padding: 5px 8px; 
+            border-radius: 8px; border: 1px solid var(--border); 
         }
         .b-item span.color { font-weight: bold; }
         .b-item span.size { color: var(--text-muted); }
         .b-item span.qty { color: var(--gold); font-weight: bold; margin-right: 5px; }
 
-        .batch-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(128, 128, 128, 0.1); padding-top: 12px; margin-top: 5px; }
+        .batch-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 5px; }
         .worker-info { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
         .total-info { font-size: 13px; font-weight: bold; color: var(--text-main); }
         .total-info span { color: var(--gold); font-size: 15px; }
@@ -134,7 +134,7 @@
         .custom-select-trigger.active svg { transform: rotate(180deg); }
         .custom-options { position: absolute; top: 105%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 10px; z-index: 100; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .custom-options.open { display: block; }
-        .custom-option { padding: 10px 12px; font-size: 13px; color: var(--text-main); cursor: pointer; border-bottom: 1px solid rgba(128, 128, 128, 0.1); transition: 0.2s; }
+        .custom-option { padding: 10px 12px; font-size: 13px; color: var(--text-main); cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s; }
         .custom-option:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
         .custom-option:last-child { border-bottom: none; }
 
@@ -147,10 +147,10 @@
             display: grid; 
             grid-template-columns: 1.5fr 1fr 0.7fr 1fr 28px; 
             gap: 4px; margin-bottom: 8px; align-items: center; 
-            background: rgba(128, 128, 128, 0.05); padding: 6px; 
+            background: var(--bg-card); padding: 6px; 
             border-radius: 10px; border: 1px solid var(--border); 
         }
-        .spec-row input { padding: 8px 4px; font-size: 12px; text-align: center; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); width: 100%; }
+        .spec-row input { padding: 8px 4px; font-size: 12px; text-align: center; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); width: 100%; outline: none;}
         .spec-row .s-color { text-align: right; padding-right: 8px; }
         
         .spec-row .custom-select-trigger { padding: 8px 4px; font-size: 12px; justify-content: center; gap: 2px; }
@@ -293,7 +293,15 @@
                 </div>
                 <div class="form-group">
                     <label data-i18n="worker">مسئول</label>
-                    <div class="input-box"><input type="text" id="p-worker" placeholder="نام خلیفه"></div>
+                    <!-- اصلاح شد: این بخش از فیلد متنی به منوی کشویی متصل به کارکنان تبدیل شد -->
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger" id="trigger-worker" onclick="toggleDropdown(this)">
+                            <span class="trigger-text" id="text-worker">انتخاب</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="custom-options" id="opt-worker"></div>
+                        <input type="hidden" id="p-worker-id" value="">
+                    </div>
                 </div>
             </div>
 
@@ -358,9 +366,39 @@
         const statuses = ["در حال دوخت", "تکمیل شده", "در انتظار"];
         const clothingTypes = ["واسکت", "جمپر", "جمپر نوجوان", "پیراهن", "پتلون", "دریشی", "کت", "یونیفرم مکتب", "لباس زنانه", "لباس مردانه", "لباس کودک", "محلی", "مجلسی", "عروسی", "پرده", "سایر"];
 
-        let selectedValues = { day: daysFa[0], dayNum: "1", month: "1", year: "1403", specialty: "واسکت", status: "در حال دوخت" };
-        let currentEditingId = null; // برای نگهداری شناسه سری در حال ویرایش
-        let itemToDelete = null; // برای نگهداری شناسه سری در حال حذف
+        let selectedValues = { day: daysFa[0], dayNum: "1", month: "1", year: "1403", specialty: "واسکت", status: "در حال دوخت", workerId: "", workerName: "" };
+        let currentEditingId = null;
+        let itemToDelete = null;
+        let allStaff = []; // برای ذخیره لیست کارکنان
+
+        // ================= موتور دقیق تاریخ شمسی =================
+        function gregorian_to_jalali(gy, gm, gd) {
+            var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            var jy = (gy <= 1600) ? 0 : 979;
+            gy -= (gy <= 1600) ? 621 : 1600;
+            var gy2 = (gm > 2) ? (gy + 1) : gy;
+            var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+            jy += 33 * (parseInt(days / 12053));
+            days %= 12053;
+            jy += 4 * (parseInt(days / 1461));
+            days %= 1461;
+            jy += parseInt((days - 1) / 365);
+            if (days > 365) days = (days - 1) % 365;
+            var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+            var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+            return [jy, jm, jd];
+        }
+
+        function getTodayShamsi() {
+            const d = new Date();
+            const j = gregorian_to_jalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+            return { 
+                year: j[0].toString(), 
+                month: j[1].toString(), 
+                day: j[2].toString(),
+                dayOfWeek: daysFa[(d.getDay() + 1) % 7]
+            };
+        }
 
         // ================= پیام‌رسان =================
         function showAlert(type, title, msg) {
@@ -412,6 +450,10 @@
             trigger.querySelector('.trigger-text').innerText = text;
             trigger.classList.remove('active');
             trigger.nextElementSibling.classList.remove('open');
+
+            if(id === 'worker') {
+                document.getElementById('p-worker-id').value = value;
+            }
         }
 
         document.addEventListener('click', function(e) {
@@ -439,6 +481,26 @@
 
             const statusOpts = document.getElementById('opt-status');
             statusOpts.innerHTML = statuses.map(s => `<div class="custom-option" onclick="selectOption('status', '${s}', '${s}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${s}</div>`).join('');
+        }
+
+        // ================= بارگذاری لیست کارکنان برای مسئول =================
+        function loadStaffForDropdown() {
+            database.ref('users/' + userPhone + '/staff').once('value').then(snap => {
+                const data = snap.val() || {};
+                allStaff = Object.values(data);
+                
+                // فیلتر کردن برای نشان دادن خلیفه‌ها و برش‌کارها
+                const workers = allStaff.filter(s => s.type === 'khalifa' || s.type === 'cutter' || s.type === 'shagerd');
+                
+                const workerOpts = document.getElementById('opt-worker');
+                if(workers.length === 0) {
+                    workerOpts.innerHTML = `<div class="custom-option" style="color:var(--danger)">هیچ کارمندی ثبت نشده</div>`;
+                } else {
+                    workerOpts.innerHTML = workers.map(w => 
+                        `<div class="custom-option" onclick="selectOption('worker', '${w.id}', '${w.name}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${w.name} (${w.type === 'khalifa' ? 'خلیفه' : w.type === 'cutter' ? 'برش‌کار' : 'شاگرد'})</div>`
+                    ).join('');
+                }
+            });
         }
 
         // ================= ردیف‌های داینامیک =================
@@ -477,7 +539,7 @@
                 const price = Number(row.querySelector('.s-price').value) || 0;
                 total += (qty * price);
             });
-            document.getElementById('p-total').innerText = total.toLocaleString() + ' افغانی';
+            document.getElementById('p-total').innerText = total.toLocaleString('fa-AF') + ' افغانی';
         }
 
         // ================= باز کردن مودال برای ثبت جدید =================
@@ -487,21 +549,30 @@
             document.getElementById('btn-save').innerText = 'ذخیره سری';
             
             document.getElementById('p-batch-name').value = '';
-            document.getElementById('p-worker').value = '';
+            document.getElementById('p-worker-id').value = '';
+            document.getElementById('text-worker').innerText = 'انتخاب';
             document.getElementById('p-notes').value = '';
             document.getElementById('p-total').innerText = '0 افغانی';
             document.getElementById('items-container').innerHTML = '';
             addItemRow();
 
-            // بازنشانی تاریخ به امروز
-            const today = new Date();
-            const mappedIdx = (today.getDay() + 1) % 7;
-            selectedValues = { day: daysFa[mappedIdx], dayNum: today.getDate().toString(), month: "1", year: "1403", specialty: clothingTypes[0], status: statuses[0] };
+            // بازنشانی تاریخ به امروز با موتور دقیق
+            const today = getTodayShamsi();
+            selectedValues = { 
+                day: today.dayOfWeek, 
+                dayNum: today.day, 
+                month: today.month, 
+                year: today.year, 
+                specialty: clothingTypes[0], 
+                status: statuses[0], 
+                workerId: "", 
+                workerName: "" 
+            };
             
             document.getElementById('text-day').innerText = selectedValues.day;
             document.getElementById('text-daynum').innerText = selectedValues.dayNum;
-            document.getElementById('text-month').innerText = monthsFa[0];
-            document.getElementById('text-year').innerText = '1403';
+            document.getElementById('text-month').innerText = monthsFa[parseInt(selectedValues.month)-1];
+            document.getElementById('text-year').innerText = selectedValues.year;
             document.getElementById('text-specialty').innerText = selectedValues.specialty;
             document.getElementById('text-status').innerText = selectedValues.status;
 
@@ -520,15 +591,17 @@
 
                 // پر کردن فیلدهای متنی
                 document.getElementById('p-batch-name').value = data.batchName || '';
-                document.getElementById('p-worker').value = data.worker || '';
+                document.getElementById('p-worker-id').value = data.workerId || '';
+                document.getElementById('text-worker').innerText = data.worker || 'انتخاب';
                 document.getElementById('p-notes').value = data.notes || '';
 
                 // تنظیم مقادیر منوهای سفارشی
                 selectedValues.specialty = data.specialty;
                 selectedValues.status = data.status;
+                selectedValues.workerId = data.workerId || '';
+                selectedValues.workerName = data.worker || '';
                 
-                // بازسازی تاریخ از رشته ذخیره شده (تقریبی)
-                // فرمت: "28 حمل 1403 (چهارشنبه)"
+                // بازسازی تاریخ از رشته ذخیره شده
                 const dateParts = data.date.split(' '); // ["28", "حمل", "1403", "(چهارشنبه)"]
                 if(dateParts.length >= 3) {
                     selectedValues.dayNum = dateParts[0];
@@ -562,7 +635,8 @@
         // ================= ذخیره یا به‌روزرسانی سری =================
         function saveBatch() {
             const batchName = document.getElementById('p-batch-name').value.trim();
-            const worker = document.getElementById('p-worker').value;
+            const workerId = document.getElementById('p-worker-id').value;
+            const workerName = document.getElementById('text-worker').innerText;
             const notes = document.getElementById('p-notes').value;
 
             if(!batchName) return showAlert('error', 'خطا', 'نام سری را وارد کنید.');
@@ -595,7 +669,8 @@
                 batchName: batchName,
                 date: dateString,
                 specialty: selectedValues.specialty,
-                worker: worker || '---',
+                workerId: workerId,
+                worker: (workerName !== 'انتخاب') ? workerName : '---',
                 status: selectedValues.status,
                 notes: notes,
                 items: items,
@@ -615,7 +690,7 @@
                 });
             } else {
                 // حالت ثبت جدید
-                batchData.id = Date.now().toString(); // تولید ID جدید
+                batchData.id = Date.now().toString();
                 database.ref('users/' + userPhone + '/production/' + batchData.id).set(batchData).then(() => {
                     closeModal();
                     showAlert('success', 'ثبت شد', 'سری تولید با موفقیت ذخیره شد.');
@@ -648,8 +723,8 @@
                     grandTotalValue += (b.totalValue || 0);
                 });
                 
-                document.getElementById('sum-total').innerText = grandTotalQty.toLocaleString();
-                document.getElementById('sum-value').innerText = grandTotalValue.toLocaleString();
+                document.getElementById('sum-total').innerText = grandTotalQty.toLocaleString('fa-AF');
+                document.getElementById('sum-value').innerText = grandTotalValue.toLocaleString('fa-AF');
 
                 let html = '';
                 batches.forEach(b => {
@@ -662,7 +737,6 @@
                         </div>`;
                     });
 
-                    // تعیین رنگ بج وضعیت
                     const statusClass = b.status === 'تکمیل شده' ? 'status-badge done' : 'status-badge';
 
                     html += `
@@ -685,7 +759,7 @@
                                     <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                     ${b.worker}
                                 </div>
-                                <div class="total-info">جمع: <span>${b.totalQty}</span> (${b.totalValue.toLocaleString()})</div>
+                                <div class="total-info">جمع: <span>${b.totalQty}</span> (${b.totalValue.toLocaleString('fa-AF')})</div>
                             </div>
                             <div class="card-actions">
                                 <button class="action-btn btn-edit" onclick="editBatch('${b.id}')">
@@ -717,6 +791,7 @@
                 document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
             }
             populateDropdowns();
+            loadStaffForDropdown(); // بارگذاری لیست کارکنان
             if(userPhone) loadProductionData();
         };
     </script>
@@ -724,12 +799,8 @@
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js')
-        .then(registration => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(error => {
-          console.log('Service Worker registration failed:', error);
-        });
+        .then(registration => { console.log('Service Worker registered with scope:', registration.scope); })
+        .catch(error => { console.log('Service Worker registration failed:', error); });
     });
   }
   </script>

@@ -309,6 +309,30 @@
             'dd-type-label': 'قرض دادن' // نام نمایشی
         };
 
+        // ================= موتور دقیق تاریخ شمسی =================
+        function gregorian_to_jalali(gy, gm, gd) {
+            var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            var jy = (gy <= 1600) ? 0 : 979;
+            gy -= (gy <= 1600) ? 621 : 1600;
+            var gy2 = (gm > 2) ? (gy + 1) : gy;
+            var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+            jy += 33 * (parseInt(days / 12053));
+            days %= 12053;
+            jy += 4 * (parseInt(days / 1461));
+            days %= 1461;
+            jy += parseInt((days - 1) / 365);
+            if (days > 365) days = (days - 1) % 365;
+            var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+            var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+            return [jy, jm, jd];
+        }
+
+        function todayShamsi(){
+            const d = new Date();
+            const j = gregorian_to_jalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+            return `${j[0]}/${String(j[1]).padStart(2, '0')}/${String(j[2]).padStart(2, '0')}`;
+        }
+
         // ================= سیستم منوی کشویی سفارشی =================
         function toggleDropdown(id) {
             document.querySelectorAll('.dropdown-options').forEach(el => {
@@ -376,9 +400,12 @@
 
         // ================= بارگذاری شاگردان برای منو =================
         function loadStudentsForDropdown() {
-            database.ref('users/' + userPhone + '/students').once('value').then(snapshot => {
+            // اصلاح شد: آدرس از students به staff تغییر یافت تا با فایل مدیریت کارکنان هماهنگ باشد
+            database.ref('users/' + userPhone + '/staff').once('value').then(snapshot => {
                 const data = snapshot.val();
-                allStudents = data ? Object.values(data) : [];
+                let rawList = data ? Object.values(data) : [];
+                // فقط شاگردان و خلیفه‌ها را نشان بده
+                allStudents = rawList.filter(s => s.type === 'shagerd' || s.type === 'khalifa' || !s.type);
                 
                 const optionsContainer = document.getElementById('student-options');
                 if(allStudents.length === 0) {
@@ -401,7 +428,7 @@
             document.getElementById('modal-loan').classList.add('active');
             document.getElementById('l-id').value = '';
             document.getElementById('l-amount').value = '';
-            document.getElementById('l-date').value = '';
+            document.getElementById('l-date').value = todayShamsi(); // اصلاح شد: تاریخ امروز به صورت خودکار
             document.getElementById('l-desc').value = '';
             
             // ریست کردن منوها
@@ -486,7 +513,6 @@
             });
 
             // برای محاسبه دقیق بدهکاران فعلی، باید ببینیم چه کسانی هنوز مانده حساب دارند
-            // یک نقشه برای نگه داشتن مانده هر شاگرد
             let studentBalances = {};
             allLoans.forEach(l => {
                 if(!studentBalances[l.studentId]) studentBalances[l.studentId] = 0;
@@ -529,7 +555,7 @@
                     <div class="loan-card">
                         <div class="loan-header">
                             <div class="loan-info">
-                                <h4>${l.studentName}</h4>
+                                <h4>${l.studentName || 'نامشخص'}</h4>
                                 <p>تاریخ: ${l.date}</p>
                             </div>
                             <div class="loan-amount ${amountClass}">${sign} ${l.amount.toLocaleString()} <span style="font-size:10px">افغانی</span></div>
@@ -553,7 +579,7 @@
         function filterLoans() {
             const query = document.getElementById('search-loan').value.toLowerCase();
             const filtered = allLoans.filter(l => 
-                l.studentName.toLowerCase().includes(query) || 
+                (l.studentName || '').toLowerCase().includes(query) || 
                 (l.desc && l.desc.toLowerCase().includes(query))
             );
             renderLoansList(filtered);

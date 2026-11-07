@@ -223,11 +223,12 @@
                     if(p.items) {
                         p.items.forEach(i => total += (Number(i.qty) * Number(i.price)));
                     }
+                    // اصلاح شد: type و official به specialty و worker تغییر یافتند تا با production.html هماهنگ باشند
                     html += `
                         <tr>
                             <td>${p.date || '---'}</td>
-                            <td>${p.type || '---'}</td>
-                            <td>${p.official || '---'}</td>
+                            <td>${p.specialty || '---'}</td>
+                            <td>${p.worker || '---'}</td>
                             <td>${p.totalQty || 0}</td>
                             <td>${total.toLocaleString()}</td>
                         </tr>

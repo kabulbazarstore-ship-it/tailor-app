@@ -13,6 +13,7 @@
         :root {
             --bg-body: radial-gradient(circle at top, #0a261d 0%, #050b09 100%);
             --bg-panel: linear-gradient(180deg, #0a1c16 0%, #040b09 100%);
+            --bg-card: rgba(255, 255, 255, 0.03);
             --text-main: #ffffff;
             --text-muted: #78909c;
             --gold: #d4af37;
@@ -28,6 +29,7 @@
         body.light-mode {
             --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
             --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
+            --bg-card: rgba(0, 0, 0, 0.03);
             --text-main: #1c2b26;
             --text-muted: #4a5a54;
             --border: rgba(212, 175, 55, 0.6);
@@ -81,10 +83,10 @@
         .office-info p { font-size: 11px; color: var(--text-muted); }
         
         .office-amount { font-size: 16px; font-weight: bold; }
-        .office-amount.taken { color: var(--danger); } /* برداشت */
-        .office-amount.given { color: var(--success); } /* واریز */
+        .office-amount.taken { color: var(--danger); }
+        .office-amount.given { color: var(--success); }
 
-        .office-details { display: flex; justify-content: space-between; font-size: 11px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .office-details { display: flex; justify-content: space-between; font-size: 11px; background: var(--bg-card); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border); }
         .type-badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
         .type-taken { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); }
         .type-given { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); }
@@ -322,6 +324,30 @@
         
         const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
 
+        // ================= موتور دقیق تاریخ شمسی =================
+        function gregorian_to_jalali(gy, gm, gd) {
+            var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            var jy = (gy <= 1600) ? 0 : 979;
+            gy -= (gy <= 1600) ? 621 : 1600;
+            var gy2 = (gm > 2) ? (gy + 1) : gy;
+            var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+            jy += 33 * (parseInt(days / 12053));
+            days %= 12053;
+            jy += 4 * (parseInt(days / 1461));
+            days %= 1461;
+            jy += parseInt((days - 1) / 365);
+            if (days > 365) days = (days - 1) % 365;
+            var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+            var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+            return [jy, jm, jd];
+        }
+
+        function todayShamsi(){
+            const d = new Date();
+            const j = gregorian_to_jalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+            return { y: j[0], m: j[1], d: j[2] };
+        }
+
         // ================= سیستم منوی کشویی سفارشی =================
         function toggleDropdown(id) {
             document.querySelectorAll('.dropdown-options').forEach(el => {
@@ -346,6 +372,7 @@
                 selectedValues['dd-type-label'] = label;
             } else if (dropdownId === 'dd-year') {
                 selectedValues.year = value;
+                updateDaysDropdown(); // آپدیت روزها (شاید سال کبیسه باشد)
             } else if (dropdownId === 'dd-month') {
                 selectedValues.month = value;
                 updateDaysDropdown(); // آپدیت روزها بر اساس ماه
@@ -388,9 +415,16 @@
         function updateDaysDropdown() {
             const daysCol = document.getElementById('day-options');
             let maxDays = 31;
+            let m = selectedValues.month;
+            let y = selectedValues.year;
             
-            // اگر ماه 7 تا 12 باشد، 30 روزه هستند (به جز ماه 12 که 29 یا 30 است که فعلا 30 می‌گیریم)
-            if(selectedValues.month >= 7) maxDays = 30;
+            // 6 ماه اول سال 31 روزه است
+            if(m >= 7 && m <= 11) maxDays = 30; // ماه 7 تا 11 -> 30 روزه
+            if(m === 12) {
+                // محاسبه دقیق کبیسه بودن سال شمسی برای ماه حوت (اسفند)
+                let isLeap = (((25 * y + 11) % 33) < 8);
+                maxDays = isLeap ? 30 : 29;
+            }
 
             // اگر روز انتخاب شده از حداکثر بیشتر بود، ریست شود
             if(selectedValues.day > maxDays) {
@@ -435,15 +469,16 @@
             
             selectOption('dd-type', 'واریز (به صندوق)', 'given');
             
-            // تنظیم تاریخ به امروز
-            const today = new Date();
-            // اینجا یک تاریخ ساده شمسی می‌گذاریم (برای دقت بالا نیاز به کتابخانه است اما برای شروع خوب است)
-            document.getElementById('val-year').innerText = '1403';
-            document.getElementById('val-month').innerText = 'حمل';
-            document.getElementById('val-day').innerText = '1';
-            selectedValues.year = 1403;
-            selectedValues.month = 1;
-            selectedValues.day = 1;
+            // اصلاح شد: تنظیم تاریخ دقیق امروز
+            const today = todayShamsi();
+            document.getElementById('val-year').innerText = today.y;
+            document.getElementById('val-month').innerText = shamsiMonths[today.m - 1];
+            document.getElementById('val-day').innerText = today.d;
+            selectedValues.year = today.y;
+            selectedValues.month = today.m;
+            selectedValues.day = today.d;
+            
+            updateDaysDropdown(); // برای اطمینان از تعداد درست روزها
         }
         function closeModal() { document.getElementById('modal-office').classList.remove('active'); }
 
@@ -513,9 +548,9 @@
 
             const balance = totalGiven - totalTaken;
 
-            document.getElementById('stat-balance').innerHTML = `${balance.toLocaleString()} <span>افغانی</span>`;
-            document.getElementById('stat-total-given').innerHTML = `${totalGiven.toLocaleString()} <span>افغانی</span>`;
-            document.getElementById('stat-total-taken').innerHTML = `${totalTaken.toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-balance').innerHTML = `${balance.toLocaleString('fa-AF')} <span>افغانی</span>`;
+            document.getElementById('stat-total-given').innerHTML = `${totalGiven.toLocaleString('fa-AF')} <span>افغانی</span>`;
+            document.getElementById('stat-total-taken').innerHTML = `${totalTaken.toLocaleString('fa-AF')} <span>افغانی</span>`;
             document.getElementById('stat-total-trx').innerHTML = `${allTransactions.length} <span>مورد</span>`;
         }
 
@@ -543,7 +578,7 @@
                                 <h4>${t.typeLabel}</h4>
                                 <p>تاریخ: ${t.date}</p>
                             </div>
-                            <div class="office-amount ${amountClass}">${sign} ${t.amount.toLocaleString()} <span style="font-size:10px">افغانی</span></div>
+                            <div class="office-amount ${amountClass}">${sign} ${t.amount.toLocaleString('fa-AF')} <span style="font-size:10px">افغانی</span></div>
                         </div>
                         
                         <div class="office-details">
