@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tailor-cache-v28'; // ← نسخه رو بالا ببر تا کش قدیمی پاک بشه
+const CACHE_NAME = 'tailor-cache-v31'; // نسخه به v31 ارتقا یافت تا کش قدیمی پاک شود
 
 const ASSETS_TO_CACHE = [
   './',
@@ -6,7 +6,9 @@ const ASSETS_TO_CACHE = [
   './activate.html',
   './admin.html',
   './backup.html',
+  './bulk.html',
   './cutting.html',
+  './accounting.html',
   './finance.html',
   './guide.json',
   './loans.html',
@@ -20,8 +22,10 @@ const ASSETS_TO_CACHE = [
   './production.html',
   './profile.html',
   './report.html',
+  './retail.html',
   './samples.html',
   './students.html',
+  './support.html',
   './assets/logo-192.png',
   './assets/logo-512.png'
 ];
@@ -30,7 +34,6 @@ const ASSETS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      // هر فایل جدا کش میشه؛ اگه یکی نبود، بقیه ادامه میدن
       await Promise.allSettled(
         ASSETS_TO_CACHE.map((url) =>
           cache.add(url).catch((err) => {
@@ -38,7 +41,7 @@ self.addEventListener('install', (event) => {
           })
         )
       );
-      console.log('✅ کش نصب شد:', CACHE_NAME);
+      console.log('✅ کش جدید نصب شد:', CACHE_NAME);
     })
   );
   self.skipWaiting();
@@ -52,7 +55,7 @@ self.addEventListener('activate', (event) => {
         names
           .filter((n) => n !== CACHE_NAME)
           .map((n) => {
-            console.log('🗑 پاک شد:', n);
+            console.log('🗑 کش قدیمی پاک شد:', n);
             return caches.delete(n);
           })
       )
@@ -66,10 +69,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   const url = req.url;
 
-  // فقط GET
   if (req.method !== 'GET') return;
-
-  // فقط http/https
   if (!url.startsWith('http')) return;
 
   // Firebase و Google رو کش نمی‌کنیم
@@ -86,7 +86,7 @@ self.addEventListener('fetch', (event) => {
   const isHTML = accept.includes('text/html');
   const isNavigation = req.mode === 'navigate';
 
-  /* ---------- HTML و ناوبری: Network-First ---------- */
+  /* ---------- HTML و ناوبری: Network-First (اول از اینترنت، بعد کش) ---------- */
   if (isHTML || isNavigation) {
     event.respondWith(
       fetch(req)
@@ -96,21 +96,17 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(async () => {
-          // آفلاین: اول همون صفحه، بعد index
-          const cached =
-            (await caches.match(req)) ||
-            (await caches.match('./index.html'));
+          const cached = (await caches.match(req)) || (await caches.match('./index.html'));
           return cached || new Response('آفلاین هستید', { status: 503 });
         })
     );
     return;
   }
 
-  /* ---------- بقیه فایل‌ها: Cache-First ---------- */
+  /* ---------- بقیه فایل‌ها: Cache-First (اول از کش، بعد اینترنت) ---------- */
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) {
-        // پس‌زمینه: نسخه جدید چک بشه
         fetch(req)
           .then((res) => {
             if (res && res.status === 200 && res.type === 'basic') {
@@ -121,7 +117,6 @@ self.addEventListener('fetch', (event) => {
         return cached;
       }
 
-      // در کش نبود: از اینترنت بگیر و کش کن
       return fetch(req)
         .then((res) => {
           if (res && res.status === 200 && res.type === 'basic') {
@@ -131,7 +126,6 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(() => {
-          // آفلاین و کش هم نبود → پاسخ خالی معتبر
           return new Response('', { status: 504, statusText: 'Offline' });
         });
     })
