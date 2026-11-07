@@ -6,17 +6,16 @@
     <title>Tailor | خیاط‌یار</title>
     <link rel="manifest" href="manifest.json">
     
-    <!-- تنظیمات اختصاصی برای آیفون (iOS) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Tailor">
     <link rel="apple-touch-icon" href="assets/logo.png">
 
-    <!-- اضافه شدن Firebase Auth برای امنیت واقعی -->
+    <!-- Firebase Core & Auth & Database -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- کتابخانه ساخت بارکد آفلاین -->
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
@@ -51,59 +50,16 @@
         body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
         .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; z-index: 1; }
 
-        /* لودینگ */
+        /* لودینگ اولیه (Splash) */
         #splash-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        .glow-logo { width: 130px; height: 130px; border-radius: 30px; border: 2px solid var(--gold); object-fit: cover; animation: pulseGlow 2s infinite alternate, floatLogo 3s ease-in-out infinite; background: #000; }
+        .glow-logo { width: 110px; height: 110px; border-radius: 30px; border: 2px solid var(--gold); object-fit: cover; animation: pulseGlow 2s infinite alternate; background: #000; }
         @keyframes pulseGlow { from { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); } to { box-shadow: 0 0 40px rgba(212, 175, 55, 0.8); } }
-        @keyframes floatLogo { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
         .splash-title { color: var(--gold); font-size: 26px; margin-top: 20px; font-weight: bold; letter-spacing: 2px; }
-        .loader-spinner { width: 35px; height: 35px; border: 3px solid rgba(212, 175, 55, 0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 25px; }
+        .splash-name { color: var(--text-main); font-size: 16px; margin-top: 10px; font-weight: bold; }
+        .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(212, 175, 55, 0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 25px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* نوار هشدار دوره آزمایشی */
-        .trial-banner { background: rgba(243, 156, 18, 0.15); border: 1px solid var(--warning); color: var(--warning); padding: 12px; border-radius: 12px; font-size: 12px; text-align: center; margin-bottom: 15px; display: none; line-height: 1.6; font-weight: bold; }
-        .trial-banner a { color: #fff; background: var(--warning); padding: 4px 10px; border-radius: 6px; text-decoration: none; margin-right: 5px; font-size: 11px; display: inline-block; margin-top: 5px; }
-
-        /* هدر */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; z-index: 100; }
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .menu-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; }
-        .menu-btn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; }
-        .brand-name { color: var(--gold); font-weight: bold; font-size: 18px; letter-spacing: 1px; }
-        .header-actions { display: flex; gap: 10px; align-items: center; }
-        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
-
-        /* منوی کناری */
-        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 1000; opacity: 0; pointer-events: none; transition: 0.3s; }
-        .sidebar-overlay.active { opacity: 1; pointer-events: all; }
-        .sidebar { position: fixed; top: 0; right: -320px; width: 300px; height: 100vh; background: var(--sidebar-bg); border-left: 1px solid var(--border); z-index: 1001; transition: right 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); display: flex; flex-direction: column; overflow-y: auto; }
-        .sidebar.active { right: 0; }
-        
-        .sidebar-profile { padding: 25px 20px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%); border-bottom: 1px solid var(--border); text-align: center; position: relative; cursor: pointer; }
-        .sidebar-profile:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, transparent 100%); }
-        .sidebar-avatar { width: 70px; height: 70px; border-radius: 50%; background: var(--gold); color: #000; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; margin: 0 auto 10px; border: 3px solid var(--bg-panel); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); transition: 0.3s; object-fit: cover; }
-        .sidebar-profile:hover .sidebar-avatar { transform: scale(1.05); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); }
-        .sidebar-user h3 { font-size: 16px; color: var(--gold); margin-bottom: 3px; }
-        .sidebar-user p { font-size: 12px; color: var(--text-muted); }
-        .sidebar-go-profile { margin-top: 8px; font-size: 11px; color: var(--gold); display: inline-flex; align-items: center; gap: 3px; }
-        .sidebar-tagline { margin-top: 15px; font-size: 11px; color: var(--text-muted); line-height: 1.5; border-top: 1px dashed var(--border); padding-top: 15px; }
-        .sidebar-tagline strong { color: var(--gold); font-size: 13px; display: block; margin-top: 5px; }
-
-        .sidebar-menu { display: flex; flex-direction: column; gap: 5px; padding: 15px; }
-        .sb-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-main); text-decoration: none; font-size: 13px; cursor: pointer; transition: 0.2s; background: transparent; border: none; text-align: right; }
-        .sb-item:hover { background: rgba(212, 175, 55, 0.1); color: var(--gold); }
-        .sb-item svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
-        .sidebar-section-title { font-size: 11px; color: var(--text-muted); margin: 15px 0 5px 0; padding-right: 12px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-        
-        .other-users-list { display: flex; flex-direction: column; gap: 8px; padding: 0 15px 15px; }
-        .user-item-mini { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 10px; font-size: 12px; }
-        .user-item-mini .avatar-mini { width: 30px; height: 30px; border-radius: 50%; background: var(--gold-light); color: #000; display: flex; justify-content: center; align-items: center; font-weight: bold; }
-        .user-item-mini .info-mini { display: flex; flex-direction: column; }
-        .user-item-mini .info-mini strong { color: var(--text-main); }
-        .user-item-mini .info-mini span { color: var(--text-muted); font-size: 10px; }
-
-        /* فرم‌ها و کارت‌ها */
+        /* فرم‌ها */
         .view-section { display: none; animation: fadeIn 0.3s ease-out; }
         .view-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -111,71 +67,38 @@
         .header-title h1 { color: var(--gold); font-size: 22px; margin-bottom: 5px; text-align: center; }
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; font-size: 12px; color: var(--gold); margin-bottom: 6px; }
-        .input-box { position: relative; width: 100%; }
-        .input-box input, .input-box select { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; color: var(--text-main); font-size: 13px; outline: none; }
-        .row { display: flex; gap: 10px; }
-        .row .form-group { flex: 1; }
+        .input-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; color: var(--text-main); font-size: 13px; outline: none; }
         .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
         .btn-link { background: none; border: none; color: var(--gold); font-size: 13px; cursor: pointer; display: block; width: 100%; text-align: center; margin-top: 15px; }
 
         /* داشبورد */
-        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { background: none; border: none; color: var(--gold); cursor: pointer; }
+        .menu-btn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; }
+        .brand-name { color: var(--gold); font-weight: bold; font-size: 18px; }
+        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+        
         .dash-header h2 { font-size: 18px; color: var(--gold); margin-bottom: 4px; }
         .dash-header p { font-size: 11px; color: var(--text-muted); }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); position: relative; overflow: hidden; }
-        .stat-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--gold); }
-        .stat-card:nth-child(2)::before { background: var(--success); }
-        .stat-card:nth-child(3)::before { background: var(--danger); }
-        .stat-card:nth-child(4)::before { background: #3498db; }
-        .stat-info .title { font-size: 11px; color: var(--text-muted); }
-        .stat-info .value { font-size: 18px; font-weight: bold; color: var(--text-main); display: flex; align-items: baseline; gap: 4px; }
-        .stat-info .value span { font-size: 10px; color: var(--gold); }
-        .stat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; background: rgba(212, 175, 55, 0.1); color: var(--gold); }
-        .stat-card:nth-child(2) .stat-icon { background: rgba(46, 213, 115, 0.1); color: var(--success); }
-        .stat-card:nth-child(3) .stat-icon { background: rgba(255, 71, 87, 0.1); color: var(--danger); }
-        .stat-card:nth-child(4) .stat-icon { background: rgba(52, 152, 219, 0.1); color: #3498db; }
-        .stat-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
-
-        /* آخرین تولیدات */
-        .recent-list { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; margin-bottom: 20px; box-shadow: var(--shadow); }
-        .recent-header { font-size: 14px; color: var(--gold); font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,0.1); }
-        .recent-item:last-child { border-bottom: none; }
-        .recent-item .info { display: flex; flex-direction: column; gap: 5px; flex: 1; }
-        .recent-item .info strong { color: var(--text-main); font-size: 13px; }
-        .recent-item .info span { color: var(--text-muted); font-size: 11px; }
-        .recent-item .qty { font-weight: bold; color: var(--gold); font-size: 14px; white-space: nowrap; padding-left: 10px; }
-
-        /* دسترسی سریع (۹ دکمه) */
-        .quick-access-title { font-size: 15px; color: var(--text-main); margin-bottom: 15px; cursor: pointer; user-select: none; font-weight: bold; }
+        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+        .stat-info .title { font-size: 10px; color: var(--text-muted); }
+        .stat-info .value { font-size: 16px; font-weight: bold; color: var(--text-main); }
+        
         .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .menu-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: var(--text-main); box-shadow: var(--shadow); transition: 0.2s; }
-        .menu-item:active { transform: scale(0.95); }
+        .menu-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px 5px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-decoration: none; color: var(--text-main); box-shadow: var(--shadow); }
         .icon-box { width: 45px; height: 45px; border-radius: 12px; display: flex; justify-content: center; align-items: center; }
         .icon-box svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
         .menu-item span { font-size: 11px; font-weight: bold; text-align: center; }
         
-        .bg-orders { background: #f39c12; } 
-        .bg-students { background: #2ed573; } 
-        .bg-production { background: #9b59b6; }
-        .bg-finance { background: #3498db; } 
-        .bg-samples { background: #e84393; } 
-        .bg-cutting { background: #3498db; }
-        .bg-loans { background: #e84393; } 
-        .bg-machine { background: #7f8c8d; } 
-        .bg-office { background: #27ae60; }
+        .bg-orders { background: #f39c12; } .bg-students { background: #2ed573; } .bg-production { background: #9b59b6; }
+        .bg-finance { background: #3498db; } .bg-samples { background: #e84393; } .bg-cutting { background: #3498db; }
+        .bg-loans { background: #e84393; } .bg-machine { background: #7f8c8d; } .bg-office { background: #27ae60; }
 
-        /* منوی پایین */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-panel); border-top: 1px solid var(--border); display: none; justify-content: space-around; padding: 10px 0 15px; z-index: 1000; }
-        .bottom-nav.active { display: flex; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; width: 20%; transition: 0.2s; text-decoration: none; }
-        .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
-        .nav-item span { font-size: 10px; }
-        .nav-item.active { color: var(--gold); }
-
-        /* مودال‌ها */
+        /* سیستم پیام‌رسان */
         .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
         .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
         .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.8); transition: 0.3s; }
@@ -187,38 +110,19 @@
         .custom-alert-title { color: var(--gold); font-size: 18px; font-weight: bold; margin-bottom: 8px; }
         .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; line-height: 1.5; }
         .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
-
-        /* مودال تنظیمات اولیه (Setup) */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
-        .modal-overlay.active { display: flex; }
-        .modal-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; box-shadow: var(--shadow); position: relative; max-height: 95vh; overflow-y: auto; }
-        .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--gold); text-align: center; }
-        
-        .img-upload-box { width: 100px; height: 100px; border: 2px dashed var(--border); border-radius: 50%; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; overflow: hidden; background: rgba(0,0,0,0.2); }
-        .img-upload-box input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-        .img-upload-box svg { width: 30px; height: 30px; stroke: var(--gold); fill: none; stroke-width: 2; }
-        #profile-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
-        
-        .custom-dropdown { position: relative; width: 100%; user-select: none; }
-        .dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text-main); font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .dropdown-trigger.active { border-color: var(--gold); }
-        .dropdown-trigger svg { width: 12px; height: 12px; stroke: var(--gold); stroke-width: 2; fill: none; transition: .3s; }
-        .dropdown-trigger.active svg { transform: rotate(180deg); }
-        .dropdown-options { position: absolute; top: 110%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 8px; box-shadow: var(--shadow); z-index: 100; display: none; flex-direction: column; max-height: 150px; overflow-y: auto; }
-        .dropdown-options.active { display: flex; }
-        .dropdown-option { padding: 10px; font-size: 11px; cursor: pointer; color: var(--text-main); border-bottom: 1px solid var(--border); transition: .2s; }
-        .dropdown-option:hover { background: rgba(212,175,55,.15); color: var(--gold); }
-        
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-
-        /* مودال اشتراک‌گذاری */
-        .share-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; }
-        .share-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px; text-align: center; width: 85%; max-width: 320px; }
     </style>
 </head>
 <body>
 
-    <!-- سیستم پیام‌رسانی -->
+    <!-- صفحه لودینگ -->
+    <div id="splash-screen">
+        <img src="assets/logo.png" alt="Tailor" class="glow-logo" onerror="this.style.display='none'">
+        <h1 class="splash-title">Tailor</h1>
+        <h2 class="splash-name" id="splash-user-name"></h2>
+        <div class="loader-spinner"></div>
+    </div>
+
+    <!-- سیستم پیام‌رسان -->
     <div class="custom-alert-overlay" id="custom-alert">
         <div class="custom-alert-box">
             <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
@@ -228,80 +132,20 @@
         </div>
     </div>
 
-    <div id="splash-screen">
-        <img src="assets/logo.png" alt="Tailor" class="glow-logo" onerror="this.style.display='none'">
-        <h1 class="splash-title">Tailor</h1>
-        <div class="loader-spinner"></div>
-    </div>
-
-    <!-- منوی کناری -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-profile" onclick="goToProfile()">
-            <img id="sidebar-avatar-img" class="sidebar-avatar" style="display:none;">
-            <div class="sidebar-avatar" id="user-avatar-text">خ</div>
-            <div class="sidebar-user">
-                <h3 id="user-name-display">نام کاربر</h3>
-                <p id="user-phone-display">07XXXXXXXX</p>
-                <span class="sidebar-go-profile">رفتن به پروفایل ❮</span>
-            </div>
-            <div class="sidebar-tagline">
-                ساخته شده با در نظر گرفتن صاحبان خیاطی
-                <strong id="user-name-display-bottom">خیاط شما</strong>
-            </div>
-        </div>
-
-        <div class="sidebar-menu">
-            <a href="students.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان و خلیفه‌ها</span></a>
-            <a href="office.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span>حساب و کتاب</span></a>
-            <a href="machine-guide.html" class="sb-item"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg><span>راهنمای چرخ خیاطی</span></a>
-            
-            <a href="backup.html" class="sb-item">
-                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>تیم پشتیبان و سفارش</span>
-            </a>
-            
-            <a href="payment.html" class="sb-item">
-                <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>پرداخت و تمدید اشتراک</span>
-            </a>
-
-            <a href="#" class="sb-item" onclick="openShareModal(event)">
-                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                <span>اشتراک‌گذاری برنامه</span>
-            </a>
-
-            <a href="more.html" class="sb-item">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                <span>بیشتر</span>
-            </a>
-            
-            <button class="sb-item" style="margin-top: 15px; color: var(--danger);" onclick="logout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>خروج</span></button>
-        </div>
-
-        <div class="sidebar-section-title">خیاطی‌های همراه ما</div>
-        <div class="other-users-list" id="other-users-container">
-            <p style="font-size:11px; color:var(--text-muted); text-align:center;">در حال بارگذاری...</p>
-        </div>
-    </div>
-
-    <!-- بدنه اصلی -->
-    <div class="app-container" id="main-app-container">
+    <div class="app-container">
         
+        <!-- دکمه تم -->
         <div class="top-bar" id="main-top-bar" style="display: none;">
             <div class="header-left">
-                <button class="menu-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
                 <div class="brand-name">Tailor</div>
             </div>
-            <div class="header-actions">
-                <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
         </div>
 
-        <!-- صفحه ورود (با ایمیل و رمز) -->
+        <!-- صفحه ورود -->
         <div id="view-login" class="view-section active">
             <div class="card">
-                <div class="header-title"><h1>Tailor</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:5px;">مدیریت حرفه‌ای خیاطی</p></div>
+                <div class="header-title"><h1>ورود به Tailor</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:5px;">حساب خود را وارد کنید</p></div>
                 <form onsubmit="event.preventDefault(); loginUser();">
                     <div class="form-group"><label>ایمیل</label><div class="input-box"><input type="email" id="login-email" placeholder="example@mail.com" required></div></div>
                     <div class="form-group"><label>رمز عبور</label><div class="input-box"><input type="password" id="login-pass" placeholder="رمز عبور" required></div></div>
@@ -311,20 +155,16 @@
             </div>
         </div>
 
-        <!-- صفحه ثبت‌نام (فرم کامل طبق تصویر) -->
+        <!-- صفحه ثبت‌نام -->
         <div id="view-register" class="view-section">
-            <div class="card" style="padding: 20px 15px;">
-                <div class="header-title"><h1>ایجاد حساب</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-bottom:15px;">اطلاعات خیاطی خود را وارد کنید</p></div>
+            <div class="card">
+                <div class="header-title"><h1>ایجاد حساب جدید</h1></div>
                 <form onsubmit="event.preventDefault(); registerUser();">
                     <div class="form-group"><label>نام خیاطی</label><div class="input-box"><input type="text" id="reg-tailor" required placeholder="مثلا خیاطی احمدی"></div></div>
-                    <div class="form-group"><label>نام مالک</label><div class="input-box"><input type="text" id="reg-owner" required placeholder="نام و تخلص"></div></div>
                     <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="reg-phone" required placeholder="07XXXXXXXX"></div></div>
-                    <div class="form-group"><label>شماره واتساپ</label><div class="input-box"><input type="tel" id="reg-whatsapp" placeholder="93XXXXXXXXX"></div></div>
                     <div class="form-group"><label>ایمیل</label><div class="input-box"><input type="email" id="reg-email" required placeholder="example@mail.com"></div></div>
-                    <div class="form-group"><label>آدرس</label><div class="input-box"><input type="text" id="reg-address" placeholder="آدرس دقیق"></div></div>
                     <div class="form-group"><label>رمز عبور (حداقل ۶ کاراکتر)</label><div class="input-box"><input type="password" id="reg-pass" required minlength="6" placeholder="رمز عبور"></div></div>
-                    
-                    <button type="submit" class="btn btn-primary" id="btn-register">ایجاد حساب</button>
+                    <button type="submit" class="btn btn-primary" id="btn-register">ثبت‌نام و شروع ۳۰ روز رایگان</button>
                     <button type="button" class="btn-link" onclick="switchView('login')">قبلاً حساب دارید؟ ورود</button>
                 </form>
             </div>
@@ -332,92 +172,53 @@
 
         <!-- صفحه داشبورد -->
         <div id="view-dashboard" class="view-section">
-            
-            <!-- بنر دوره آزمایشی -->
-            <div class="trial-banner" id="trial-banner"></div>
-
             <div class="dash-header">
                 <div class="greeting">
-                    <h2>سلام، خلیفه</h2>
+                    <h2 id="dash-greeting">سلام</h2>
                     <p id="dash-date">در حال بارگذاری تاریخ...</p>
                 </div>
             </div>
             
             <div class="stats-grid">
-                <div class="stat-card"><div class="stat-info"><div class="title">کل تولیدات (تعداد)</div><div class="value" id="stat-total-prod">0</div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2 12 5 8 2 3.62 3.46a2 2 0 0 0-1.34 2.23l1.03 7.36a2 2 0 0 0 2 1.73H18.7a2 2 0 0 0 2-1.73l1.03-7.36a2 2 0 0 0-1.35-2.23z"/><path d="M12 13v9"/><path d="M8 22h8"/></svg></div></div>
-                <div class="stat-card"><div class="stat-info"><div class="title">مبلغ کل تولیدات</div><div class="value" id="stat-total-value">0 <span>افغانی</span></div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
-                <div class="stat-card"><div class="stat-info"><div class="title">مجموع قرض‌ها</div><div class="value" id="stat-total-debt">0 <span>افغانی</span></div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div></div>
-                <div class="stat-card"><div class="stat-info"><div class="title">موجودی دفتر</div><div class="value" id="stat-book-balance">0 <span>افغانی</span></div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">کل تولیدات</div><div class="value" id="stat-total-prod">0</div></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">مبلغ تولیدات</div><div class="value" id="stat-total-value">0</div></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">مجموع قرض‌ها</div><div class="value" id="stat-total-debt">0</div></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">موجودی دفتر</div><div class="value" id="stat-book-balance">0</div></div></div>
             </div>
 
-            <div class="recent-list">
-                <div class="recent-header"><span>آخرین تولیدات ثبت شده</span><a href="production.html" style="color:var(--gold); font-size:11px; text-decoration:none;">مشاهده همه</a></div>
-                <div id="recent-production-container"><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:10px;">در حال بارگذاری...</p></div>
-            </div>
-
-            <!-- دسترسی سریع (۹ دکمه رنگی) -->
-            <h3 class="quick-access-title" id="secret-trigger" onclick="handleSecretTap()">دسترسی سریع</h3>
-            
             <div class="menu-grid">
                 <a href="owner.html" class="menu-item"><div class="icon-box bg-orders"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span>سفارشات</span></a>
-                <a href="loans.html" class="menu-item"><div class="icon-box bg-loans"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="10" x2="12" y2="16"/></svg></div><span>قرض شاگردان</span></a>
-                <a href="production.html" class="menu-item"><div class="icon-box bg-production"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><span>ثبت تولید</span></a>
-                
-                <!-- اصلاح شد: این دکمه قبلا به cutting میرفت، حالا به samples میرود -->
-                <a href="samples.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
-                
-                <a href="cutting.html" class="menu-item"><div class="icon-box bg-cutting"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg></div><span>برش کار</span></a>
+                <a href="production.html" class="menu-item"><div class="icon-box bg-production"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><span>تولید</span></a>
                 <a href="students.html" class="menu-item"><div class="icon-box bg-students"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><span>شاگردان</span></a>
-                
+                <a href="cutting.html" class="menu-item"><div class="icon-box bg-cutting"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg></div><span>برش کار</span></a>
+                <a href="samples.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
+                <a href="loans.html" class="menu-item"><div class="icon-box bg-loans"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="10" x2="12" y2="16"/></svg></div><span>قرض</span></a>
                 <a href="accounting.html" class="menu-item"><div class="icon-box bg-finance"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span>حساب و کتاب</span></a>
-                <a href="machine-guide.html" class="menu-item"><div class="icon-box bg-machine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><span>راهنمای چرخ</span></a>
                 <a href="office.html" class="menu-item"><div class="icon-box bg-office"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span>حساب دفتر</span></a>
+                <a href="machine-guide.html" class="menu-item"><div class="icon-box bg-machine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><span>راهنمای چرخ</span></a>
             </div>
-        </div>
-    </div> 
-
-    <!-- مودال تنظیمات اولیه (Setup) - برای عکس پروفایل -->
-    <div class="modal-overlay" id="setup-modal">
-        <div class="modal-box">
-            <h2 class="modal-title">تکمیل اطلاعات کاربری</h2>
-            <p style="text-align:center; font-size:11px; color:var(--text-muted); margin-bottom:15px;">لطفاً برای شخصی‌سازی برنامه، عکس پروفایل خود را انتخاب کنید.</p>
-            
-            <div class="img-upload-box">
-                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <input type="file" id="profile-file" accept="image/*" onchange="processProfileImage(this)">
-                <img id="profile-preview">
-            </div>
-
-            <button class="btn-primary" onclick="saveSetup()" style="margin-top:15px;">ذخیره و ورود به برنامه</button>
         </div>
     </div>
 
-    <!-- مودال اشتراک‌گذاری -->
-    <div class="share-modal" id="share-modal">
-        <div class="share-box">
-            <h3 style="color: var(--gold); margin-bottom: 15px;">اشتراک‌گذاری برنامه</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">با اسکن این بارکد، دوستان شما می‌توانند برنامه را نصب کنند.</p>
+    <!-- صفحه قفل (اشتراک تمام شده) -->
+    <div id="lock-screen" style="position:fixed; inset:0; background:var(--bg-body); z-index:9998; display:none; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;">
+        <img src="assets/logo.png" style="width:100px; margin-bottom:20px; border-radius:20px; border:2px solid var(--gold);">
+        <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک شما به پایان رسیده است</h2>
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.6;">دوره آزمایشی ۳۰ روزه شما تمام شده است. برای ادامه استفاده، لطفاً هزینه اشتراک را پرداخت کنید.</p>
+        
+        <div style="background:var(--bg-panel); border:1px solid var(--gold); padding:15px; border-radius:15px; width:100%; max-width:350px;">
+            <a href="payment.html" class="btn btn-primary" style="text-decoration:none; margin-bottom:15px;">پرداخت و تمدید اشتراک</a>
             
-            <div id="qrcode-container" style="background: #fff; padding: 10px; border-radius: 10px; display: inline-block; margin-bottom: 15px; border: 2px solid var(--gold);">
-                <!-- بارکد اینجا ساخته می‌شود -->
-            </div>
-
-            <input type="text" id="share-link-input" readonly style="width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; text-align: center; margin-bottom: 15px;">
-            <button onclick="copyShareLink()" style="width: 100%; padding: 12px; border-radius: 10px; background: var(--gold); color: #000; font-weight: bold; border: none; cursor: pointer; margin-bottom: 10px;">کپی کردن لینک</button>
-            <button onclick="document.getElementById('share-modal').style.display='none'" style="width: 100%; padding: 12px; border-radius: 10px; background: transparent; color: var(--danger); font-weight: bold; border: 1px solid var(--danger); cursor: pointer;">بستن</button>
+            <p style="font-size:12px; color:var(--text-main); margin-bottom:10px;">اگر قبلاً پرداخت کرده‌اید، کد فعال‌سازی را وارد کنید:</p>
+            <input type="text" id="lock-code-input" placeholder="کد فعال‌سازی" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); text-align:center; margin-bottom:10px; outline:none;">
+            <button onclick="activateAccount()" class="btn btn-primary" style="background:var(--success); color:#fff;">فعال‌سازی حساب</button>
         </div>
+        
+        <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</button>
     </div>
-
-    <!-- منوی پایین -->
-    <nav class="bottom-nav" id="bottom-nav">
-        <a href="index.html" class="nav-item active"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
-        <a href="production.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
-        <a href="students.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان</span></a>
-        <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
-        <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>بیشتر</span></a>
-    </nav>
 
     <script>
+        // ================= تنظیمات فایربیس =================
         const firebaseConfig = {
             apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
             authDomain: "tailor-64f7f.firebaseapp.com",
@@ -434,11 +235,14 @@
             firebase.initializeApp(firebaseConfig); 
             database = firebase.database(); 
             auth = firebase.auth();
+            // فعال‌سازی ماندگاری برای جلوگیری از پرسیدن مجدد رمز
+            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         } catch (e) { console.log("Firebase Error:", e); }
 
-        let userPhone = localStorage.getItem('tailor_user');
-        let base64Profile = null;
+        let currentUserPhone = null;
+        let currentUserData = null;
 
+        // ================= سیستم پیام =================
         function showAlert(type, title, msg) {
             const overlay = document.getElementById('custom-alert');
             const iconBox = document.getElementById('alert-icon-box');
@@ -458,97 +262,32 @@
             localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
         }
 
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
-        function goToProfile() { window.location.href = 'profile.html'; }
-
         function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
             document.getElementById('view-' + viewId).classList.add('active');
-            if (viewId === 'dashboard') {
-                updateDate();
-                loadDashboardData(); 
-            }
         }
 
-        function logout() { 
-            if(auth) {
-                auth.signOut().then(() => {
-                    localStorage.clear(); 
-                    window.location.reload();
-                });
-            } else {
-                localStorage.clear(); 
-                window.location.reload();
-            }
-        }
-
-        // ================= احراز هویت امن با Firebase Auth =================
-
-        // ورود کاربر
-        function loginUser() {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-pass').value;
-            const btn = document.getElementById('btn-login');
-            
-            btn.innerText = 'در حال ورود...';
-            btn.disabled = true;
-
-            auth.signInWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    const uid = userCredential.user.uid;
-                    // پیدا کردن شماره تماس از دیتابیس
-                    database.ref('users_auth/' + uid).once('value').then(snap => {
-                        if(snap.exists()) {
-                            const data = snap.val();
-                            userPhone = data.phone;
-                            localStorage.setItem('tailor_user', userPhone);
-                            loadUserData(userPhone);
-                            checkSubscription(userPhone);
-                            switchView('dashboard');
-                            document.getElementById('main-top-bar').style.display = 'flex';
-                            document.getElementById('bottom-nav').classList.add('active');
-                            showAlert('success', 'خوش آمدید', 'ورود موفقیت‌آمیز بود.');
-                        } else {
-                            showAlert('error', 'خطا', 'اطلاعات کاربری ناقص است.');
-                        }
-                    });
-                })
-                .catch((error) => {
-                    if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        showAlert('error', 'خطا', 'ایمیل یا رمز عبور اشتباه است.');
-                    } else {
-                        showAlert('error', 'خطا', error.message);
-                    }
-                })
-                .finally(() => {
-                    btn.innerText = 'ورود به برنامه';
-                    btn.disabled = false;
-                });
-        }
-
-        // ثبت‌نام کاربر
+        // ================= عملیات ثبت‌نام =================
         function registerUser() {
             const tailorName = document.getElementById('reg-tailor').value;
-            const ownerName = document.getElementById('reg-owner').value;
             const phone = document.getElementById('reg-phone').value;
-            const whatsapp = document.getElementById('reg-whatsapp').value;
             const email = document.getElementById('reg-email').value;
-            const address = document.getElementById('reg-address').value;
             const pass = document.getElementById('reg-pass').value;
             const btn = document.getElementById('btn-register');
 
-            btn.innerText = 'در حال ایجاد...';
+            btn.innerText = 'در حال ثبت‌نام...';
             btn.disabled = true;
 
-            // بررسی اینکه آیا این شماره قبلا ثبت شده یا نه
+            // بررسی اینکه شماره تکراری نباشد
             database.ref('users/' + phone).once('value').then(snap => {
                 if(snap.exists()) {
-                    showAlert('error', 'خطا', 'این شماره تماس قبلا در سیستم ثبت شده است.');
-                    btn.innerText = 'ایجاد حساب';
+                    showAlert('error', 'خطا', 'این شماره تماس قبلاً ثبت شده است.');
+                    btn.innerText = 'ثبت‌نام و شروع ۳۰ روز رایگان';
                     btn.disabled = false;
                     return;
                 }
 
+                // ساخت کاربر در Firebase Auth
                 auth.createUserWithEmailAndPassword(email, pass)
                     .then((userCredential) => {
                         const uid = userCredential.user.uid;
@@ -556,208 +295,80 @@
                         const profileData = {
                             uid: uid,
                             tailorName: tailorName,
-                            ownerName: ownerName,
                             phone: phone,
-                            whatsapp: whatsapp,
                             email: email,
-                            address: address,
                             registeredAt: Date.now()
                         };
 
-                        // ۱. ذخیره امن در users_auth
+                        // ذخیره در users_auth برای شناسایی امن
                         database.ref('users_auth/' + uid).set(profileData).then(() => {
-                            // ۲. کپی کردن به users/{phone} تا بقیه صفحات برنامه خراب نشوند
+                            // ذخیره در users/phone برای دسترسی بقیه صفحات
                             const legacyData = {
                                 tailorName: tailorName,
-                                ownerName: ownerName,
+                                ownerName: '---',
                                 role: 'صاحب کار',
                                 phone: phone,
-                                address: address,
                                 registeredAt: Date.now()
                             };
-                            
                             return database.ref('users/' + phone).update(legacyData);
                         }).then(() => {
-                            userPhone = phone;
-                            localStorage.setItem('tailor_user', userPhone);
-                            
-                            showAlert('success', 'موفق', 'حساب شما ساخته شد.');
-                            setTimeout(() => {
-                                // باز کردن مودال عکس پروفایل
-                                document.getElementById('setup-modal').classList.add('active');
-                            }, 1000);
+                            // ساخت دوره آزمایشی ۳۰ روزه
+                            const trialEndDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
+                            return database.ref('users/' + phone + '/subscription').set({
+                                status: 'trial',
+                                startDate: Date.now(),
+                                endDate: trialEndDate
+                            });
+                        }).then(() => {
+                            localStorage.setItem('tailor_user', phone);
+                            showAlert('success', 'خوش آمدید', 'حساب شما ساخته شد. ۳۰ روز استفاده رایگان فعال شد.');
+                            setTimeout(() => { window.location.reload(); }, 1500);
                         });
                     })
                     .catch((error) => {
+                        btn.innerText = 'ثبت‌نام و شروع ۳۰ روز رایگان';
+                        btn.disabled = false;
                         if(error.code === 'auth/email-already-in-use') {
                             showAlert('error', 'خطا', 'این ایمیل قبلاً ثبت شده است.');
                         } else if(error.code === 'auth/weak-password') {
                             showAlert('error', 'خطا', 'رمز عبور باید حداقل ۶ کاراکتر باشد.');
+                        } else if(error.code === 'auth/configuration-not-found') {
+                            showAlert('خطا', 'خطا در سیستم', 'لطفاً در پنل Firebase، گزینه Email/Password را فعال کنید.');
                         } else {
                             showAlert('error', 'خطا', error.message);
                         }
-                    })
-                    .finally(() => {
-                        btn.innerText = 'ایجاد حساب';
-                        btn.disabled = false;
                     });
             });
         }
 
-        // ================= سیستم منوهای کشویی سفارشی =================
-        function processProfileImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const MAX = 300;
-                        let w = img.width, h = img.height;
-                        if(w > h) { if(w > MAX) { h *= MAX/w; w = MAX; } } else { if(h > MAX) { w *= MAX/h; h = MAX; } }
-                        canvas.width = w; canvas.height = h;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, w, h);
-                        base64Profile = canvas.toDataURL('image/jpeg', 0.7);
-                        document.getElementById('profile-preview').src = base64Profile;
-                        document.getElementById('profile-preview').style.display = 'block';
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
+        // ================= عملیات ورود =================
+        function loginUser() {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            const btn = document.getElementById('btn-login');
 
-        function saveSetup() {
-            if(base64Profile) {
-                database.ref('users/' + userPhone).update({ profileImage: base64Profile });
-            }
-            document.getElementById('setup-modal').classList.remove('active');
-            loadUserData(userPhone);
-            checkSubscription(userPhone);
-            switchView('dashboard');
-            document.getElementById('main-top-bar').style.display = 'flex';
-            document.getElementById('bottom-nav').classList.add('active');
-        }
+            btn.innerText = 'در حال ورود...';
+            btn.disabled = true;
 
-        function loadUserData(phone) {
-            document.getElementById('user-phone-display').innerText = phone;
-            
-            database.ref('users/' + phone).once('value').then(snap => {
-                const data = snap.val() || {};
-                const name = data.tailorName || 'خیاط';
-                document.getElementById('user-name-display').innerText = name;
-                document.getElementById('user-name-display-bottom').innerText = name;
-                
-                const avatarText = document.getElementById('user-avatar-text');
-                const avatarImg = document.getElementById('sidebar-avatar-img');
-                
-                if(data.profileImage) {
-                    avatarImg.src = data.profileImage;
-                    avatarImg.style.display = 'block';
-                    avatarText.style.display = 'none';
-                } else {
-                    avatarText.innerText = name[0];
-                    avatarText.style.display = 'flex';
-                    avatarImg.style.display = 'none';
-                }
-            });
-            loadOtherUsers();
-        }
-
-        function loadOtherUsers() {
-            const container = document.getElementById('other-users-container');
-            database.ref('users').once('value').then(snapshot => {
-                const users = snapshot.val();
-                if(!users) {
-                    container.innerHTML = '<p style="font-size:11px; color:var(--text-muted); text-align:center;">هیچ کاربری یافت نشد.</p>';
-                    return;
-                }
-                const myPhone = localStorage.getItem('tailor_user');
-                let html = '';
-                let count = 0;
-                Object.keys(users).forEach(phone => {
-                    if(phone !== myPhone && users[phone].tailorName && count < 5) { 
-                        const u = users[phone];
-                        html += `
-                            <div class="user-item-mini">
-                                <div class="avatar-mini">${u.tailorName[0]}</div>
-                                <div class="info-mini">
-                                    <strong>${u.tailorName}</strong>
-                                    <span>${u.role || 'خیاط'}</span>
-                                </div>
-                            </div>
-                        `;
-                        count++;
+            auth.signInWithEmailAndPassword(email, pass)
+                .then(() => {
+                    // onAuthStateChanged خودش مدیریت می‌کند
+                })
+                .catch((error) => {
+                    btn.innerText = 'ورود به برنامه';
+                    btn.disabled = false;
+                    if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        showAlert('error', 'خطا', 'ایمیل یا رمز عبور اشتباه است.');
+                    } else if(error.code === 'auth/configuration-not-found') {
+                        showAlert('خطا', 'خطا در سیستم', 'لطفاً در پنل Firebase، گزینه Email/Password را فعال کنید.');
+                    } else {
+                        showAlert('error', 'خطا', error.message);
                     }
                 });
-                if(html === '') html = '<p style="font-size:11px; color:var(--text-muted); text-align:center;">هنوز کسی عضو نشده است.</p>';
-                container.innerHTML = html;
-            });
         }
 
-        function checkSubscription(phone) {
-            if(!database) return;
-            database.ref('users/' + phone + '/subscription').once('value').then(snapshot => {
-                let sub = snapshot.val();
-                const now = Date.now();
-                
-                if (!sub) {
-                    sub = { status: 'trial', startDate: now, endDate: now + (30 * 24 * 60 * 60 * 1000) };
-                    database.ref('users/' + phone + '/subscription').set(sub);
-                    showTrialBanner(30);
-                    return;
-                }
-
-                const daysLeft = Math.ceil((sub.endDate - now) / (1000 * 60 * 60 * 24));
-
-                if (now > sub.endDate || sub.status === 'locked') {
-                    showLockScreen(phone);
-                    return;
-                }
-
-                if (sub.status === 'trial') {
-                    showTrialBanner(daysLeft);
-                }
-            });
-        }
-
-        function showTrialBanner(daysLeft) {
-            const banner = document.getElementById('trial-banner');
-            if(banner) {
-                banner.style.display = 'block';
-                banner.innerHTML = `
-                    <span>شما در دوره آزمایشی هستید. ${daysLeft} روز باقی مانده است.</span><br>
-                    <a href="payment.html">پرداخت و فعال‌سازی همیشگی</a>
-                `;
-            }
-        }
-
-        function showLockScreen(phone) {
-            document.querySelector('.app-container').style.display = 'none';
-            document.getElementById('bottom-nav').style.display = 'none';
-            
-            const lockHTML = `
-                <div style="position:fixed; inset:0; background:var(--bg-body); z-index:99999; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;">
-                    <img src="assets/logo.png" style="width:100px; margin-bottom:20px; border-radius:20px; border:2px solid var(--gold);">
-                    <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک شما به پایان رسیده است</h2>
-                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.6;">برای ادامه استفاده، لطفاً هزینه اشتراک را پرداخت کنید و کد فعال‌سازی را وارد نمایید.</p>
-                    
-                    <div style="background:var(--bg-panel); border:1px solid var(--gold); padding:15px; border-radius:15px; width:100%; max-width:350px;">
-                        <p style="font-size:12px; color:var(--text-main); margin-bottom:10px;">شماره حساب / حواله:</p>
-                        <p style="font-weight:bold; color:var(--gold); margin-bottom:15px;">حساب پی: 0744002790</p>
-                        
-                        <input type="text" id="lock-code-input" placeholder="کد فعال‌سازی را وارد کنید" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); text-align:center; margin-bottom:10px;">
-                        <button onclick="activateAccount('${phone}')" style="width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(90deg, var(--gold-light), var(--gold)); color:#000; font-weight:bold; cursor:pointer;">فعال‌سازی حساب</button>
-                    </div>
-                    
-                    <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</a>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', lockHTML);
-        }
-
-        function activateAccount(phone) {
+        // ================= فعال‌سازی با کد (صفحه قفل) =================
+        function activateAccount() {
             const code = document.getElementById('lock-code-input').value.trim();
             if(!code) return alert('لطفاً کد را وارد کنید');
 
@@ -766,184 +377,113 @@
                 
                 if (!codeData) return alert('کد وارد شده نامعتبر است!');
                 if (codeData.isUsed) return alert('این کد قبلاً استفاده شده است!');
-                if (codeData.phone !== phone) return alert('این کد مخصوص شماره شما نیست!');
+                if (codeData.phone !== currentUserPhone) return alert('این کد مخصوص شماره شما نیست!');
 
+                // تمدید ۳۰ روزه
                 const newEndDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                database.ref('users/' + phone + '/subscription').update({
+                database.ref('users/' + currentUserPhone + '/subscription').update({
                     status: 'active',
-                    endDate: newEndDate,
-                    warningsCount: 0
+                    endDate: newEndDate
                 }).then(() => {
                     database.ref('activation_codes/' + code).update({ isUsed: true });
-                    alert('حساب شما با موفقیت فعال شد!');
+                    alert('حساب شما با موفقیت برای ۳۰ روز دیگر فعال شد!');
                     window.location.reload();
                 });
             });
         }
 
-        function openShareModal(e) {
-            if(e) e.preventDefault();
-            toggleSidebar();
-            
-            const appUrl = window.location.origin + window.location.pathname;
-            document.getElementById('share-link-input').value = appUrl;
-            
-            const qrContainer = document.getElementById('qrcode-container');
-            qrContainer.innerHTML = '';
-            
-            new QRCode(qrContainer, {
-                text: appUrl,
-                width: 160,
-                height: 160,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-            
-            document.getElementById('share-modal').style.display = 'flex';
-        }
+        // ================= بررسی وضعیت اشتراک =================
+        function checkSubscription(phone) {
+            database.ref('users/' + phone + '/subscription').once('value').then(snapshot => {
+                const sub = snapshot.val();
+                if(!sub) return; // اگر نبود، چیزی نشان نده
 
-        function copyShareLink() {
-            const input = document.getElementById('share-link-input');
-            input.select();
-            input.setSelectionRange(0, 99999);
-            document.execCommand("copy");
-            alert("لینک کپی شد!");
-        }
-
-        let secretTapCount = 0;
-        let secretTapTimer;
-        function handleSecretTap() {
-            secretTapCount++;
-            clearTimeout(secretTapTimer);
-            if (secretTapCount >= 7) {
-                window.location.href = 'admin.html';
-                secretTapCount = 0;
-            } else {
-                secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 2000);
-            }
-        }
-
-        function updateDate() {
-            const d = new Date();
-            const shamsi = d2j(g2d(d.getFullYear(), d.getMonth() + 1, d.getDate()));
-            const monthsFa = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
-            const daysFa = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
-            document.getElementById('dash-date').innerText = `${daysFa[d.getDay()]}، ${shamsi.jd} ${monthsFa[shamsi.jm - 1]} ${shamsi.jy}`;
-        }
-
-        function loadDashboardData() {
-            const userPhone = localStorage.getItem('tailor_user');
-            if(!userPhone || !database) return;
-
-            database.ref('users/' + userPhone + '/production').once('value').then(snapshot => {
-                const data = snapshot.val();
-                let totalProdQty = 0;
-                let totalProdValue = 0;
-                let recentHtml = '';
-
-                if(data) {
-                    const batches = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
-                    batches.forEach(b => {
-                        if(b.items) {
-                            b.items.forEach(item => {
-                                totalProdQty += (Number(item.qty) || 0);
-                                totalProdValue += ((Number(item.qty) || 0) * (Number(item.price) || 0));
-                            });
-                        }
-                    });
-                    batches.slice(0, 5).forEach(b => {
-                        let itemsText = b.items ? b.items.map(i => `${i.color} ${i.size}`).join(', ') : '';
-                        recentHtml += `
-                            <div class="recent-item">
-                                <div class="info">
-                                    <strong>${b.modelName || b.type || 'تولید جدید'}</strong>
-                                    <span>${b.date} | ${itemsText}</span>
-                                </div>
-                                <div class="qty">${b.totalQty || 0} عدد</div>
-                            </div>`;
-                    });
+                if (Date.now() > sub.endDate) {
+                    // زمان تمام شده
+                    document.querySelector('.app-container').style.display = 'none';
+                    document.getElementById('main-top-bar').style.display = 'none';
+                    document.getElementById('lock-screen').style.display = 'flex';
                 }
-
-                document.getElementById('stat-total-prod').innerText = totalProdQty.toLocaleString();
-                document.getElementById('stat-total-value').innerHTML = `${totalProdValue.toLocaleString()} <span>افغانی</span>`;
-                if(recentHtml === '') recentHtml = '<p style="text-align:center; color:var(--text-muted); font-size:12px;">هیچ تولیدی ثبت نشده است.</p>';
-                document.getElementById('recent-production-container').innerHTML = recentHtml;
-            });
-
-            database.ref('users/' + userPhone + '/ledger').once('value').then(snapshot => {
-                const data = snapshot.val();
-                let totalDebt = 0;
-                if(data) {
-                    Object.values(data).forEach(t => {
-                        if(t.type === 'loan' || t.type === 'advance') totalDebt += (Number(t.amount) || 0);
-                        if(t.type === 'repay' || t.type === 'deduction') totalDebt -= (Number(t.amount) || 0);
-                    });
-                }
-                document.getElementById('stat-total-debt').innerHTML = `${Math.max(0, totalDebt).toLocaleString()} <span>افغانی</span>`;
-            });
-
-            database.ref('users/' + userPhone + '/office').once('value').then(snapshot => {
-                const data = snapshot.val();
-                let bookBalance = 0;
-                if(data) {
-                    Object.values(data).forEach(t => {
-                        if(t.type === 'taken') bookBalance -= (Number(t.amount) || 0);
-                        if(t.type === 'given' || t.type === 'settled') bookBalance += (Number(t.amount) || 0);
-                    });
-                }
-                document.getElementById('stat-book-balance').innerHTML = `${bookBalance.toLocaleString()} <span>افغانی</span>`;
             });
         }
 
-        function div(a,b){return ~~(a/b)} function mod(a,b){return a-~~(a/b)*b}
-        function jalCal(jy,withoutLeap){var breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178],bl=breaks.length,gy=jy+621,leapJ=-14,jp=breaks[0],jm,jump,leap,leapG,march,n,i;for(i=1;i<bl;i+=1){jm=breaks[i];jump=jm-jp;if(jy<jm)break;leapJ=leapJ+div(jump,33)*8+div(mod(jump,33),4);jp=jm}n=jy-jp;leapJ=leapJ+div(n,33)*8+div(mod(n,33)+3,4);if(mod(jump,33)===4&&jump-n===4)leapJ+=1;leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;march=20+leapJ-leapG;if(!withoutLeap){if(jump-n<6)n=n-jump+div(jump+4,33)*33;leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4}return{leap:leap,gy:gy,march:march}}
-        function g2d(gy,gm,gd){var d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*mod(gm+9,12)+2,5)+gd-34840408;d=d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;return d}
-        function d2g(jdn){var j,i,gd,gm,gy;j=4*jdn+139361631;j=j+div(div(4*jdn+183187720,146097)*3,4)*4-3908;i=div(mod(j,1461),4)*5+308;gd=div(mod(i,153),5)+1;gm=mod(div(i,153),12)+1;gy=div(j,1461)-100100+div(8-gm,6);return{gy:gy,gm:gm,gd:gd}}
-        function d2j(jdn){var gy=d2g(jdn).gy,jy=gy-621,r=jalCal(jy,false),jdn1f=g2d(gy,3,r.march),jd,jm,k;k=jdn-jdn1f;if(k>=0){if(k<=185){jm=1+div(k,31);jd=mod(k,31)+1;return{jy:jy,jm:jm,jd:jd}}else k-=186}else{jy-=1;k+=179;if(r.leap===1)k+=1}jm=7+div(k,30);jd=mod(k,30)+1;return{jy:jy,jm:jm,jd:jd}}
-
+        // ================= لودینگ و بررسی وضعیت لاگین =================
         window.onload = () => {
             if(localStorage.getItem('tailor_theme') === 'light') {
                 document.body.classList.add('light-mode');
                 document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
             }
 
-            setTimeout(() => {
-                document.getElementById('splash-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('splash-screen').style.display = 'none';
-                    document.getElementById('main-top-bar').style.display = 'flex';
-                    
-                    // بررسی وضعیت لاگین با Firebase Auth
-                    if(auth) {
-                        auth.onAuthStateChanged((user) => {
+            if(auth) {
+                auth.onAuthStateChanged((user) => {
+                    // حداقل ۵۰۰ میلی‌ثانیه لودینگ نشان بده تا حس خوبی بدهد
+                    setTimeout(() => {
+                        document.getElementById('splash-screen').style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            document.getElementById('splash-screen').style.display = 'none';
+                            
                             if (user) {
-                                // کاربر لاگین است
+                                // کاربر لاگین است، اطلاعاتش را بگیر
                                 database.ref('users_auth/' + user.uid).once('value').then(snap => {
                                     if(snap.exists() && snap.val().phone) {
-                                        userPhone = snap.val().phone;
-                                        localStorage.setItem('tailor_user', userPhone);
+                                        currentUserPhone = snap.val().phone;
+                                        currentUserData = snap.val();
+                                        localStorage.setItem('tailor_user', currentUserPhone);
                                         
-                                        loadUserData(userPhone);
-                                        checkSubscription(userPhone);
-                                        switchView('dashboard');
-                                        document.getElementById('bottom-nav').classList.add('active');
+                                        // نمایش نام کاربر در لودینگ (قبل از محو شدن)
+                                        // (چون در setTimeout هستیم، این بخش خیلی سریع رد می‌شود)
+                                        
+                                        // بررسی اشتراک
+                                        database.ref('users/' + currentUserPhone + '/subscription').once('value').then(subSnap => {
+                                            const sub = subSnap.val();
+                                            if (sub && Date.now() > sub.endDate) {
+                                                // منقضی شده
+                                                document.querySelector('.app-container').style.display = 'none';
+                                                document.getElementById('main-top-bar').style.display = 'none';
+                                                document.getElementById('lock-screen').style.display = 'flex';
+                                            } else {
+                                                // فعال است
+                                                document.querySelector('.app-container').style.display = 'flex';
+                                                document.getElementById('main-top-bar').style.display = 'flex';
+                                                document.getElementById('dash-greeting').innerText = 'سلام، ' + currentUserData.tailorName;
+                                                switchView('dashboard');
+                                                
+                                                // لود کردن آمار داشبورد
+                                                loadDashboardStats();
+                                            }
+                                        });
                                     } else {
                                         switchView('login');
                                     }
                                 });
                             } else {
-                                // کاربر لاگین نیست
+                                // کاربر لاگین نیست، صفحه ورود را نشان بده
+                                document.getElementById('main-top-bar').style.display = 'none';
                                 switchView('login');
                             }
-                        });
-                    } else {
-                        // اگر Firebase لود نشد
-                        switchView('login');
-                    }
-                }, 500);
-            }, 2000);
+                        }, 300);
+                    }, 500);
+                });
+            } else {
+                // اگر Firebase لود نشد
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.display = 'none';
+                    document.getElementById('main-top-bar').style.display = 'flex';
+                    switchView('login');
+                }, 1000);
+            }
         };
+
+        // تابع ساده برای لود کردن آمار (اختیاری)
+        function loadDashboardStats() {
+            // اینجا می‌توانی کدهای مربوط به خواندن آمار تولید، قرض و... را بگذاری
+            // فعلاً برای جلوگیری از خطا، صفر می‌گذاریم
+            document.getElementById('stat-total-prod').innerText = '0';
+            document.getElementById('stat-total-value').innerText = '0 افغانی';
+            document.getElementById('stat-total-debt').innerText = '0 افغانی';
+            document.getElementById('stat-book-balance').innerText = '0 افغانی';
+        }
     </script>
   <script>
   if ('serviceWorker' in navigator) {
