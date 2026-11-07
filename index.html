@@ -214,7 +214,7 @@
             <button onclick="activateAccount()" class="btn btn-primary" style="background:var(--success); color:#fff;">فعال‌سازی حساب</button>
         </div>
         
-        <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</button>
+        <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</a>
     </div>
 
     <script>
@@ -431,8 +431,8 @@
                                         currentUserData = snap.val();
                                         localStorage.setItem('tailor_user', currentUserPhone);
                                         
-                                        // نمایش نام کاربر در لودینگ (قبل از محو شدن)
-                                        // (چون در setTimeout هستیم، این بخش خیلی سریع رد می‌شود)
+                                        // نمایش نام کاربر در لودینگ
+                                        document.getElementById('splash-user-name').innerText = currentUserData.tailorName || 'خیاط عزیز';
                                         
                                         // بررسی اشتراک
                                         database.ref('users/' + currentUserPhone + '/subscription').once('value').then(subSnap => {
