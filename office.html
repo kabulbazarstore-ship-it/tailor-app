@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tailor | حساب دفتر</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        /* ================= متغیرهای تم ================= */
+        :root {
+            --bg-body: radial-gradient(circle at top, #0a261d 0%, #050b09 100%);
+            --bg-panel: linear-gradient(180deg, #0a1c16 0%, #040b09 100%);
+            --text-main: #ffffff;
+            --text-muted: #78909c;
+            --gold: #d4af37;
+            --gold-light: #f3d58b;
+            --border: rgba(212, 175, 55, 0.3);
+            --danger: #ff4757;
+            --success: #2ed573;
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            --dropdown-bg: #0a1c16;
+        }
+
+        body.light-mode {
+            --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
+            --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
+            --text-main: #1c2b26;
+            --text-muted: #4a5a54;
+            --border: rgba(212, 175, 55, 0.6);
+            --input-bg: #fdfcf9;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --dropdown-bg: #f4ecd8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* ================= هدر ================= */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .back-btn { background: none; border: none; color: var(--gold); font-size: 24px; cursor: pointer; text-decoration: none; display: flex; align-items: center; }
+        .header-title { color: var(--gold); font-weight: bold; font-size: 18px; }
+        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* ================= 4 کارت آماری ================= */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--gold); }
+        .stat-card:nth-child(2)::before { background: var(--success); }
+        .stat-card:nth-child(3)::before { background: var(--danger); }
+        .stat-card:nth-child(4)::before { background: #3498db; }
+        
+        .stat-info { display: flex; flex-direction: column; gap: 4px; }
+        .stat-info .title { font-size: 10px; color: var(--text-muted); }
+        .stat-info .value { font-size: 16px; font-weight: bold; color: var(--text-main); display: flex; align-items: baseline; gap: 3px; }
+        .stat-info .value span { font-size: 9px; color: var(--gold); }
+        
+        .stat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; justify-content: center; align-items: center; background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+        .stat-card:nth-child(2) .stat-icon { background: rgba(46, 213, 115, 0.1); color: var(--success); }
+        .stat-card:nth-child(3) .stat-icon { background: rgba(255, 71, 87, 0.1); color: var(--danger); }
+        .stat-card:nth-child(4) .stat-icon { background: rgba(52, 152, 219, 0.1); color: #3498db; }
+        .stat-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* ================= نوار جستجو و دکمه ثبت ================= */
+        .search-add-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box { flex: 1; position: relative; }
+        .search-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 40px 12px 15px; color: var(--text-main); font-size: 13px; outline: none; }
+        .search-box svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: none; stroke: var(--text-muted); stroke-width: 2; }
+        .add-btn-sm { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; border: none; border-radius: 12px; padding: 0 15px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .add-btn-sm svg { width: 16px; height: 16px; stroke: #000; stroke-width: 3; fill: none; }
+
+        /* ================= لیست تراکنش‌ها ================= */
+        .office-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow); position: relative; display: flex; flex-direction: column; gap: 10px; }
+        .office-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .office-info h4 { color: var(--gold); font-size: 14px; margin-bottom: 3px; }
+        .office-info p { font-size: 11px; color: var(--text-muted); }
+        
+        .office-amount { font-size: 16px; font-weight: bold; }
+        .office-amount.taken { color: var(--danger); } /* برداشت */
+        .office-amount.given { color: var(--success); } /* واریز */
+
+        .office-details { display: flex; justify-content: space-between; font-size: 11px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .type-badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+        .type-taken { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .type-given { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); }
+
+        .card-actions { display: flex; gap: 8px; margin-top: 5px; }
+        .action-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn-delete { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.3); }
+
+        /* ================= مودال‌ها ================= */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 10px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; box-shadow: var(--shadow); position: relative; max-height: 95vh; overflow-y: auto; animation: popIn 0.3s; }
+        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-close { position: absolute; top: 15px; left: 15px; background: none; border: none; color: var(--danger); font-size: 22px; cursor: pointer; }
+        .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--gold); text-align: center; border-bottom: 1px dashed var(--border); padding-bottom: 10px; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; color: var(--gold); margin-bottom: 5px; font-weight: bold; }
+        .input-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text-main); font-size: 13px; outline: none; transition: 0.3s; }
+        .input-box input:focus { border-color: var(--gold); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3-date { display: grid; grid-template-columns: 1.2fr 1.5fr 1fr; gap: 6px; }
+        
+        /* ================= منوی کشویی سفارشی ================= */
+        .custom-dropdown { position: relative; width: 100%; user-select: none; }
+        .dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 8px; color: var(--text-main); font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .dropdown-trigger.active { border-color: var(--gold); }
+        .dropdown-trigger svg { width: 12px; height: 12px; stroke: var(--gold); stroke-width: 2; fill: none; transition: 0.3s; }
+        .dropdown-trigger.active svg { transform: rotate(180deg); }
+        .dropdown-options { position: absolute; top: 110%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 10px; box-shadow: var(--shadow); z-index: 100; display: none; flex-direction: column; max-height: 180px; overflow-y: auto; }
+        .dropdown-options.active { display: flex; }
+        .dropdown-option { padding: 10px 12px; font-size: 12px; cursor: pointer; color: var(--text-main); border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .dropdown-option:last-child { border-bottom: none; }
+        .dropdown-option:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+        
+        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2); }
+
+        /* ================= پیام‌رسان ================= */
+        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
+        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.8); transition: 0.3s; }
+        .custom-alert-overlay.active .custom-alert-box { transform: scale(1); }
+        .custom-alert-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; }
+        .icon-success { background: rgba(46, 213, 115, 0.1); border: 2px solid var(--success); color: var(--success); }
+        .icon-error { background: rgba(255, 71, 87, 0.1); border: 2px solid var(--danger); color: var(--danger); }
+        .custom-alert-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 3; }
+        .custom-alert-title { color: var(--gold); font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; }
+        .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
+
+        /* منوی پایین */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0 15px; z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; width: 20%; text-decoration: none; }
+        .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .nav-item span { font-size: 10px; }
+        .nav-item.active { color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <!-- پیام‌رسان -->
+    <div class="custom-alert-overlay" id="custom-alert">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+            <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+            <p class="custom-alert-msg" id="alert-msg">پیام</p>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        
+        <div class="top-bar">
+            <a href="index.html" class="back-btn">➔</a>
+            <div class="header-title">حساب دفتر (صندوق)</div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+        </div>
+
+        <!-- 4 کارت آماری -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">موجودی صندوق</div>
+                    <div class="value" id="stat-balance">0 <span>افغانی</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">کل واریزها</div>
+                    <div class="value" id="stat-total-given">0 <span>افغانی</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">کل برداشت‌ها</div>
+                    <div class="value" id="stat-total-taken">0 <span>افغانی</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">تعداد تراکنش‌ها</div>
+                    <div class="value" id="stat-total-trx">0 <span>مورد</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            </div>
+        </div>
+
+        <!-- جستجو و افزودن -->
+        <div class="search-add-row">
+            <div class="search-box">
+                <input type="text" id="search-office" placeholder="جستجوی توضیحات..." oninput="filterTransactions()">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <button class="add-btn-sm" onclick="openModal()">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> تراکنش
+            </button>
+        </div>
+
+        <!-- لیست تراکنش‌ها -->
+        <div id="office-list">
+            <p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">در حال بارگذاری...</p>
+        </div>
+
+    </div>
+
+    <!-- مودال ثبت تراکنش -->
+    <div class="modal-overlay" id="modal-office">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <h2 class="modal-title">ثبت تراکنش صندوق</h2>
+            
+            <form onsubmit="event.preventDefault(); saveTransaction();">
+                <input type="hidden" id="o-id">
+                
+                <div class="grid-2">
+                    <!-- نوع تراکنش -->
+                    <div class="form-group">
+                        <label>نوع تراکنش</label>
+                        <div class="custom-dropdown" id="dd-type">
+                            <div class="dropdown-trigger" onclick="toggleDropdown('dd-type')">
+                                <span id="val-type">واریز (به صندوق)</span>
+                                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="dropdown-options">
+                                <div class="dropdown-option" onclick="selectOption('dd-type', 'واریز (به صندوق)', 'given')">واریز (به صندوق)</div>
+                                <div class="dropdown-option" onclick="selectOption('dd-type', 'برداشت (از صندوق)', 'taken')">برداشت (از صندوق)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- مقدار -->
+                    <div class="form-group">
+                        <label>مقدار (افغانی)</label>
+                        <div class="input-box"><input type="number" id="o-amount" placeholder="مثلا 500" required></div>
+                    </div>
+                </div>
+
+                <!-- تاریخ (کشویی و شیک) و توضیحات -->
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>تاریخ (سال / ماه / روز)</label>
+                        <div class="grid-3-date">
+                            <!-- سال -->
+                            <div class="custom-dropdown" id="dd-year">
+                                <div class="dropdown-trigger" onclick="toggleDropdown('dd-year')">
+                                    <span id="val-year">1403</span>
+                                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                                <div class="dropdown-options" id="year-options"></div>
+                            </div>
+                            <!-- ماه -->
+                            <div class="custom-dropdown" id="dd-month">
+                                <div class="dropdown-trigger" onclick="toggleDropdown('dd-month')">
+                                    <span id="val-month">حمل</span>
+                                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                                <div class="dropdown-options" id="month-options"></div>
+                            </div>
+                            <!-- روز -->
+                            <div class="custom-dropdown" id="dd-day">
+                                <div class="dropdown-trigger" onclick="toggleDropdown('dd-day')">
+                                    <span id="val-day">1</span>
+                                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                                </div>
+                                <div class="dropdown-options" id="day-options"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>توضیحات</label>
+                        <div class="input-box"><input type="text" id="o-desc" placeholder="مثلا: خرید پارچه"></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">ذخیره در دفتر</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- منوی پایین -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
+        <a href="production.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
+        <a href="students.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان</span></a>
+        <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
+        <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>تنظیمات</span></a>
+    </nav>
+
+    <script>
+        // ================= تنظیمات فایربیس =================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+            authDomain: "tailor-64f7f.firebaseapp.com",
+            databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+            projectId: "tailor-64f7f",
+            storageBucket: "tailor-64f7f.firebasestorage.app",
+            messagingSenderId: "16067911685",
+            appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const userPhone = localStorage.getItem('tailor_user');
+        
+        let allTransactions = [];
+        let selectedValues = {
+            'dd-type': 'given',
+            'dd-type-label': 'واریز (به صندوق)',
+            'year': 1403,
+            'month': 1, // 1 = حمل
+            'day': 1
+        };
+        
+        const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+
+        // ================= سیستم منوی کشویی سفارشی =================
+        function toggleDropdown(id) {
+            document.querySelectorAll('.dropdown-options').forEach(el => {
+                if(el.parentElement.id !== id) {
+                    el.classList.remove('active');
+                    el.previousElementSibling.classList.remove('active');
+                }
+            });
+            const dropdown = document.getElementById(id);
+            const options = dropdown.querySelector('.dropdown-options');
+            const trigger = dropdown.querySelector('.dropdown-trigger');
+            
+            options.classList.toggle('active');
+            trigger.classList.toggle('active');
+        }
+
+        function selectOption(dropdownId, label, value) {
+            document.getElementById('val-' + dropdownId.replace('dd-', '')).innerText = label;
+            
+            if (dropdownId === 'dd-type') {
+                selectedValues['dd-type'] = value;
+                selectedValues['dd-type-label'] = label;
+            } else if (dropdownId === 'dd-year') {
+                selectedValues.year = value;
+            } else if (dropdownId === 'dd-month') {
+                selectedValues.month = value;
+                updateDaysDropdown(); // آپدیت روزها بر اساس ماه
+            } else if (dropdownId === 'dd-day') {
+                selectedValues.day = value;
+            }
+            
+            document.getElementById(dropdownId).querySelector('.dropdown-options').classList.remove('active');
+            document.getElementById(dropdownId).querySelector('.dropdown-trigger').classList.remove('active');
+        }
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        // ================= آماده‌سازی منوهای تاریخ =================
+        function setupDateDropdowns() {
+            // سال‌ها
+            const yearsCol = document.getElementById('year-options');
+            let yHtml = '';
+            for(let y = 1400; y <= 1410; y++) {
+                yHtml += `<div class="dropdown-option" onclick="selectOption('dd-year', '${y}', ${y})">${y}</div>`;
+            }
+            yearsCol.innerHTML = yHtml;
+
+            // ماه‌ها
+            const monthsCol = document.getElementById('month-options');
+            let mHtml = '';
+            shamsiMonths.forEach((m, index) => {
+                mHtml += `<div class="dropdown-option" onclick="selectOption('dd-month', '${m}', ${index+1})">${m}</div>`;
+            });
+            monthsCol.innerHTML = mHtml;
+
+            updateDaysDropdown();
+        }
+
+        function updateDaysDropdown() {
+            const daysCol = document.getElementById('day-options');
+            let maxDays = 31;
+            
+            // اگر ماه 7 تا 12 باشد، 30 روزه هستند (به جز ماه 12 که 29 یا 30 است که فعلا 30 می‌گیریم)
+            if(selectedValues.month >= 7) maxDays = 30;
+
+            // اگر روز انتخاب شده از حداکثر بیشتر بود، ریست شود
+            if(selectedValues.day > maxDays) {
+                selectedValues.day = 1;
+                document.getElementById('val-day').innerText = '1';
+            }
+
+            let dHtml = '';
+            for(let d = 1; d <= maxDays; d++) {
+                dHtml += `<div class="dropdown-option" onclick="selectOption('dd-day', '${d}', ${d})">${d}</div>`;
+            }
+            daysCol.innerHTML = dHtml;
+        }
+
+        // ================= پیام‌رسان =================
+        function showAlert(type, title, msg) {
+            const overlay = document.getElementById('custom-alert');
+            const iconBox = document.getElementById('alert-icon-box');
+            const iconSvg = document.getElementById('alert-icon-svg');
+            if(type === 'success') { iconBox.className = 'custom-alert-icon icon-success'; iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>'; } 
+            else { iconBox.className = 'custom-alert-icon icon-error'; iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            overlay.classList.add('active');
+        }
+        function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
+
+        // ================= تم =================
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+        }
+
+        // ================= مودال =================
+        function openModal() {
+            document.getElementById('modal-office').classList.add('active');
+            document.getElementById('o-id').value = '';
+            document.getElementById('o-amount').value = '';
+            document.getElementById('o-desc').value = '';
+            
+            selectOption('dd-type', 'واریز (به صندوق)', 'given');
+            
+            // تنظیم تاریخ به امروز
+            const today = new Date();
+            // اینجا یک تاریخ ساده شمسی می‌گذاریم (برای دقت بالا نیاز به کتابخانه است اما برای شروع خوب است)
+            document.getElementById('val-year').innerText = '1403';
+            document.getElementById('val-month').innerText = 'حمل';
+            document.getElementById('val-day').innerText = '1';
+            selectedValues.year = 1403;
+            selectedValues.month = 1;
+            selectedValues.day = 1;
+        }
+        function closeModal() { document.getElementById('modal-office').classList.remove('active'); }
+
+        // ================= ذخیره تراکنش =================
+        function saveTransaction() {
+            const id = document.getElementById('o-id').value || Date.now().toString();
+            const amount = document.getElementById('o-amount').value;
+            const desc = document.getElementById('o-desc').value;
+            const type = selectedValues['dd-type'];
+            const typeLabel = selectedValues['dd-type-label'];
+            
+            // ساخت رشته تاریخ از سه منوی کشویی
+            const y = selectedValues.year;
+            const m = String(selectedValues.month).padStart(2, '0');
+            const d = String(selectedValues.day).padStart(2, '0');
+            const dateStr = `${y}/${m}/${d}`;
+
+            if(!amount || amount <= 0) return showAlert('error', 'خطا', 'مقدار پول را وارد کنید.');
+
+            const trxData = {
+                id: id,
+                amount: Number(amount),
+                desc: desc,
+                type: type,
+                typeLabel: typeLabel,
+                date: dateStr,
+                timestamp: Date.now()
+            };
+
+            database.ref('users/' + userPhone + '/office/' + id).set(trxData).then(() => {
+                closeModal();
+                showAlert('success', 'موفق', 'تراکنش در دفتر ثبت شد.');
+                loadOffice();
+            }).catch(err => showAlert('error', 'خطا در دیتابیس', err.message));
+        }
+
+        // ================= حذف تراکنش =================
+        function deleteTransaction(id) {
+            if(confirm('آیا از حذف این تراکنش مطمئن هستید؟')) {
+                database.ref('users/' + userPhone + '/office/' + id).remove().then(() => {
+                    showAlert('success', 'حذف شد', 'تراکنش حذف گردید.');
+                    loadOffice();
+                });
+            }
+        }
+
+        // ================= بارگذاری داده‌ها =================
+        function loadOffice() {
+            database.ref('users/' + userPhone + '/office').once('value').then(snapshot => {
+                const data = snapshot.val();
+                allTransactions = data ? Object.values(data).sort((a,b) => b.timestamp - a.timestamp) : [];
+                
+                calculateStats();
+                renderList(allTransactions);
+            });
+        }
+
+        // ================= محاسبه آمار =================
+        function calculateStats() {
+            let totalGiven = 0;
+            let totalTaken = 0;
+
+            allTransactions.forEach(t => {
+                if(t.type === 'given' || t.type === 'settled') totalGiven += t.amount;
+                if(t.type === 'taken') totalTaken += t.amount;
+            });
+
+            const balance = totalGiven - totalTaken;
+
+            document.getElementById('stat-balance').innerHTML = `${balance.toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-total-given').innerHTML = `${totalGiven.toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-total-taken').innerHTML = `${totalTaken.toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-total-trx').innerHTML = `${allTransactions.length} <span>مورد</span>`;
+        }
+
+        // ================= نمایش لیست =================
+        function renderList(transactions) {
+            const listContainer = document.getElementById('office-list');
+            
+            if(transactions.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">هیچ تراکنشی در دفتر ثبت نشده است.</p>';
+                return;
+            }
+
+            let html = '';
+            transactions.forEach(t => {
+                let amountClass = 'given';
+                let sign = '+';
+                let typeClass = 'type-given';
+                
+                if(t.type === 'taken') { amountClass = 'taken'; sign = '-'; typeClass = 'type-taken'; }
+
+                html += `
+                    <div class="office-card">
+                        <div class="office-header">
+                            <div class="office-info">
+                                <h4>${t.typeLabel}</h4>
+                                <p>تاریخ: ${t.date}</p>
+                            </div>
+                            <div class="office-amount ${amountClass}">${sign} ${t.amount.toLocaleString()} <span style="font-size:10px">افغانی</span></div>
+                        </div>
+                        
+                        <div class="office-details">
+                            <span class="type-badge ${typeClass}">${t.typeLabel}</span>
+                            <span style="color:var(--text-muted);">${t.desc || 'بدون توضیحات'}</span>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="action-btn btn-delete" onclick="deleteTransaction('${t.id}')">حذف تراکنش</button>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+
+        // ================= فیلتر جستجو =================
+        function filterTransactions() {
+            const query = document.getElementById('search-office').value.toLowerCase();
+            const filtered = allTransactions.filter(t => 
+                (t.desc && t.desc.toLowerCase().includes(query)) ||
+                t.typeLabel.toLowerCase().includes(query)
+            );
+            renderList(filtered);
+        }
+
+        // ================= شروع =================
+        window.onload = () => {
+            if(localStorage.getItem('tailor_theme') === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            }
+            setupDateDropdowns();
+            if(userPhone) loadOffice();
+        };
+    </script>
+</body>
+</html>

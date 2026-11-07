@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tailor | سفارشات</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+:root{
+  --bg-body:radial-gradient(circle at top,#0a261d 0%,#050b09 100%);
+  --bg-panel:linear-gradient(180deg,#0a1c16 0%,#040b09 100%);
+  --text-main:#fff;--text-muted:#78909c;
+  --gold:#d4af37;--gold-light:#f3d58b;
+  --border:rgba(212,175,55,.3);
+  --danger:#ff4757;--success:#2ed573;--info:#3498db;--warning:#f39c12;
+  --input-bg:rgba(0,0,0,.4);--shadow:0 10px 30px rgba(0,0,0,.6);
+  --dropdown-bg:#0a1c16;
+}
+body.light-mode{
+  --bg-body:radial-gradient(circle at top,#e6dec9 0%,#d4cbb5 100%);
+  --bg-panel:linear-gradient(180deg,#f4ecd8 0%,#ebe1cc 100%);
+  --text-main:#1c2b26;--text-muted:#4a5a54;
+  --border:rgba(212,175,55,.6);--input-bg:#fdfcf9;
+  --shadow:0 10px 30px rgba(0,0,0,.08);--dropdown-bg:#f4ecd8;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;overflow-x:hidden;transition:background .3s,color .3s}
+.app-container{width:100%;max-width:460px;padding:15px;padding-bottom:90px;position:relative;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+
+/* Main View Switcher (Wholesale vs Retail) */
+.main-switch{display:flex;background:var(--input-bg);border-radius:12px;padding:4px;margin-bottom:15px;border:1px solid var(--border)}
+.main-switch button{flex:1;padding:10px;border:none;background:transparent;color:var(--text-muted);font-size:13px;font-weight:bold;border-radius:8px;cursor:pointer;transition:0.3s}
+.main-switch button.active{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;box-shadow:0 2px 8px rgba(212,175,55,.3)}
+
+.view{display:none}
+.view.active{display:block}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;gap:8px}
+.back-btn{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;text-decoration:none;padding:4px 8px;display:flex;align-items:center}
+.back-btn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2}
+.header-title{color:var(--gold);font-weight:bold;font-size:16px;flex:1;text-align:center}
+.theme-toggle{background:rgba(212,175,55,.1);border:1px solid var(--border);color:var(--gold);width:32px;height:32px;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer}
+.theme-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* Cards */
+.card{background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow);word-wrap:break-word}
+.card-title{color:var(--gold);font-size:13px;font-weight:bold;margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--border)}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+.stat-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:12px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:var(--gold)}
+.stat-card.s-info::before{background:var(--info)}
+.stat-card.s-success::before{background:var(--success)}
+.stat-card.s-danger::before{background:var(--danger)}
+.stat-card.s-warning::before{background:var(--warning)}
+.stat-info .title{font-size:10px;color:var(--text-muted);margin-bottom:4px}
+.stat-info .value{font-size:16px;font-weight:bold}
+.stat-info .value span{font-size:9px;color:var(--gold);font-weight:normal}
+
+/* Buttons */
+.btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;border:none;border-radius:10px;padding:11px 14px;font-size:12px;font-weight:bold;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.btn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.5}
+.btn-full{width:100%}
+.btn-outline{background:transparent;border:1px solid var(--gold);color:var(--gold)}
+.btn-danger{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger)}
+.btn-sm{padding:6px 10px;font-size:11px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Input */
+.form-group{margin-bottom:10px;width:100%}
+.form-group label{display:block;font-size:11px;color:var(--gold);margin-bottom:4px;font-weight:bold}
+.form-group input,.form-group textarea{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-main);font-size:12px;outline:none;transition:.2s;box-sizing:border-box}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--gold)}
+.form-group textarea{resize:vertical;min-height:55px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%}
+
+/* Custom Dropdown */
+.custom-dropdown { position: relative; width: 100%; user-select: none; margin-bottom: 10px; }
+.dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text-main); font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.dropdown-trigger.active { border-color: var(--gold); }
+.dropdown-trigger svg { width: 14px; height: 14px; stroke: var(--gold); stroke-width: 2; fill: none; transition: .3s; }
+.dropdown-trigger.active svg { transform: rotate(180deg); }
+.dropdown-options { position: absolute; top: 105%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 8px; box-shadow: var(--shadow); z-index: 100; display: none; flex-direction: column; max-height: 200px; overflow-y: auto; }
+.dropdown-options.active { display: flex; }
+.dropdown-option { padding: 10px 12px; font-size: 12px; cursor: pointer; color: var(--text-main); border-bottom: 1px solid var(--border); transition: .2s; }
+.dropdown-option:last-child { border-bottom: none; }
+.dropdown-option:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+
+/* Chips */
+.chip{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:bold;white-space:nowrap;border:1px solid}
+.chip-info{background:rgba(52,152,219,.1);color:var(--info);border-color:var(--info)}
+.chip-success{background:rgba(46,213,115,.1);color:var(--success);border-color:var(--success)}
+.chip-danger{background:rgba(255,71,87,.1);color:var(--danger);border-color:var(--danger)}
+.chip-warning{background:rgba(243,156,18,.1);color:var(--warning);border-color:var(--warning)}
+.chip-muted{background:rgba(120,144,156,.1);color:var(--text-muted);border-color:var(--text-muted)}
+.chip-gold{background:rgba(212,175,55,.15);color:var(--gold);border-color:var(--gold)}
+
+/* Contract card */
+.contract-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;transition:.2s;overflow:hidden}
+.contract-card:hover{border-color:var(--gold)}
+.cc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.cc-code{font-size:10px;color:var(--text-muted)}
+.cc-customer{font-size:14px;font-weight:bold;color:var(--gold);margin:2px 0}
+.cc-model{font-size:11px;color:var(--text-muted);word-break:break-word}
+.cc-body{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0;font-size:11px}
+.cc-body div{color:var(--text-muted)}
+.cc-body strong{color:var(--text-main)}
+.cc-financial{display:flex;justify-content:space-between;background:rgba(0,0,0,.2);padding:8px;border-radius:8px;font-size:11px;margin:8px 0;flex-wrap:wrap;gap:5px}
+.cc-financial>div{display:flex;flex-direction:column;gap:2px;min-width:30%}
+.cc-financial span{font-size:9px;color:var(--text-muted)}
+.cc-financial .fin-total strong{color:var(--info)}
+.cc-financial .fin-paid strong{color:var(--success)}
+.cc-financial .fin-rem strong{color:var(--danger)}
+.progress-bar{height:6px;background:rgba(0,0,0,.3);border-radius:3px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold-light),var(--gold));transition:width .3s}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.tab{background:var(--input-bg);border:1px solid var(--border);color:var(--text-muted);padding:8px 12px;border-radius:20px;font-size:11px;white-space:nowrap;cursor:pointer;font-weight:bold}
+.tab.active{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;border-color:var(--gold)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Variant row */
+.variant-row{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;position:relative;overflow:hidden}
+.variant-row .vr-top{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.variant-row .vr-top input{flex:1;min-width:80px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text-main);font-size:11px;outline:none}
+.variant-row .vr-bottom{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.variant-row .vr-bottom input{flex:1;min-width:60px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text-main);font-size:11px;outline:none}
+.vr-remove{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger);border-radius:6px;padding:0 10px;font-size:14px;cursor:pointer;height:32px;line-height:30px}
+.vr-sum{color:var(--gold);font-size:10px;font-weight:bold;padding:0 6px;white-space:nowrap}
+
+/* Material row */
+.mat-row{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;position:relative}
+.mat-row .mat-top{display:flex;gap:6px;margin-bottom:6px}
+.mat-row .mat-top input{flex:1;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text-main);font-size:11px;outline:none}
+.mat-row .mat-bottom{display:grid;grid-template-columns:1fr 1fr 1fr 30px;gap:6px;align-items:center}
+.mat-row .mat-bottom input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text-main);font-size:11px;outline:none;text-align:center}
+
+/* Measurement row */
+.measure-row{display:grid;grid-template-columns:1.5fr 1fr 30px;gap:8px;margin-bottom:8px;align-items:center}
+.measure-row input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text-main);font-size:11px;outline:none;text-align:center}
+.measure-row .remove-btn{background:rgba(255,71,87,.15);color:var(--danger);border:none;border-radius:6px;font-size:16px;cursor:pointer;height:30px;display:flex;align-items:center;justify-content:center}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(5px);display:none;justify-content:center;align-items:center;z-index:2000;padding:10px}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:20px;width:100%;max-width:440px;box-shadow:var(--shadow);position:relative;max-height:95vh;overflow-y:auto;overflow-x:hidden;animation:popIn .3s}
+@keyframes popIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-close{position:absolute;top:12px;left:12px;background:none;border:none;color:var(--danger);font-size:22px;cursor:pointer;z-index:10}
+.modal-title{font-size:15px;font-weight:bold;margin-bottom:15px;color:var(--gold);text-align:center;border-bottom:1px dashed var(--border);padding-bottom:10px}
+
+/* Alert */
+.custom-alert-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:10000;opacity:0;pointer-events:none;transition:.3s}
+.custom-alert-overlay.active{opacity:1;pointer-events:auto}
+.custom-alert-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:25px 20px;width:85%;max-width:320px;text-align:center;transform:scale(.8);transition:.3s}
+.custom-alert-overlay.active .custom-alert-box{transform:scale(1)}
+.custom-alert-icon{width:60px;height:60px;border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto 15px}
+.icon-success{background:rgba(46,213,115,.1);border:2px solid var(--success);color:var(--success)}
+.icon-error{background:rgba(255,71,87,.1);border:2px solid var(--danger);color:var(--danger)}
+.custom-alert-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:3}
+.custom-alert-title{color:var(--gold);font-size:17px;font-weight:bold;margin-bottom:8px}
+.custom-alert-msg{font-size:12px;color:var(--text-main);margin-bottom:20px;line-height:1.7}
+.custom-alert-btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;font-weight:bold;font-size:13px;border:none;border-radius:10px;padding:10px;width:100%;cursor:pointer}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-panel);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:8px 0 12px;z-index:1000}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-muted);cursor:pointer;text-decoration:none;background:none;border:none;padding:4px 0;flex:1}
+.nav-item svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2}
+.nav-item span{font-size:9px}
+.nav-item.active{color:var(--gold)}
+
+/* Empty */
+.empty{text-align:center;color:var(--text-muted);padding:30px 10px;font-size:12px}
+
+/* History */
+.hist-item{font-size:11px;padding:8px;border-right:2px solid var(--gold);margin-right:4px;margin-bottom:6px;background:rgba(0,0,0,.2);border-radius:0 6px 6px 0;overflow-wrap:break-word}
+.hist-item .hist-time{font-size:9px;color:var(--text-muted)}
+.hist-item .hist-desc{color:var(--text-main);margin-top:2px}
+
+/* Production Log */
+.prod-log-item{background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+.prod-log-header{display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;border-bottom:1px dashed var(--border);padding-bottom:5px}
+.prod-log-body{font-size:10px;color:var(--text-muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px}
+
+/* Utility */
+.mt-8{margin-top:8px}.mb-8{margin-bottom:8px}.text-center{text-align:center}.text-muted{color:var(--text-muted)}
+.flex{display:flex}.gap-6{gap:6px}.items-center{align-items:center}.justify-between{justify-content:space-between}.flex-1{flex:1}
+.w-100{width:100%}.flex-wrap{flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<!-- Alert -->
+<div class="custom-alert-overlay" id="custom-alert">
+  <div class="custom-alert-box">
+    <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+    <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+    <p class="custom-alert-msg" id="alert-msg">پیام</p>
+    <button class="custom-alert-btn" onclick="closeAlert()">تایید</button>
+  </div>
+</div>
+
+<div class="app-container">
+  
+  <!-- Main Switcher -->
+  <div class="main-switch">
+    <button class="active" id="btn-switch-wholesale" onclick="switchMainTab('wholesale')">سفارشات عمده</button>
+    <button id="btn-switch-retail" onclick="switchMainTab('retail')">سفارشات پرچون</button>
+  </div>
+
+  <!-- ==============================================
+       WHOLESALE VIEWS (کدهای قبلی)
+  ============================================== -->
+  <div id="wholesale-wrapper">
+    <!-- ============ VIEW: DASHBOARD ============ -->
+    <section class="view active" id="view-dashboard">
+      <div class="top-bar">
+        <a href="index.html" class="back-btn"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+        <div class="header-title">داشبورد سفارشات عمده</div>
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">
+          <svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-info"><div class="title">کل قراردادها</div><div class="value" id="kpi-total">0 <span>مورد</span></div></div>
+        </div>
+        <div class="stat-card s-info">
+          <div class="stat-info"><div class="title">در حال تولید</div><div class="value" id="kpi-production">0 <span>قرارداد</span></div></div>
+        </div>
+        <div class="stat-card s-danger">
+          <div class="stat-info"><div class="title">مطالبات باقی</div><div class="value" id="kpi-debt">0 <span>افغانی</span></div></div>
+        </div>
+        <div class="stat-card s-warning">
+          <div class="stat-info"><div class="title">نزدیک موعد</div><div class="value" id="kpi-urgent">0 <span>قرارداد</span></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">یادآوری و هشدارها</div>
+        <div id="alerts-box"><div class="empty">هیچ هشداری نیست</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">آخرین فعالیت‌ها</div>
+        <div id="recent-box"><div class="empty">در حال بارگذاری...</div></div>
+      </div>
+
+      <button class="btn btn-full" onclick="openContractForm()" style="margin-top:10px">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        ثبت قرارداد جدید
+      </button>
+    </section>
+
+    <!-- ============ VIEW: CONTRACTS LIST ============ -->
+    <section class="view" id="view-contracts">
+      <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        <div class="header-title">قراردادها</div>
+        <button class="theme-toggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      </div>
+
+      <div class="form-group">
+        <input type="text" id="contract-search" placeholder="جستجو: نام مشتری، کد قرارداد، مدل..." oninput="renderContractsList()">
+      </div>
+
+      <div class="tabs" id="status-filter-tabs"></div>
+
+      <div id="contracts-list-box"></div>
+
+      <button class="btn btn-full" onclick="openContractForm()" style="margin-top:10px">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        قرارداد جدید
+      </button>
+    </section>
+
+    <!-- ============ VIEW: CONTRACT DETAIL ============ -->
+    <section class="view" id="view-contract-detail">
+      <div class="top-bar">
+        <button class="back-btn" onclick="showView('contracts')"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        <div class="header-title" id="detail-title">جزئیات قرارداد</div>
+        <button class="theme-toggle" onclick="openContractForm(state.currentContractId)"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+      </div>
+      <div id="detail-body"></div>
+    </section>
+
+    <!-- ============ VIEW: CUSTOMERS ============ -->
+    <section class="view" id="view-customers">
+      <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        <div class="header-title">مشتریان (دکان/شرکت)</div>
+        <button class="theme-toggle" onclick="openCustomerForm()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      </div>
+      <div id="customers-list-box"></div>
+    </section>
+
+    <!-- ============ VIEW: WORKERS ============ -->
+    <section class="view" id="view-workers">
+      <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        <div class="header-title">خلیفه / شاگردان</div>
+        <button class="theme-toggle" onclick="openWorkerForm()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      </div>
+      <div id="workers-list-box"></div>
+    </section>
+
+    <!-- ============ VIEW: REPORTS ============ -->
+    <section class="view" id="view-reports">
+      <div class="top-bar">
+        <button class="back-btn" onclick="showView('dashboard')"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+        <div class="header-title">گزارش‌ها</div>
+        <button class="theme-toggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      </div>
+      <div class="card"><div class="card-title">خلاصه مالی</div><div id="report-finance"></div></div>
+      <div class="card"><div class="card-title">تولید به تفکیک خلیفه</div><div id="report-worker"></div></div>
+      <div class="card"><div class="card-title">بدهی مشتریان</div><div id="report-debt"></div></div>
+    </section>
+  </div>
+
+  <!-- ==============================================
+       RETAIL VIEWS (بخش جدید پرچون)
+  ============================================== -->
+  <div id="retail-wrapper" style="display:none;">
+    <!-- VIEW: RETAIL DASHBOARD / LIST -->
+    <section class="view active" id="view-retail-main">
+      <div class="top-bar">
+        <a href="index.html" class="back-btn"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+        <div class="header-title">سفارشات پرچون</div>
+        <button class="theme-toggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      </div>
+
+      <div class="form-group" style="position:relative;">
+        <input type="text" id="retail-search" placeholder="جستجوی کد ۵ رقمی، نام یا شماره..." oninput="renderRetailList()" style="padding-right:35px;">
+        <svg viewBox="0 0 24 24" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); width:18px; height:18px; stroke:var(--gold); fill:none; stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+
+      <button class="btn btn-full" onclick="openRetailForm()" style="margin-bottom:15px;">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        ثبت سفارش پرچون جدید
+      </button>
+
+      <div id="retail-list-box"></div>
+    </section>
+  </div>
+</div>
+
+<!-- ==============================================
+     MODALS (Wholesale)
+============================================== -->
+<!-- Contract Form Modal -->
+<div class="modal-overlay" id="modal-contract">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-contract')">✕</button>
+    <h2 class="modal-title" id="contract-form-title">ثبت قرارداد جدید</h2>
+
+    <div class="tabs" id="form-tabs">
+      <div class="tab active" onclick="switchFormTab('info')" data-tab="info">۱. اطلاعات</div>
+      <div class="tab" onclick="switchFormTab('variants')" data-tab="variants">۲. مدل‌ها</div>
+      <div class="tab" onclick="switchFormTab('materials')" data-tab="materials">۳. متریال</div>
+      <div class="tab" onclick="switchFormTab('pricing')" data-tab="pricing">۴. قیمت</div>
+    </div>
+
+    <!-- Form Tab 1 -->
+    <div class="tab-content active" id="form-tab-info">
+      <input type="hidden" id="f-contract-id">
+      <div class="form-group">
+        <label>مشتری</label>
+        <div class="custom-dropdown" id="dd-customer">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-customer')">
+                <span id="val-customer">— انتخاب مشتری —</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options" id="opt-customer"></div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" style="margin-top:6px" onclick="openCustomerForm(true)">+ مشتری جدید</button>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label>تاریخ دریافت نمونه</label><input type="text" id="f-sample-date" placeholder="1403/07/15"></div>
+        <div class="form-group"><label>تاریخ تحویل توافقی</label><input type="text" id="f-delivery-date" placeholder="1403/08/15"></div>
+      </div>
+      <div class="form-group"><label>مسئول پیگیری</label><input type="text" id="f-responsible" placeholder="نام"></div>
+      
+      <div class="form-group">
+        <label>وضعیت فعلی</label>
+        <div class="custom-dropdown" id="dd-status">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-status')">
+                <span id="val-status">نمونه دریافت شد</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options" id="opt-status"></div>
+        </div>
+      </div>
+      
+      <div class="form-group"><label>توضیحات</label><textarea id="f-notes" placeholder="هر یادداشتی..."></textarea></div>
+      <button class="btn btn-full" onclick="switchFormTab('variants')">بعدی</button>
+    </div>
+
+    <!-- Form Tab 2: Variants -->
+    <div class="tab-content" id="form-tab-variants">
+      <div class="card-title">مدل‌ها / رنگ‌ها / سایزها</div>
+      <div id="variants-container"></div>
+      <button type="button" class="btn btn-sm btn-outline btn-full" style="margin-top:6px" onclick="addVariantRow()">+ افزودن مدل جدید</button>
+      <button type="button" class="btn btn-sm btn-outline btn-full" style="margin-top:6px" onclick="duplicateLastVariant()">کپی آخرین مدل</button>
+
+      <div class="card" style="margin-top:12px;padding:10px">
+        <div class="flex justify-between" style="font-size:12px">
+          <span>جمع کل تعداد:</span>
+          <strong id="variants-total-qty" style="color:var(--gold)">0</strong>
+        </div>
+        <div class="flex justify-between" style="font-size:12px;margin-top:4px">
+          <span>جمع کل دستمزد:</span>
+          <strong id="variants-total-value" style="color:var(--info)">0 افغانی</strong>
+        </div>
+      </div>
+
+      <div class="flex gap-6" style="margin-top:10px">
+        <button class="btn btn-outline flex-1" onclick="switchFormTab('info')">قبلی</button>
+        <button class="btn flex-1" onclick="switchFormTab('materials')">بعدی</button>
+      </div>
+    </div>
+
+    <!-- Form Tab 3: Materials -->
+    <div class="tab-content" id="form-tab-materials">
+      <div class="card-title">اطلاعات پارچه و متریال</div>
+      
+      <div class="grid-2">
+          <div class="form-group"><label>رنگ پارچه</label><input type="text" id="f-fabric-color" placeholder="مثلا سرمه‌ای"></div>
+          <div class="form-group"><label>عرض پارچه (سانتی‌متر)</label><input type="number" id="f-fabric-width" placeholder="150"></div>
+      </div>
+      <div class="grid-2">
+          <div class="form-group"><label>طول پارچه (متر)</label><input type="number" id="f-fabric-length" placeholder="100"></div>
+          <div class="form-group"><label>متراژ خط الگو (متر)</label><input type="number" id="f-marker-length" placeholder="8.5"></div>
+      </div>
+      <div class="form-group"><label>تعداد قطعه در هر خط الگو</label><input type="number" id="f-marker-pieces" placeholder="10"></div>
+
+      <div class="card-title" style="margin-top:15px">لوازم جانبی (زیپ، دکمه، زنجیر...)</div>
+      <div id="materials-container"></div>
+      <button type="button" class="btn btn-sm btn-outline btn-full" style="margin-top:6px" onclick="addMaterialRow()">+ افزودن لوازم</button>
+
+      <div class="flex gap-6" style="margin-top:15px">
+        <button class="btn btn-outline flex-1" onclick="switchFormTab('variants')">قبلی</button>
+        <button class="btn flex-1" onclick="switchFormTab('pricing')">بعدی</button>
+      </div>
+    </div>
+
+    <!-- Form Tab 4: Pricing -->
+    <div class="tab-content" id="form-tab-pricing">
+      <div class="form-group">
+        <label>دستمزد پیش‌فرض هر دانه (افغانی)</label>
+        <input type="number" id="f-default-price" placeholder="0" oninput="applyDefaultPrice()">
+      </div>
+      <div class="form-group">
+        <label>پیش‌پرداخت (اختیاری)</label>
+        <input type="number" id="f-advance" placeholder="0">
+      </div>
+
+      <div class="card" style="padding:10px;margin-top:10px">
+        <div class="flex justify-between" style="font-size:12px">
+          <span>ارزش کل قرارداد:</span>
+          <strong id="contract-total-value" style="color:var(--gold)">0 افغانی</strong>
+        </div>
+      </div>
+
+      <div class="flex gap-6" style="margin-top:12px">
+        <button class="btn btn-outline flex-1" onclick="switchFormTab('materials')">قبلی</button>
+        <button class="btn flex-1" onclick="saveContract()">ذخیره قرارداد</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delivery Modal -->
+<div class="modal-overlay" id="modal-delivery">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-delivery')">✕</button>
+    <h2 class="modal-title">ثبت تحویل</h2>
+    <div class="grid-2">
+      <div class="form-group"><label>تاریخ</label><input type="text" id="d-date" placeholder="1403/07/15"></div>
+      <div class="form-group"><label>تحویل‌گیرنده</label><input type="text" id="d-receiver" placeholder="نام"></div>
+    </div>
+    <div class="card-title" style="margin-top:10px">مقادیر تحویلی</div>
+    <div id="delivery-items"></div>
+    <div class="card" style="margin-top:10px;padding:10px">
+      <div class="flex justify-between" style="font-size:12px">
+        <span>مبلغ این رسید:</span>
+        <strong id="delivery-amount" style="color:var(--success)">0 افغانی</strong>
+      </div>
+    </div>
+    <button class="btn btn-full" style="margin-top:12px" onclick="saveDelivery()">ثبت تحویل</button>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-payment')">✕</button>
+    <h2 class="modal-title">ثبت پرداخت</h2>
+    <div class="form-group"><label>مبلغ</label><input type="number" id="p-amount" placeholder="0"></div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>روش</label>
+        <div class="custom-dropdown" id="dd-method">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-method')">
+                <span id="val-method">نقد</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options">
+                <div class="dropdown-option" onclick="selectOption('dd-method', 'نقد', 'cash')">نقد</div>
+                <div class="dropdown-option" onclick="selectOption('dd-method', 'حواله', 'hawala')">حواله</div>
+                <div class="dropdown-option" onclick="selectOption('dd-method', 'چک', 'check')">چک</div>
+            </div>
+            <input type="hidden" id="p-method-val" value="cash">
+        </div>
+      </div>
+      <div class="form-group"><label>تاریخ</label><input type="text" id="p-date" placeholder="1403/07/15"></div>
+    </div>
+    <div class="form-group"><label>یادداشت</label><input type="text" id="p-note" placeholder="اختیاری"></div>
+    <div id="payment-summary" style="font-size:11px;color:var(--text-muted);padding:8px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:10px"></div>
+    <button class="btn btn-full" onclick="savePayment()">ثبت پرداخت</button>
+  </div>
+</div>
+
+<!-- Production Modal -->
+<div class="modal-overlay" id="modal-production">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-production')">✕</button>
+    <h2 class="modal-title">ثبت تولید</h2>
+    <div class="grid-2">
+      <div class="form-group"><label>تاریخ</label><input type="text" id="pr-date" placeholder="1403/07/15"></div>
+      <div class="form-group">
+        <label>مرحله</label>
+        <div class="custom-dropdown" id="dd-stage">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-stage')">
+                <span id="val-stage">دوخت</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options">
+                <div class="dropdown-option" onclick="selectOption('dd-stage', 'برش', 'cutting')">برش</div>
+                <div class="dropdown-option" onclick="selectOption('dd-stage', 'دوخت', 'sewing')">دوخت</div>
+                <div class="dropdown-option" onclick="selectOption('dd-stage', 'تکمیل‌کاری', 'finishing')">تکمیل‌کاری</div>
+                <div class="dropdown-option" onclick="selectOption('dd-stage', 'بسته‌بندی', 'packaging')">بسته‌بندی</div>
+            </div>
+            <input type="hidden" id="pr-stage-val" value="sewing">
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-group">
+        <label>خلیفه / شاگرد</label>
+        <div class="custom-dropdown" id="dd-worker">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-worker')">
+                <span id="val-worker">— انتخاب —</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options" id="opt-worker"></div>
+            <input type="hidden" id="pr-worker-id" value="">
+        </div>
+    </div>
+
+    <div class="card-title" style="margin-top:10px">مقادیر تولیدی</div>
+    <div id="production-items"></div>
+    <div class="form-group" style="margin-top:8px"><label>دستمزد کارگر (اختیاری)</label><input type="number" id="pr-wage" placeholder="0"></div>
+    <div class="form-group"><label>خراب / نیازمند اصلاح</label><input type="number" id="pr-rejected" placeholder="0"></div>
+    <button class="btn btn-full" style="margin-top:12px" onclick="saveProduction()">ثبت تولید</button>
+  </div>
+</div>
+
+<!-- Customer Modal -->
+<div class="modal-overlay" id="modal-customer">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-customer')">✕</button>
+    <h2 class="modal-title">مشتری جدید</h2>
+    <input type="hidden" id="c-id">
+    <div class="form-group"><label>نام / نام دکان</label><input type="text" id="c-name" placeholder="دکان احمدی"></div>
+    <div class="form-group"><label>شماره تماس</label><input type="tel" id="c-phone" placeholder="07XXXXXXXX"></div>
+    <div class="form-group"><label>آدرس</label><input type="text" id="c-address" placeholder="اختیاری"></div>
+    <div class="form-group">
+        <label>نوع</label>
+        <div class="custom-dropdown" id="dd-ctype">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-ctype')">
+                <span id="val-ctype">دکان</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options">
+                <div class="dropdown-option" onclick="selectOption('dd-ctype', 'دکان', 'shop')">دکان</div>
+                <div class="dropdown-option" onclick="selectOption('dd-ctype', 'شرکت', 'company')">شرکت</div>
+                <div class="dropdown-option" onclick="selectOption('dd-ctype', 'شخص', 'individual')">شخص</div>
+            </div>
+            <input type="hidden" id="c-type-val" value="shop">
+        </div>
+    </div>
+    <div class="form-group"><label>یادداشت</label><textarea id="c-notes"></textarea></div>
+    <button class="btn btn-full" onclick="saveCustomer()">ذخیره</button>
+  </div>
+</div>
+
+<!-- Worker Modal -->
+<div class="modal-overlay" id="modal-worker">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-worker')">✕</button>
+    <h2 class="modal-title">خلیفه / شاگرد جدید</h2>
+    <input type="hidden" id="w-id">
+    <div class="form-group"><label>نام</label><input type="text" id="w-name" placeholder="استاد رحیم"></div>
+    <div class="form-group"><label>شماره تماس</label><input type="tel" id="w-phone"></div>
+    <div class="form-group">
+        <label>نقش</label>
+        <div class="custom-dropdown" id="dd-wrole">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-wrole')">
+                <span id="val-wrole">خلیفه</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options">
+                <div class="dropdown-option" onclick="selectOption('dd-wrole', 'خلیفه', 'khalifa')">خلیفه</div>
+                <div class="dropdown-option" onclick="selectOption('dd-wrole', 'شاگرد', 'shagerd')">شاگرد</div>
+                <div class="dropdown-option" onclick="selectOption('dd-wrole', 'دیگر', 'other')">دیگر</div>
+            </div>
+            <input type="hidden" id="w-role-val" value="khalifa">
+        </div>
+    </div>
+    <button class="btn btn-full" onclick="saveWorker()">ذخیره</button>
+  </div>
+</div>
+
+<!-- ==============================================
+     MODAL: RETAIL ORDER FORM (NEW)
+============================================== -->
+<div class="modal-overlay" id="modal-retail">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-retail')">✕</button>
+    <h2 class="modal-title" id="retail-modal-title">ثبت سفارش پرچون جدید</h2>
+    <input type="hidden" id="r-id">
+    <input type="hidden" id="r-code">
+
+    <div class="card" style="margin-bottom:10px; padding:10px; border-color:var(--info); background:rgba(52,152,219,.05);">
+      <div class="flex justify-between items-center">
+        <span style="font-size:11px; color:var(--info);">کد سفارش (۵ رقمی):</span>
+        <strong id="r-code-display" style="font-size:16px; color:var(--gold); font-family:monospace; letter-spacing:2px;">10000</strong>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group"><label>نام مشتری *</label><input type="text" id="r-name" placeholder="نام و تخلص"></div>
+      <div class="form-group"><label>شماره تماس</label><input type="tel" id="r-phone" placeholder="07XXXXXXXX"></div>
+    </div>
+    
+    <div class="form-group"><label>شماره واتساپ</label><input type="tel" id="r-whatsapp" placeholder="93XXXXXXXXX"></div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>نوع لباس *</label>
+        <div class="custom-dropdown" id="dd-retail-type">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-retail-type')">
+                <span id="val-retail-type">انتخاب کنید</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="dropdown-options" id="opt-retail-type"></div>
+        </div>
+        <input type="text" id="r-custom-type" placeholder="نام لباس (در صورت انتخاب سایر)" style="margin-top:5px; display:none;">
+      </div>
+      <div class="form-group"><label>رنگ پارچه</label><input type="text" id="r-color" placeholder="مثلا سرمه‌ای"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group"><label>تعداد</label><input type="number" id="r-qty" placeholder="1" min="1"></div>
+      <div class="form-group"><label>متراژ تکه (متر)</label><input type="number" step="0.1" id="r-fabric-len" placeholder="2.5"></div>
+    </div>
+
+    <div class="form-group">
+      <label>تاریخ سفارش</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-r-day">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-day')"><span id="val-r-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-r-day"></div>
+        </div>
+        <div class="custom-dropdown" id="dd-r-month">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-month')"><span id="val-r-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-r-month"></div>
+        </div>
+        <div class="custom-dropdown" id="dd-r-year">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-year')"><span id="val-r-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-r-year"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+      <span>اندازه‌گیری‌ها</span>
+      <button class="btn btn-sm btn-outline" style="padding:4px 8px; font-size:10px;" onclick="addRetailMeasureRow()">+ افزودن فیلد</button>
+    </div>
+    <div id="retail-measure-container" style="margin-bottom:10px;">
+      <!-- Dynamic measurement rows -->
+    </div>
+
+    <div class="form-group"><label>توضیحات / یادداشت</label><textarea id="r-notes" rows="2"></textarea></div>
+
+    <button class="btn btn-full" onclick="saveRetailOrder()" style="margin-top:10px;">ذخیره سفارش</button>
+  </div>
+</div>
+
+
+<!-- ==============================================
+     BOTTOM NAV (Wholesale only)
+============================================== -->
+<nav class="bottom-nav" id="bottom-nav-wholesale">
+  <button class="nav-item active" data-nav="dashboard" onclick="showView('dashboard')">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>داشبورد</span>
+  </button>
+  <button class="nav-item" data-nav="contracts" onclick="showView('contracts')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <span>قراردادها</span>
+  </button>
+  <button class="nav-item" data-nav="customers" onclick="showView('customers')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <span>مشتریان</span>
+  </button>
+  <button class="nav-item" data-nav="workers" onclick="showView('workers')">
+    <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <span>خلیفه‌ها</span>
+  </button>
+  <button class="nav-item" data-nav="reports" onclick="showView('reports')">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <span>گزارش</span>
+  </button>
+</nav>
+
+<script>
+/* ==================== FIREBASE ==================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+  authDomain: "tailor-64f7f.firebaseapp.com",
+  databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+  projectId: "tailor-64f7f",
+  storageBucket: "tailor-64f7f.firebasestorage.app",
+  messagingSenderId: "16067911685",
+  appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const userPhone = localStorage.getItem('tailor_user') || 'demo_user';
+
+/* ==================== CONSTANTS & STATE ==================== */
+const STATUS_MAP = {
+  sample_received:     { label: "نمونه دریافت شد", color: "info" },
+  sample_sewing:       { label: "نمونه در حال دوخت", color: "warning" },
+  sample_ready:        { label: "نمونه آماده بررسی", color: "warning" },
+  awaiting_approval:   { label: "منتظر تأیید مشتری", color: "warning" },
+  pricing_negociation: { label: "در حال توافق قیمت", color: "warning" },
+  contract_signed:     { label: "قرارداد بسته شد", color: "success" },
+  in_production:       { label: "در حال تولید", color: "info" },
+  ready_for_delivery:  { label: "آماده تحویل", color: "success" },
+  delivered:           { label: "تحویل‌شده", color: "success" },
+  cancelled:           { label: "لغو‌شده", color: "danger" }
+};
+const STATUS_FLOW = {
+  sample_received:     ["sample_sewing", "cancelled"],
+  sample_sewing:       ["sample_ready", "cancelled"],
+  sample_ready:        ["awaiting_approval", "cancelled"],
+  awaiting_approval:   ["pricing_negociation", "cancelled"],
+  pricing_negociation: ["contract_signed", "cancelled"],
+  contract_signed:     ["in_production", "cancelled"],
+  in_production:       ["ready_for_delivery"],
+  ready_for_delivery:  ["delivered", "in_production"],
+  delivered:           [],
+  cancelled:           []
+};
+
+// Garment Templates for Retail
+const RETAIL_GARMENTS = {
+  "پیراهن تنبان مردانه": ["قد پیراهن", "دور گردن", "گودی یخن", "دور سینه", "دور شکم", "عرض شانه", "قد آستین", "دور مچ", "قد تنبان", "دور کمر", "قد فاق", "دور پایچه"],
+  "واسکت مردانه": ["قد واسکت", "دور سینه", "دور شکم", "عرض شانه", "گودی یخن", "قد جلو", "قد پشت", "دور بازو"],
+  "پیراهن رسمی مردانه": ["قد پیراهن", "دور گردن", "دور سینه", "دور شکم", "عرض شانه", "قد آستین", "دور مچ", "گودی یخن"],
+  "پتلون / شلوار مردانه": ["قد پتلون", "دور کمر", "دور باسن", "قد فاق", "دور ران", "دور زانو", "دور پایین پا", "قد داخل پا"],
+  "پیراهن زنانه": ["قد لباس", "دور سینه", "دور کمر", "دور باسن", "عرض شانه", "قد آستین", "دور بازو", "دور مچ", "قد دامن"],
+  "مانتو / پالتو زنانه": ["قد مانتو", "دور سینه", "دور کمر", "دور باسن", "عرض شانه", "قد آستین", "دور بازو", "دور مچ", "دور حلقه آستین"],
+  "شلوار زنانه": ["قد شلوار", "دور کمر", "دور باسن", "قد فاق", "دور ران", "دور زانو", "دور پایچه"],
+  "دامن زنانه": ["دور کمر", "دور باسن", "قد دامن", "دور پایین دامن"],
+  "لباس کودک (دخترانه/پسرانه)": ["قد لباس", "دور سینه", "دور کمر", "دور باسن", "عرض شانه", "قد آستین", "قد شلوار/دامن"],
+  "کلاه": ["دور سر", "عمق کلاه", "ارتفاع تاج", "طول نقاب"],
+  "چپن افغانی": ["قد چپن", "دور سینه", "دور شکم", "عرض شانه", "قد آستین", "دور مچ", "گودی یخن"],
+  "لباس عروس": ["قد لباس", "دور سینه", "دور زیر سینه", "دور کمر", "دور باسن", "عرض شانه", "قد آستین", "قد دامن", "اندازه دنباله"],
+  "سایر": [] // 5 Empty fields will be generated
+};
+
+const state = {
+  contracts: {}, customers: {}, workers: {},
+  retailOrders: {},
+  currentContractId: null, statusFilter: 'all',
+  editingVariants: [], editingMaterials: [],
+  selectedCustomerId: '', selectedStatus: 'sample_received', selectedWorkerId: '',
+  selectedStage: 'sewing', selectedPayMethod: 'cash', selectedCustType: 'shop', selectedWRole: 'khalifa',
+  selectedRetailGarment: ''
+};
+
+/* ==================== UTILS ==================== */
+function fmt(n){ return Number(n || 0).toLocaleString('fa-AF'); }
+function uid(prefix='id'){ return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+function todayStr(){
+  const d = new Date();
+  return d.toLocaleDateString('fa-AF-u-nu-latn') || (d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate());
+}
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function showAlert(type, title, msg){
+  const box = document.getElementById('alert-icon-box');
+  const svg = document.getElementById('alert-icon-svg');
+  if(type === 'success'){
+    box.className = 'custom-alert-icon icon-success';
+    svg.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+  } else {
+    box.className = 'custom-alert-icon icon-error';
+    svg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+  }
+  document.getElementById('alert-title').textContent = title;
+  document.getElementById('alert-msg').textContent = msg;
+  document.getElementById('custom-alert').classList.add('active');
+}
+function closeAlert(){ document.getElementById('custom-alert').classList.remove('active'); }
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+function toggleTheme(){
+  document.body.classList.toggle('light-mode');
+  localStorage.setItem('tailor_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+}
+
+/* ==================== MAIN TAB SWITCHING (WHOLESALE vs RETAIL) ==================== */
+function switchMainTab(tab) {
+  document.getElementById('btn-switch-wholesale').classList.toggle('active', tab === 'wholesale');
+  document.getElementById('btn-switch-retail').classList.toggle('active', tab === 'retail');
+  
+  document.getElementById('wholesale-wrapper').style.display = tab === 'wholesale' ? 'block' : 'none';
+  document.getElementById('retail-wrapper').style.display = tab === 'retail' ? 'block' : 'none';
+  document.getElementById('bottom-nav-wholesale').style.display = tab === 'wholesale' ? 'flex' : 'none';
+
+  if (tab === 'retail') {
+    loadRetailData();
+  }
+}
+
+/* ==================== VIEW SWITCHING (Wholesale) ==================== */
+function showView(name){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.nav === name));
+  window.scrollTo({top:0, behavior:'smooth'});
+  if(name === 'contracts') renderContractsList();
+  if(name === 'customers') renderCustomers();
+  if(name === 'workers') renderWorkers();
+  if(name === 'reports') renderReports();
+}
+
+/* ==================== CUSTOM DROPDOWN (General) ==================== */
+function toggleDropdown(id) {
+    document.querySelectorAll('.dropdown-options').forEach(el => {
+        if(el.parentElement.id !== id) {
+            el.classList.remove('active');
+            el.previousElementSibling.classList.remove('active');
+        }
+    });
+    const dropdown = document.getElementById(id);
+    const options = dropdown.querySelector('.dropdown-options');
+    const trigger = dropdown.querySelector('.dropdown-trigger');
+    options.classList.toggle('active');
+    trigger.classList.toggle('active');
+}
+
+function selectOption(dropdownId, label, value) {
+    document.getElementById('val-' + dropdownId.replace('dd-', '')).innerText = label;
+    
+    if (dropdownId === 'dd-customer') state.selectedCustomerId = value;
+    else if (dropdownId === 'dd-status') state.selectedStatus = value;
+    else if (dropdownId === 'dd-method') state.selectedPayMethod = value;
+    else if (dropdownId === 'dd-stage') state.selectedStage = value;
+    else if (dropdownId === 'dd-worker') state.selectedWorkerId = value;
+    else if (dropdownId === 'dd-ctype') state.selectedCustType = value;
+    else if (dropdownId === 'dd-wrole') state.selectedWRole = value;
+
+    const hiddenInput = document.getElementById(dropdownId.replace('dd-', '') + '-val');
+    if(hiddenInput) hiddenInput.value = value;
+    
+    if(dropdownId === 'dd-worker') {
+        const wInput = document.getElementById('pr-worker-id');
+        if(wInput) wInput.value = value;
+    }
+
+    document.getElementById(dropdownId).querySelector('.dropdown-options').classList.remove('active');
+    document.getElementById(dropdownId).querySelector('.dropdown-trigger').classList.remove('active');
+}
+
+window.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-dropdown')) {
+        document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+    }
+});
+
+/* ==================== DATA LOADING (Wholesale) ==================== */
+function loadAllData(cb){
+  Promise.all([
+    db.ref('users/' + userPhone + '/contracts').once('value'),
+    db.ref('users/' + userPhone + '/customers').once('value'),
+    db.ref('users/' + userPhone + '/workers').once('value')
+  ]).then(([cSnap, cuSnap, wSnap]) => {
+    state.contracts = cSnap.val() || {};
+    state.customers = cuSnap.val() || {};
+    state.workers = wSnap.val() || {};
+    if(cb) cb();
+    renderDashboard();
+    renderContractsList();
+    renderCustomers();
+    renderWorkers();
+  }).catch(err => showAlert('error', 'خطا در بارگذاری', err.message));
+}
+
+/* ==================== FINANCIAL CALC (Wholesale) ==================== */
+function recalcContractFinancials(contract){
+  let totalContractValue = 0, totalInvoiced = 0;
+  Object.values(contract.variants || {}).forEach(v => {
+    totalContractValue += (Number(v.quantity)||0) * (Number(v.pricePerPiece)||0);
+    totalInvoiced += (Number(v.deliveredQuantity)||0) * (Number(v.pricePerPiece)||0);
+  });
+  const totalPaid = Number(contract.financials?.totalPaid) || 0;
+  return {
+    totalContractValue,
+    totalInvoiced,
+    totalPaid,
+    totalRemaining: totalInvoiced - totalPaid
+  };
+}
+
+function contractTotalQty(contract){
+  let q = 0;
+  Object.values(contract.variants || {}).forEach(v => q += (Number(v.quantity)||0));
+  return q;
+}
+function contractProducedQty(contract){
+  let q = 0;
+  Object.values(contract.variants || {}).forEach(v => q += (Number(v.producedQuantity)||0));
+  return q;
+}
+function contractDeliveredQty(contract){
+  let q = 0;
+  Object.values(contract.variants || {}).forEach(v => q += (Number(v.deliveredQuantity)||0));
+  return q;
+}
+
+/* ==================== RENDER: DASHBOARD (Wholesale) ==================== */
+function renderDashboard(){
+  const contracts = Object.values(state.contracts);
+  document.getElementById('kpi-total').innerHTML = contracts.length + ' <span>مورد</span>';
+  
+  const inProd = contracts.filter(c => c.status === 'in_production' || c.status === 'ready_for_delivery').length;
+  document.getElementById('kpi-production').innerHTML = inProd + ' <span>قرارداد</span>';
+  
+  let totalDebt = 0;
+  contracts.forEach(c => {
+    const f = recalcContractFinancials(c);
+    if(f.totalRemaining > 0) totalDebt += f.totalRemaining;
+  });
+  document.getElementById('kpi-debt').innerHTML = fmt(totalDebt) + ' <span>افغانی</span>';
+  
+  const urgent = contracts.filter(c => isUrgent(c)).length;
+  document.getElementById('kpi-urgent').innerHTML = urgent + ' <span>قرارداد</span>';
+  
+  const alerts = [];
+  contracts.forEach(c => {
+    if(isUrgent(c)) alerts.push(`<div class="hist-item" style="border-right-color:var(--warning)"><div class="hist-desc">${esc(c.customerName)} — تحویل نزدیک (${esc(c.deliveryDate||'—')})</div></div>`);
+    const f = recalcContractFinancials(c);
+    if(f.totalRemaining > 0 && c.status === 'delivered') alerts.push(`<div class="hist-item" style="border-right-color:var(--danger)"><div class="hist-desc">${esc(c.customerName)} — بدهی ${fmt(f.totalRemaining)} افغانی</div></div>`);
+  });
+  document.getElementById('alerts-box').innerHTML = alerts.length ? alerts.slice(0,5).join('') : '<div class="empty">هیچ هشداری نیست</div>';
+  
+  const recent = contracts.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0)).slice(0,5);
+  document.getElementById('recent-box').innerHTML = recent.length
+    ? recent.map(c => `<div class="hist-item"><div class="hist-time">${esc(c.code)} — ${esc(STATUS_MAP[c.status]?.label||'—')}</div><div class="hist-desc">${esc(c.customerName)} — ${contractTotalQty(c)} دانه</div></div>`).join('')
+    : '<div class="empty">فعالیتی ثبت نشده</div>';
+}
+
+function isUrgent(c){
+  if(!c.deliveryDate) return false;
+  if(c.status === 'delivered' || c.status === 'cancelled') return false;
+  try {
+    const parts = c.deliveryDate.split('/');
+    if(parts.length === 3) {
+      const dDate = new Date(parts[0], parts[1]-1, parts[2]);
+      const today = new Date();
+      const diff = (dDate - today) / (1000 * 60 * 60 * 24);
+      if(diff >= 0 && diff <= 7) return true;
+    }
+  } catch(e) {}
+  if(c.status === 'in_production' || c.status === 'ready_for_delivery') return true;
+  return false;
+}
+
+/* ==================== RENDER: CONTRACTS LIST (Wholesale) ==================== */
+function renderContractsList(){
+  const tabsEl = document.getElementById('status-filter-tabs');
+  if(!tabsEl.dataset.built){
+    let html = '<div class="tab ' + (state.statusFilter==='all'?'active':'') + '" onclick="setStatusFilter(\'all\')">همه</div>';
+    Object.entries(STATUS_MAP).forEach(([k,v]) => {
+      html += `<div class="tab ${state.statusFilter===k?'active':''}" onclick="setStatusFilter('${k}')">${v.label}</div>`;
+    });
+    tabsEl.innerHTML = html;
+    tabsEl.dataset.built = '1';
+  } else {
+    tabsEl.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.textContent.trim() === (state.statusFilter==='all'?'همه':STATUS_MAP[state.statusFilter]?.label));
+    });
+  }
+  
+  let list = Object.values(state.contracts);
+  if(state.statusFilter !== 'all') list = list.filter(c => c.status === state.statusFilter);
+  
+  const search = (document.getElementById('contract-search')?.value || '').toLowerCase().trim();
+  if(search){
+    list = list.filter(c =>
+      (c.customerName||'').toLowerCase().includes(search) ||
+      (c.code||'').toLowerCase().includes(search) ||
+      Object.values(c.variants||{}).some(v => (v.modelName||'').toLowerCase().includes(search))
+    );
+  }
+  
+  list.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+  
+  const box = document.getElementById('contracts-list-box');
+  if(!list.length){ box.innerHTML = '<div class="empty">هیچ قراردادی یافت نشد</div>'; return; }
+  
+  box.innerHTML = list.map(c => {
+    const st = STATUS_MAP[c.status] || { label: '?', color: 'muted' };
+    const f = recalcContractFinancials(c);
+    const totalQ = contractTotalQty(c);
+    const producedQ = contractProducedQty(c);
+    const progress = totalQ ? Math.round(producedQ / totalQ * 100) : 0;
+    const models = [...new Set(Object.values(c.variants||{}).map(v => v.modelName))].join('، ');
+    
+    return `
+      <div class="contract-card" onclick="openContractDetail('${c.id}')">
+        <div class="cc-header">
+          <div>
+            <div class="cc-code">${esc(c.code)}</div>
+            <div class="cc-customer">${esc(c.customerName)}</div>
+            <div class="cc-model">${esc(models || '—')}</div>
+          </div>
+          <span class="chip chip-${st.color}">${st.label}</span>
+        </div>
+        <div class="cc-body">
+          <div>تعداد: <strong>${totalQ}</strong> دانه</div>
+          <div>تحویل: <strong>${contractDeliveredQty(c)}</strong> دانه</div>
+          <div>موعد: <strong>${esc(c.deliveryDate||'—')}</strong></div>
+          <div>مسئول: <strong>${esc(c.responsible||'—')}</strong></div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+        <div class="cc-financial">
+          <div class="fin-total"><span>کل قرارداد</span><strong>${fmt(f.totalContractValue)}</strong></div>
+          <div class="fin-paid"><span>پرداختی</span><strong>${fmt(f.totalPaid)}</strong></div>
+          <div class="fin-rem"><span>بدهی</span><strong>${fmt(Math.max(0,f.totalRemaining))}</strong></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setStatusFilter(s){ state.statusFilter = s; renderContractsList(); }
+
+/* ==================== CONTRACT FORM (Wholesale) ==================== */
+function openContractForm(contractId){
+  const isEdit = !!contractId;
+  document.getElementById('contract-form-title').textContent = isEdit ? 'ویرایش قرارداد' : 'ثبت قرارداد جدید';
+  document.getElementById('f-contract-id').value = contractId || '';
+  
+  let custHtml = '';
+  Object.entries(state.customers).forEach(([id,c]) => {
+      custHtml += `<div class="dropdown-option" onclick="selectOption('dd-customer', '${esc(c.name)}', '${id}')">${esc(c.name)}</div>`;
+  });
+  document.getElementById('opt-customer').innerHTML = custHtml || '<div class="dropdown-option">مشتری ثبت نشده</div>';
+  
+  let stHtml = '';
+  Object.entries(STATUS_MAP).forEach(([k,v]) => {
+      stHtml += `<div class="dropdown-option" onclick="selectOption('dd-status', '${v.label}', '${k}')">${v.label}</div>`;
+  });
+  document.getElementById('opt-status').innerHTML = stHtml;
+  
+  state.editingVariants = [];
+  state.editingMaterials = [];
+  
+  if(isEdit && state.contracts[contractId]){
+    const c = state.contracts[contractId];
+    state.selectedCustomerId = c.customerId || '';
+    document.getElementById('val-customer').innerText = c.customerName || 'انتخاب کنید';
+    state.selectedStatus = c.status || 'sample_received';
+    document.getElementById('val-status').innerText = STATUS_MAP[state.selectedStatus]?.label || 'انتخاب کنید';
+    document.getElementById('f-sample-date').value = c.sampleReceivedDate || '';
+    document.getElementById('f-delivery-date').value = c.deliveryDate || '';
+    document.getElementById('f-responsible').value = c.responsible || '';
+    document.getElementById('f-notes').value = c.notes || '';
+    document.getElementById('f-default-price').value = c.defaultPricePerPiece || '';
+    document.getElementById('f-advance').value = c.financials?.advancePayment || '';
+    document.getElementById('f-fabric-color').value = c.fabric?.color || '';
+    document.getElementById('f-fabric-width').value = c.fabric?.width || '';
+    document.getElementById('f-fabric-length').value = c.fabric?.length || '';
+    document.getElementById('f-marker-length').value = c.fabric?.markerLength || '';
+    document.getElementById('f-marker-pieces').value = c.fabric?.markerPieces || '';
+
+    Object.entries(c.variants||{}).forEach(([vid,v]) => {
+      state.editingVariants.push({
+        id: vid, modelName: v.modelName, color: v.color, size: v.size,
+        quantity: v.quantity, pricePerPiece: v.pricePerPiece,
+        producedQuantity: v.producedQuantity||0, deliveredQuantity: v.deliveredQuantity||0, rejectedQuantity: v.rejectedQuantity||0
+      });
+    });
+
+    Object.entries(c.materials||{}).forEach(([mid,m]) => {
+        state.editingMaterials.push({ id: mid, name: m.name, totalQty: m.totalQty, qtyShop: m.qtyShop, qtyTailor: m.qtyTailor });
+    });
+  } else {
+    state.selectedCustomerId = '';
+    document.getElementById('val-customer').innerText = '— انتخاب مشتری —';
+    state.selectedStatus = 'sample_received';
+    document.getElementById('val-status').innerText = 'نمونه دریافت شد';
+    document.getElementById('f-sample-date').value = '';
+    document.getElementById('f-delivery-date').value = '';
+    document.getElementById('f-responsible').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('f-default-price').value = '';
+    document.getElementById('f-advance').value = '';
+    document.getElementById('f-fabric-color').value = '';
+    document.getElementById('f-fabric-width').value = '';
+    document.getElementById('f-fabric-length').value = '';
+    document.getElementById('f-marker-length').value = '';
+    document.getElementById('f-marker-pieces').value = '';
+    state.editingVariants = [createEmptyVariant()];
+    state.editingMaterials = [];
+  }
+  
+  switchFormTab('info');
+  renderVariantRows();
+  renderMaterialRows();
+  openModal('modal-contract');
+}
+
+function createEmptyVariant(){
+  return { id: uid('var'), modelName:'', color:'', size:'', quantity:0, pricePerPiece:0, producedQuantity:0, deliveredQuantity:0, rejectedQuantity:0 };
+}
+
+function switchFormTab(tab){
+  document.querySelectorAll('#form-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('#modal-contract .tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'form-tab-' + tab));
+}
+
+function addVariantRow(){ state.editingVariants.push(createEmptyVariant()); renderVariantRows(); }
+
+function duplicateLastVariant(){
+  if(!state.editingVariants.length){ addVariantRow(); return; }
+  const last = {...state.editingVariants[state.editingVariants.length-1]};
+  last.id = uid('var'); last.quantity = 0; last.producedQuantity = 0; last.deliveredQuantity = 0; last.rejectedQuantity = 0;
+  state.editingVariants.push(last); renderVariantRows();
+}
+
+function renderVariantRows(){
+  const box = document.getElementById('variants-container');
+  if(!state.editingVariants.length){
+    box.innerHTML = '<div class="empty">مدلی اضافه نشده</div>';
+    updateVariantTotals();
+    return;
+  }
+  box.innerHTML = state.editingVariants.map((v, idx) => `
+    <div class="variant-row" data-idx="${idx}">
+      <div class="vr-top">
+        <input type="text" placeholder="مدل" value="${esc(v.modelName)}" oninput="updateVariant(${idx},'modelName',this.value)">
+        <input type="text" placeholder="رنگ" value="${esc(v.color)}" oninput="updateVariant(${idx},'color',this.value)">
+        <input type="text" placeholder="سایز" value="${esc(v.size)}" oninput="updateVariant(${idx},'size',this.value)">
+      </div>
+      <div class="vr-bottom">
+        <input type="number" placeholder="تعداد" value="${v.quantity||''}" oninput="updateVariant(${idx},'quantity',this.value)">
+        <input type="number" placeholder="قیمت/دانه" value="${v.pricePerPiece||''}" oninput="updateVariant(${idx},'pricePerPiece',this.value)">
+        <span class="vr-sum">${fmt((v.quantity||0)*(v.pricePerPiece||0))}</span>
+        <button type="button" class="vr-remove" onclick="removeVariant(${idx})">✕</button>
+      </div>
+      ${v.deliveredQuantity > 0 ? `<div style="font-size:9px;color:var(--success);margin-top:4px">تحویل‌شده: ${v.deliveredQuantity}</div>` : ''}
+    </div>
+  `).join('');
+  updateVariantTotals();
+}
+
+function updateVariant(idx, field, val){
+  const v = state.editingVariants[idx]; if(!v) return;
+  if(field === 'quantity' || field === 'pricePerPiece') v[field] = Number(val) || 0;
+  else v[field] = val;
+  updateVariantTotals();
+}
+
+function removeVariant(idx){
+  const v = state.editingVariants[idx];
+  if(v && v.deliveredQuantity > 0){ showAlert('error', 'امکان حذف نیست', 'این مدل تحویل‌شده دارد.'); return; }
+  state.editingVariants.splice(idx, 1); renderVariantRows();
+}
+
+function updateVariantTotals(){
+  let q = 0, val = 0;
+  state.editingVariants.forEach(v => {
+    q += Number(v.quantity) || 0;
+    val += (Number(v.quantity)||0) * (Number(v.pricePerPiece)||0);
+  });
+  document.getElementById('variants-total-qty').textContent = q;
+  document.getElementById('variants-total-value').textContent = fmt(val) + ' افغانی';
+  document.getElementById('contract-total-value').textContent = fmt(val) + ' افغانی';
+}
+
+function applyDefaultPrice(){
+  const p = Number(document.getElementById('f-default-price').value) || 0;
+  state.editingVariants.forEach(v => { if(!v.pricePerPiece) v.pricePerPiece = p; });
+  renderVariantRows();
+}
+
+/* ==================== MATERIALS (Wholesale) ==================== */
+function addMaterialRow() {
+    state.editingMaterials.push({ id: uid('mat'), name: '', totalQty: 0, qtyShop: 0, qtyTailor: 0 });
+    renderMaterialRows();
+}
+
+function renderMaterialRows() {
+    const box = document.getElementById('materials-container');
+    if(!state.editingMaterials.length) { box.innerHTML = '<div class="empty">لوازمی اضافه نشده است</div>'; return; }
+    box.innerHTML = state.editingMaterials.map((m, idx) => `
+        <div class="mat-row" data-idx="${idx}">
+            <div class="mat-top">
+                <input type="text" placeholder="نام (زیپ، دکمه...)" value="${esc(m.name)}" oninput="updateMaterial(${idx},'name',this.value)">
+                <button type="button" class="vr-remove" onclick="removeMaterial(${idx})">✕</button>
+            </div>
+            <div class="mat-bottom">
+                <input type="number" placeholder="کل نیاز" value="${m.totalQty||''}" oninput="updateMaterial(${idx},'totalQty',this.value)">
+                <input type="number" placeholder="از دکاندار" value="${m.qtyShop||''}" oninput="updateMaterial(${idx},'qtyShop',this.value)">
+                <input type="number" placeholder="از خودم" value="${m.qtyTailor||''}" oninput="updateMaterial(${idx},'qtyTailor',this.value)">
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateMaterial(idx, field, val) {
+    const m = state.editingMaterials[idx]; if(!m) return;
+    m[field] = (field === 'name') ? val : (Number(val) || 0);
+}
+
+function removeMaterial(idx) { state.editingMaterials.splice(idx, 1); renderMaterialRows(); }
+
+/* ==================== SAVE CONTRACT (Wholesale) ==================== */
+async function saveContract(){
+  const id = document.getElementById('f-contract-id').value;
+  const customer = state.customers[state.selectedCustomerId];
+  if(!state.selectedCustomerId || !customer){ showAlert('error', 'خطا', 'لطفاً مشتری را انتخاب کنید'); return; }
+  if(!state.editingVariants.length || state.editingVariants.every(v => !v.modelName && !v.quantity)){ showAlert('error', 'خطا', 'حداقل یک مدل با تعداد وارد کنید'); return; }
+  
+  const validVariants = state.editingVariants.filter(v => v.modelName && v.quantity > 0);
+  if(!validVariants.length){ showAlert('error', 'خطا', 'مدل‌های ناقص را تکمیل کنید'); return; }
+  
+  for(const v of validVariants){
+    if(id && state.contracts[id]?.variants?.[v.id]){
+      const prevDel = state.contracts[id].variants[v.id].deliveredQuantity || 0;
+      if(v.quantity < prevDel){ showAlert('error', 'خطا', `مدل ${v.modelName}: تعداد نمی‌تواند کمتر از تحویل‌شده (${prevDel}) باشد`); return; }
+    }
+  }
+  
+  const contractId = id || uid('ctr');
+  const existing = state.contracts[id];
+  let code = existing?.code;
+  if(!code){ const count = Object.keys(state.contracts).length + 1; code = 'C-' + (new Date().getFullYear()) + '-' + String(count).padStart(4, '0'); }
+  
+  const variantsObj = {};
+  validVariants.forEach(v => {
+    variantsObj[v.id] = {
+      modelName: v.modelName, color: v.color||'', size: v.size||'',
+      quantity: Number(v.quantity)||0, pricePerPiece: Number(v.pricePerPiece)||0,
+      producedQuantity: v.producedQuantity||0, deliveredQuantity: v.deliveredQuantity||0, rejectedQuantity: v.rejectedQuantity||0
+    };
+  });
+
+  const materialsObj = {};
+  state.editingMaterials.forEach(m => {
+      if(m.name && m.totalQty > 0) materialsObj[m.id] = { name: m.name, totalQty: m.totalQty, qtyShop: m.qtyShop, qtyTailor: m.qtyTailor };
+  });
+
+  const fabricData = {
+      color: document.getElementById('f-fabric-color').value || '',
+      width: Number(document.getElementById('f-fabric-width').value) || 0,
+      length: Number(document.getElementById('f-fabric-length').value) || 0,
+      markerLength: Number(document.getElementById('f-marker-length').value) || 0,
+      markerPieces: Number(document.getElementById('f-marker-pieces').value) || 0
+  };
+  
+  const contractData = {
+    id: contractId, code, customerId: state.selectedCustomerId, customerName: customer.name, customerPhone: customer.phone || '',
+    status: state.selectedStatus, responsible: document.getElementById('f-responsible').value || '',
+    sampleReceivedDate: document.getElementById('f-sample-date').value || '', deliveryDate: document.getElementById('f-delivery-date').value || '',
+    notes: document.getElementById('f-notes').value || '', defaultPricePerPiece: Number(document.getElementById('f-default-price').value)||0,
+    variants: variantsObj, materials: materialsObj, fabric: fabricData,
+    financials: { advancePayment: Number(document.getElementById('f-advance').value)||0, totalPaid: existing?.financials?.totalPaid || 0 },
+    createdAt: existing?.createdAt || Date.now(), updatedAt: Date.now()
+  };
+  
+  try {
+    await db.ref('users/' + userPhone + '/contracts/' + contractId).set(contractData);
+    await logHistory(contractId, id ? 'contract_updated' : 'contract_created', 'وضعیت: ' + STATUS_MAP[contractData.status].label);
+    showAlert('success', 'موفق', id ? 'قرارداد ویرایش شد' : 'قرارداد ثبت شد: ' + code);
+    closeModal('modal-contract');
+    loadAllData();
+  } catch(err){ showAlert('error', 'خطا', err.message); }
+}
+
+/* ==================== CONTRACT DETAIL (Wholesale) ==================== */
+function openContractDetail(id){
+  state.currentContractId = id; renderContractDetail(); showView('contract-detail');
+}
+
+function renderContractDetail(){
+  const id = state.currentContractId;
+  const c = state.contracts[id];
+  if(!c){ document.getElementById('detail-body').innerHTML = '<div class="empty">قرارداد یافت نشد</div>'; return; }
+  
+  document.getElementById('detail-title').textContent = c.code;
+  const st = STATUS_MAP[c.status] || { label:'?', color:'muted' };
+  const f = recalcContractFinancials(c);
+  const totalQ = contractTotalQty(c);
+  const producedQ = contractProducedQty(c);
+  const deliveredQ = contractDeliveredQty(c);
+  const progress = totalQ ? Math.round(producedQ/totalQ*100) : 0;
+  const delProgress = totalQ ? Math.round(deliveredQ/totalQ*100) : 0;
+  const canDeliver = ['in_production','ready_for_delivery'].includes(c.status);
+  const canPay = !['sample_received','cancelled'].includes(c.status);
+  const nextStatuses = STATUS_FLOW[c.status] || [];
+
+  let fabricHtml = '';
+  if(c.fabric && (c.fabric.color || c.fabric.length || c.fabric.markerLength)) {
+      fabricHtml = `
+        <div class="card">
+          <div class="card-title">مشخصات پارچه و متریال</div>
+          <div class="cc-body" style="font-size:11px;">
+            ${c.fabric.color ? `<div>رنگ: <strong>${esc(c.fabric.color)}</strong></div>` : ''}
+            ${c.fabric.width ? `<div>عرض: <strong>${esc(c.fabric.width)} سانتی‌متر</strong></div>` : ''}
+            ${c.fabric.length ? `<div>طول: <strong>${esc(c.fabric.length)} متر</strong></div>` : ''}
+            ${c.fabric.markerLength ? `<div>خط الگو: <strong>${esc(c.fabric.markerLength)} متر</strong></div>` : ''}
+            ${c.fabric.markerPieces ? `<div>تعداد در خط: <strong>${esc(c.fabric.markerPieces)} قطعه</strong></div>` : ''}
+          </div>
+          ${Object.keys(c.materials || {}).length ? `
+            <div class="card-title" style="margin-top:10px; font-size:11px;">لوازم جانبی</div>
+            ${Object.values(c.materials).map(m => `
+              <div class="vt-row" style="border-bottom:1px dashed rgba(255,255,255,0.05); padding:5px 0;">
+                <div><strong>${esc(m.name)}</strong></div>
+                <div style="font-size:10px; color:var(--text-muted);">کل: ${m.totalQty} | دکان: ${m.qtyShop} | خودم: ${m.qtyTailor}</div>
+              </div>
+            `).join('')}
+          ` : ''}
+        </div>
+      `;
+  }
+  
+  document.getElementById('detail-body').innerHTML = `
+    <div class="card">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <div class="cc-customer" style="font-size:16px">${esc(c.customerName)}</div>
+          <div class="cc-model">${esc(c.customerPhone||'—')}</div>
+        </div>
+        <span class="chip chip-${st.color}">${st.label}</span>
+      </div>
+      <div class="cc-body">
+        <div>تعداد: <strong>${totalQ}</strong></div>
+        <div>تولید: <strong>${producedQ}</strong></div>
+        <div>تحویل: <strong>${deliveredQ}</strong></div>
+        <div>موعد: <strong>${esc(c.deliveryDate||'—')}</strong></div>
+        <div>مسئول: <strong>${esc(c.responsible||'—')}</strong></div>
+        <div>نمونه: <strong>${esc(c.sampleReceivedDate||'—')}</strong></div>
+      </div>
+      <div class="progress-bar" style="margin-top:8px"><div class="progress-fill" style="width:${progress}%"></div></div>
+      <div class="text-center" style="font-size:10px;color:var(--text-muted);margin-top:4px">پیشرفت تولید: ${progress}% • تحویل: ${delProgress}%</div>
+      ${c.notes ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:8px">${esc(c.notes)}</div>` : ''}
+    </div>
+    
+    ${fabricHtml}
+
+    <div class="card">
+      <div class="card-title">خلاصه مالی</div>
+      <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>ارزش کل قرارداد</span><strong style="color:var(--info)">${fmt(f.totalContractValue)}</strong></div>
+      <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>صورت‌حساب‌شده (تحویل‌شده)</span><strong style="color:var(--gold)">${fmt(f.totalInvoiced)}</strong></div>
+      <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>پرداخت‌شده</span><strong style="color:var(--success)">${fmt(f.totalPaid)}</strong></div>
+      <div class="flex justify-between" style="font-size:12px;padding:6px 0;border-top:1px dashed var(--border);margin-top:4px"><span>باقی‌مانده</span><strong style="color:${f.totalRemaining>0?'var(--danger)':'var(--success)'}">${fmt(Math.max(0,f.totalRemaining))}</strong></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">عملیات</div>
+      <div class="flex gap-6 flex-wrap">
+        <button class="btn btn-sm" ${!canDeliver?'disabled':''} onclick="openDeliveryModal()">ثبت تحویل</button>
+        <button class="btn btn-sm" ${!canPay?'disabled':''} onclick="openPaymentModal()">ثبت پرداخت</button>
+        <button class="btn btn-sm btn-outline" ${!canDeliver?'disabled':''} onclick="openProductionModal()">ثبت تولید</button>
+      </div>
+      ${nextStatuses.length ? `
+        <div class="card-title" style="margin-top:12px;font-size:11px">تغییر وضعیت</div>
+        <div class="flex gap-6 flex-wrap">
+          ${nextStatuses.map(ns => `<button class="btn btn-sm btn-outline" onclick="changeStatus('${ns}')">${STATUS_MAP[ns].label}</button>`).join('')}
+        </div>
+      ` : ''}
+    </div>
+    
+    <div class="card">
+      <div class="card-title">مدل‌ها</div>
+      ${Object.entries(c.variants||{}).map(([vid,v]) => {
+        return `
+          <div class="vt-row">
+            <div class="vt-info">
+              <div style="color:var(--gold);font-weight:bold">${esc(v.modelName)}</div>
+              <div style="font-size:10px;color:var(--text-muted)">${esc(v.color||'—')} • ${esc(v.size||'—')} • ${fmt(v.pricePerPiece)} افغانی/دانه</div>
+            </div>
+            <div style="text-align:left">
+              <div class="vt-qty">${v.quantity} دانه</div>
+              <div style="font-size:9px;color:var(--text-muted)">تولید: ${v.producedQuantity||0} • تحویل: ${v.deliveredQuantity||0}</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="card">
+      <div class="card-title">سابقه تولیدات (تاریخچه)</div>
+      <div id="production-log-box"><div class="empty">در حال بارگذاری...</div></div>
+    </div>
+    
+    <div class="card">
+      <div class="card-title">تاریخچه عملیات</div>
+      <div id="history-box"><div class="empty">در حال بارگذاری...</div></div>
+    </div>
+  `;
+  
+  loadHistory(id);
+  loadProductionLog(id);
+}
+
+async function loadProductionLog(contractId) {
+    try {
+        const snap = await db.ref('users/' + userPhone + '/productions').orderByChild('contractId').equalTo(contractId).once('value');
+        const data = snap.val() || {};
+        const list = Object.values(data).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+        const box = document.getElementById('production-log-box');
+        if(!list.length) { box.innerHTML = '<div class="empty">هیچ تولیدی ثبت نشده است</div>'; return; }
+        box.innerHTML = list.map(p => `
+            <div class="prod-log-item">
+                <div class="prod-log-header">
+                    <span style="color:var(--gold); font-weight:bold;">${esc(p.date)}</span>
+                    <span class="chip chip-info" style="font-size:9px;">${p.stage === 'cutting' ? 'برش' : p.stage === 'sewing' ? 'دوخت' : p.stage === 'finishing' ? 'تکمیل' : 'بسته‌بندی'}</span>
+                </div>
+                <div class="prod-log-body">
+                    <span>تعداد: <strong>${p.totalQty} دانه</strong></span>
+                    <span>خلیفه: ${esc(p.workerName || '—')}</span>
+                    <span>دستمزد: ${fmt(p.wage)}</span>
+                </div>
+                ${Object.keys(p.items || {}).length ? `
+                  <div style="font-size:10px; color:var(--text-muted); margin-top:5px; border-top:1px dashed var(--border); padding-top:5px;">
+                    ${Object.entries(p.items).map(([vid, qty]) => {
+                        const v = state.contracts[contractId]?.variants?.[vid];
+                        return v ? `${esc(v.modelName)}: ${qty} عدد` : '';
+                    }).filter(Boolean).join(' | ')}
+                  </div>
+                ` : ''}
+            </div>
+        `).join('');
+    } catch(e) { console.error(e); document.getElementById('production-log-box').innerHTML = '<div class="empty">خطا در بارگذاری</div>'; }
+}
+
+async function loadHistory(contractId){
+  try {
+    const snap = await db.ref('users/' + userPhone + '/history/' + contractId).once('value');
+    const hist = snap.val() || {};
+    const list = Object.values(hist).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    document.getElementById('history-box').innerHTML = list.length
+      ? list.slice(0,10).map(h => `<div class="hist-item"><div class="hist-time">${new Date(h.timestamp).toLocaleString('fa-AF')}</div><div class="hist-desc">${esc(h.action)} ${h.detail?'— '+esc(h.detail):''}</div></div>`).join('')
+      : '<div class="empty">تاریخچه‌ای ثبت نشده</div>';
+  } catch(e){ console.error(e); }
+}
+
+async function logHistory(contractId, action, detail){
+  try { await db.ref('users/' + userPhone + '/history/' + contractId).push({ action, detail: detail||'', timestamp: Date.now() }); } catch(e){ console.error(e); }
+}
+
+async function changeStatus(newStatus){
+  const id = state.currentContractId;
+  const c = state.contracts[id]; if(!c) return;
+  try {
+    await db.ref('users/' + userPhone + '/contracts/' + id + '/status').set(newStatus);
+    await db.ref('users/' + userPhone + '/contracts/' + id + '/updatedAt').set(Date.now());
+    await logHistory(id, 'status_changed', STATUS_MAP[c.status].label + ' به ' + STATUS_MAP[newStatus].label);
+    showAlert('success', 'موفق', 'وضعیت تغییر کرد');
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
+    state.contracts = snap.val() || {};
+    renderContractDetail();
+  } catch(err){ showAlert('error', 'خطا', err.message); }
+}
+
+/* ==================== DELIVERY (Wholesale) ==================== */
+function openDeliveryModal(){
+  const c = state.contracts[state.currentContractId]; if(!c) return;
+  document.getElementById('d-date').value = todayStr(); document.getElementById('d-receiver').value = '';
+  const items = Object.entries(c.variants||{}).map(([vid,v]) => {
+    const rem = (v.quantity||0) - (v.deliveredQuantity||0);
+    if(rem <= 0) return '';
+    return `
+      <div class="variant-row" data-vid="${vid}" data-price="${v.pricePerPiece}">
+        <div style="font-size:11px;margin-bottom:4px"><strong style="color:var(--gold)">${esc(v.modelName)}</strong> — ${esc(v.color||'—')} / ${esc(v.size||'—')} <span style="color:var(--text-muted)">(باقی: ${rem})</span></div>
+        <input type="number" class="del-qty" placeholder="تعداد تحویلی (حداکثر ${rem})" max="${rem}" oninput="calcDeliveryAmount()">
+      </div>
+    `;
+  }).filter(Boolean).join('');
+  document.getElementById('delivery-items').innerHTML = items || '<div class="empty">همه مدل‌ها تحویل شده‌اند</div>';
+  document.getElementById('delivery-amount').textContent = '0 افغانی';
+  openModal('modal-delivery');
+}
+
+function calcDeliveryAmount(){
+  let total = 0;
+  document.querySelectorAll('#delivery-items .variant-row').forEach(row => {
+    const qty = Number(row.querySelector('.del-qty').value) || 0;
+    const price = Number(row.dataset.price) || 0;
+    total += qty * price;
+  });
+  document.getElementById('delivery-amount').textContent = fmt(total) + ' افغانی';
+}
+
+async function saveDelivery(){
+  const c = state.contracts[state.currentContractId]; if(!c) return;
+  const date = document.getElementById('d-date').value; const receiver = document.getElementById('d-receiver').value;
+  if(!date){ showAlert('error', 'خطا', 'تاریخ را وارد کنید'); return; }
+  
+  const items = {}; let amount = 0, hasAny = false; let errorMsg = '';
+  document.querySelectorAll('#delivery-items .variant-row').forEach(row => {
+    const vid = row.dataset.vid; const qty = Number(row.querySelector('.del-qty').value) || 0;
+    if(qty > 0){
+      const v = c.variants[vid]; const rem = (v.quantity||0) - (v.deliveredQuantity||0);
+      if(qty > rem){ errorMsg = `مدل ${v.modelName}: تعداد بیش از باقی‌مانده (${rem})`; return; }
+      items[vid] = qty; amount += qty * (v.pricePerPiece || 0); hasAny = true;
+    }
+  });
+  if(errorMsg){ showAlert('error', 'خطا', errorMsg); return; }
+  if(!hasAny){ showAlert('error', 'خطا', 'حداقل یک مقدار وارد کنید'); return; }
+  
+  try {
+    const deliveryId = uid('del'); const receiptNum = 'R-' + Date.now().toString().slice(-6);
+    await db.ref('users/' + userPhone + '/deliveries/' + deliveryId).set({ contractId: c.id, customerId: c.customerId, date, receiverName: receiver, items, amount, receiptNumber: receiptNum, createdAt: Date.now() });
+    for(const [vid, qty] of Object.entries(items)){ await db.ref(`users/${userPhone}/contracts/${c.id}/variants/${vid}/deliveredQuantity`).transaction(cur => (cur||0) + qty); }
+    await logHistory(c.id, 'delivery', `${Object.values(items).reduce((a,b)=>a+b,0)} دانه — ${fmt(amount)} افغانی — رسید ${receiptNum}`);
+    showAlert('success', 'موفق', `تحویل ثبت شد — رسید ${receiptNum}`); closeModal('modal-delivery');
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
+    state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
+  } catch(err){ showAlert('error', 'خطا', err.message); }
+}
+
+/* ==================== PAYMENT (Wholesale) ==================== */
+function openPaymentModal(){
+  const c = state.contracts[state.currentContractId]; if(!c) return;
+  document.getElementById('p-amount').value = ''; document.getElementById('val-method').innerText = 'نقد'; document.getElementById('p-method-val').value = 'cash'; document.getElementById('p-date').value = todayStr(); document.getElementById('p-note').value = '';
+  const f = recalcContractFinancials(c);
+  document.getElementById('payment-summary').innerHTML = `صورت‌حساب‌شده: <strong style="color:var(--gold)">${fmt(f.totalInvoiced)}</strong> — پرداخت‌شده: <strong style="color:var(--success)">${fmt(f.totalPaid)}</strong> — بدهی: <strong style="color:var(--danger)">${fmt(Math.max(0,f.totalRemaining))}</strong>`;
+  openModal('modal-payment');
+}
+
+async function savePayment(){
+  const c = state.contracts[state.currentContractId]; if(!c) return;
+  const amount = Number(document.getElementById('p-amount').value) || 0;
+  if(amount <= 0){ showAlert('error', 'خطا', 'مبلغ معتبر وارد کنید'); return; }
+  
+  const paymentId = uid('pay'); const receiptNum = 'P-' + Date.now().toString().slice(-6); const method = document.getElementById('p-method-val').value;
+  try {
+    await db.ref('users/' + userPhone + '/payments/' + paymentId).set({ contractId: c.id, customerId: c.customerId, amount, method, date: document.getElementById('p-date').value, note: document.getElementById('p-note').value, receiptNumber: receiptNum, createdAt: Date.now() });
+    await db.ref(`users/${userPhone}/contracts/${c.id}/financials/totalPaid`).transaction(cur => (cur||0) + amount);
+    await db.ref(`users/${userPhone}/contracts/${c.id}/updatedAt`).set(Date.now());
+    await logHistory(c.id, 'payment', `${fmt(amount)} افغانی — رسید ${receiptNum}`);
+    showAlert('success', 'موفق', 'پرداخت ثبت شد — رسید ' + receiptNum); closeModal('modal-payment');
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
+    state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
+  } catch(err){ showAlert('error', 'خطا', err.message); }
+}
+
+/* ==================== PRODUCTION (Wholesale) ==================== */
+function openProductionModal(){
+  const c = state.contracts[state.currentContractId]; if(!c) return;
+  document.getElementById('pr-date').value = todayStr(); document.getElementById('val-stage').innerText = 'دوخت'; document.getElementById('pr-stage-val').value = 'sewing'; document.getElementById('pr-rejected').value = ''; document.getElementById('pr-wage').value = '';
+  let wHtml = '<div class="dropdown-option" onclick="selectOption(\'dd-worker\', \'بدون خلیفه\', \'\')">بدون خلیفه</div>';
+  Object.entries(state.workers).forEach(([id,w]) => { wHtml += `<div class="dropdown-option" onclick="selectOption('dd-worker', '${esc(w.name)}', '${id}')">${esc(w.name)}</div>`; });
+  document.getElementById('opt-worker').innerHTML = wHtml; document.getElementById('val-worker').innerText = '— انتخاب —'; document.getElementById('pr-worker-id').value = '';
+  const items = Object.entries(c.variants||{}).map(([vid,v]) => {
+    const rem = (v.quantity||0) - (v.producedQuantity||0);
+    if(rem <= 0) return '';
+    return `
+      <div class="variant-row" data-vid="${vid}">
+        <div style="font-size:11px;margin-bottom:4px"><strong style="color:var(--gold)">${esc(v.modelName)}</strong> — ${esc(v.color||'—')} / ${esc(v.size||'—')} <span style="color:var(--text-muted)">(باقی: ${rem})</span></div>
+        <input type="number" class="prod-qty" placeholder="تعداد تولیدی (حداکثر ${rem})" max="${rem}">
+      </div>
+    `;
+  }).filter(Boolean).join('');
+  document.getElementById('production-items').innerHTML = items || '<div class="empty">همه مدل‌ها تولید شده‌اند</div>';
+  openModal('modal-production');
+}
+
+async function saveProduction(){
+  const c = state.contracts[state.currentContractId]; if(!c) return;
+  const date = document.getElementById('pr-date').value; const stage = document.getElementById('pr-stage-val').value; const workerId = document.getElementById('pr-worker-id').value; const worker = state.workers[workerId]; const wage = Number(document.getElementById('pr-wage').value) || 0; const rejected = Number(document.getElementById('pr-rejected').value) || 0;
+  if(!date){ showAlert('error','خطا','تاریخ را وارد کنید'); return; }
+  
+  const items = {}; let hasAny = false, totalQty = 0; let errMsg = '';
+  document.querySelectorAll('#production-items .variant-row').forEach(row => {
+    const vid = row.dataset.vid; const qty = Number(row.querySelector('.prod-qty').value) || 0;
+    if(qty > 0){
+      const v = c.variants[vid]; const rem = (v.quantity||0) - (v.producedQuantity||0);
+      if(qty > rem){ errMsg = `مدل ${v.modelName}: بیش از باقی‌مانده (${rem})`; return; }
+      items[vid] = qty; hasAny = true; totalQty += qty;
+    }
+  });
+  if(errMsg){ showAlert('error','خطا',errMsg); return; } if(!hasAny){ showAlert('error','خطا','حداقل یک مقدار وارد کنید'); return; }
+  
+  try {
+    const prodId = uid('pr');
+    await db.ref('users/' + userPhone + '/productions/' + prodId).set({ contractId: c.id, date, stage, workerId: workerId || '', workerName: worker?.name || '', items, totalQty, wage, rejected, createdAt: Date.now() });
+    for(const [vid, qty] of Object.entries(items)){ await db.ref(`users/${userPhone}/contracts/${c.id}/variants/${vid}/producedQuantity`).transaction(cur => (cur||0) + qty); }
+    await db.ref(`users/${userPhone}/contracts/${c.id}/updatedAt`).set(Date.now());
+    await logHistory(c.id, 'production', `${totalQty} دانه — مرحله ${stage}${worker?' — '+worker.name:''}`);
+    showAlert('success','موفق',`${totalQty} دانه تولید ثبت شد`); closeModal('modal-production');
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
+    state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
+  } catch(err){ showAlert('error','خطا',err.message); }
+}
+
+/* ==================== CUSTOMERS (Wholesale) ==================== */
+function openCustomerForm(returnToContract){
+  document.getElementById('c-id').value = ''; document.getElementById('c-name').value = ''; document.getElementById('c-phone').value = ''; document.getElementById('c-address').value = ''; document.getElementById('val-ctype').innerText = 'دکان'; document.getElementById('c-type-val').value = 'shop'; document.getElementById('c-notes').value = '';
+  openModal('modal-customer');
+}
+
+async function saveCustomer(){
+  const id = document.getElementById('c-id').value || uid('cus'); const name = document.getElementById('c-name').value.trim();
+  if(!name){ showAlert('error','خطا','نام الزامی است'); return; }
+  const data = { id, name, phone: document.getElementById('c-phone').value, address: document.getElementById('c-address').value, type: document.getElementById('c-type-val').value, notes: document.getElementById('c-notes').value, createdAt: state.customers[id]?.createdAt || Date.now() };
+  try {
+    await db.ref('users/' + userPhone + '/customers/' + id).set(data);
+    state.customers[id] = data; showAlert('success','موفق','مشتری ذخیره شد'); closeModal('modal-customer'); renderCustomers();
+  } catch(err){ showAlert('error','خطا',err.message); }
+}
+
+function renderCustomers(){
+  const box = document.getElementById('customers-list-box');
+  const list = Object.values(state.customers).sort((a,b) => a.name.localeCompare(b.name));
+  if(!list.length){ box.innerHTML = '<div class="empty">مشتری ثبت نشده</div>'; return; }
+  box.innerHTML = list.map(c => {
+    const contracts = Object.values(state.contracts).filter(ct => ct.customerId === c.id);
+    let debt = 0;
+    contracts.forEach(ct => { const f = recalcContractFinancials(ct); if(f.totalRemaining > 0) debt += f.totalRemaining; });
+    return `
+      <div class="card" style="padding:12px">
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="color:var(--gold);font-weight:bold;font-size:14px">${esc(c.name)}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${esc(c.phone||'—')} • ${c.type==='shop'?'دکان':c.type==='company'?'شرکت':'شخص'}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${contracts.length} قرارداد • بدهی: <strong style="color:${debt>0?'var(--danger)':'var(--success)'}">${fmt(debt)}</strong></div>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="editCustomer('${c.id}')">ویرایش</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function editCustomer(id){
+  const c = state.customers[id]; if(!c) return;
+  document.getElementById('c-id').value = id; document.getElementById('c-name').value = c.name || ''; document.getElementById('c-phone').value = c.phone || ''; document.getElementById('c-address').value = c.address || ''; document.getElementById('val-ctype').innerText = c.type==='shop'?'دکان':c.type==='company'?'شرکت':'شخص'; document.getElementById('c-type-val').value = c.type || 'shop'; document.getElementById('c-notes').value = c.notes || '';
+  openModal('modal-customer');
+}
+
+/* ==================== WORKERS (Wholesale) ==================== */
+function openWorkerForm(){
+  document.getElementById('w-id').value = ''; document.getElementById('w-name').value = ''; document.getElementById('w-phone').value = ''; document.getElementById('val-wrole').innerText = 'خلیفه'; document.getElementById('w-role-val').value = 'khalifa'; openModal('modal-worker');
+}
+
+async function saveWorker(){
+  const id = document.getElementById('w-id').value || uid('wrk'); const name = document.getElementById('w-name').value.trim();
+  if(!name){ showAlert('error','خطا','نام الزامی است'); return; }
+  const data = { id, name, phone: document.getElementById('w-phone').value, role: document.getElementById('w-role-val').value, createdAt: state.workers[id]?.createdAt || Date.now() };
+  try {
+    await db.ref('users/' + userPhone + '/workers/' + id).set(data); state.workers[id] = data; showAlert('success','موفق','ذخیره شد'); closeModal('modal-worker'); renderWorkers();
+  } catch(err){ showAlert('error','خطا',err.message); }
+}
+
+function renderWorkers(){
+  const box = document.getElementById('workers-list-box');
+  const list = Object.values(state.workers);
+  if(!list.length){ box.innerHTML = '<div class="empty">خلیفه‌ای ثبت نشده</div>'; return; }
+  box.innerHTML = list.map(w => `
+    <div class="card" style="padding:12px">
+      <div class="flex justify-between items-center">
+        <div>
+          <div style="color:var(--gold);font-weight:bold">${esc(w.name)}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${esc(w.phone||'—')} • ${w.role==='khalifa'?'خلیفه':w.role==='shagerd'?'شاگرد':'دیگر'}</div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="editWorker('${w.id}')">ویرایش</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function editWorker(id){
+  const w = state.workers[id]; if(!w) return;
+  document.getElementById('w-id').value = id; document.getElementById('w-name').value = w.name || ''; document.getElementById('w-phone').value = w.phone || ''; document.getElementById('val-wrole').innerText = w.role==='khalifa'?'خلیفه':w.role==='shagerd'?'شاگرد':'دیگر'; document.getElementById('w-role-val').value = w.role || 'khalifa'; openModal('modal-worker');
+}
+
+/* ==================== REPORTS (Wholesale) ==================== */
+async function renderReports(){
+  const contracts = Object.values(state.contracts);
+  let totalContract = 0, totalInvoiced = 0, totalPaid = 0, totalRemaining = 0;
+  contracts.forEach(c => { const f = recalcContractFinancials(c); totalContract += f.totalContractValue; totalInvoiced += f.totalInvoiced; totalPaid += f.totalPaid; if(f.totalRemaining > 0) totalRemaining += f.totalRemaining; });
+  
+  document.getElementById('report-finance').innerHTML = `
+    <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>ارزش کل قراردادها</span><strong>${fmt(totalContract)}</strong></div>
+    <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>صورت‌حساب‌شده</span><strong style="color:var(--gold)">${fmt(totalInvoiced)}</strong></div>
+    <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>پرداخت‌شده</span><strong style="color:var(--success)">${fmt(totalPaid)}</strong></div>
+    <div class="flex justify-between" style="font-size:12px;padding:6px 0;border-top:1px dashed var(--border);margin-top:4px"><span>بدهی کل</span><strong style="color:var(--danger)">${fmt(totalRemaining)}</strong></div>
+  `;
+  
+  try {
+    const prodSnap = await db.ref('users/' + userPhone + '/productions').once('value'); const prods = prodSnap.val() || {}; const byWorker = {};
+    Object.values(prods).forEach(p => { if(!p.workerId) return; if(!byWorker[p.workerId]) byWorker[p.workerId] = { name: p.workerName, qty: 0, wage: 0 }; byWorker[p.workerId].qty += p.totalQty || 0; byWorker[p.workerId].wage += p.wage || 0; });
+    const arr = Object.values(byWorker).sort((a,b) => b.qty - a.qty);
+    document.getElementById('report-worker').innerHTML = arr.length ? arr.map(w => `<div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>${esc(w.name)}</span><strong>${w.qty} دانه • ${fmt(w.wage)} افغانی</strong></div>`).join('') : '<div class="empty">تولیدی ثبت نشده</div>';
+  } catch(e){ console.error(e); }
+  
+  const byCustomer = {};
+  contracts.forEach(c => { const f = recalcContractFinancials(c); if(f.totalRemaining > 0){ if(!byCustomer[c.customerName]) byCustomer[c.customerName] = 0; byCustomer[c.customerName] += f.totalRemaining; } });
+  const debtArr = Object.entries(byCustomer).sort((a,b) => b[1]-a[1]);
+  document.getElementById('report-debt').innerHTML = debtArr.length ? debtArr.map(([name, amt]) => `<div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>${esc(name)}</span><strong style="color:var(--danger)">${fmt(amt)}</strong></div>`).join('') : '<div class="empty">همه تسویه هستند</div>';
+}
+
+/* ==========================================================
+   RETAIL ORDERS LOGIC (New Section)
+========================================================== */
+function loadRetailData() {
+  db.ref('users/' + userPhone + '/retail_orders').once('value').then(snap => {
+    state.retailOrders = snap.val() || {};
+    renderRetailList();
+  });
+}
+
+function renderRetailList() {
+  const box = document.getElementById('retail-list-box');
+  const query = (document.getElementById('retail-search')?.value || '').toLowerCase().trim();
+  
+  let list = Object.values(state.retailOrders);
+  if (query) {
+    list = list.filter(o => 
+      (o.code && String(o.code).includes(query)) || 
+      (o.name && o.name.toLowerCase().includes(query)) || 
+      (o.phone && o.phone.includes(query))
+    );
+  }
+  
+  // Sort descending by code (highest first)
+  list.sort((a, b) => Number(b.code) - Number(a.code));
+
+  if (!list.length) {
+    box.innerHTML = '<div class="empty">هیچ سفارشی یافت نشد</div>';
+    return;
+  }
+
+  box.innerHTML = list.map(o => `
+    <div class="contract-card" style="cursor:default;">
+      <div class="cc-header">
+        <div>
+          <div class="cc-code"
+                            <div class="cc-code">کد: <strong style="color:var(--gold)">${o.code}</strong></div>
+                  <div class="cc-customer">${esc(o.name)}</div>
+                  <div class="cc-model">${esc(o.customType || o.garmentType)}</div>
+                </div>
+                <span class="chip chip-info">${esc(o.date)}</span>
+              </div>
+              <div class="cc-body">
+                <div>شماره: <strong>${esc(o.phone)}</strong></div>
+                <div>تعداد: <strong>${o.qty}</strong></div>
+                <div>متراژ: <strong>${o.fabricLen} متر</strong></div>
+                <div>رنگ: <strong>${esc(o.color)}</strong></div>
+              </div>
+              <div class="card-actions" style="margin-top:10px;">
+                <button class="btn btn-sm btn-outline" onclick="editRetailOrder('${o.code}')">مشاهده / ویرایش</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteRetailOrder('${o.code}')">حذف</button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        // ==================== RETAIL FORM LOGIC ====================
+        let currentRetailEditingCode = null;
+
+        function openRetailForm(code = null) {
+          currentRetailEditingCode = code;
+          document.getElementById('retail-modal-title').innerText = code ? 'ویرایش سفارش پرچون' : 'ثبت سفارش پرچون جدید';
+          document.getElementById('r-id').value = code || '';
+          
+          // Reset fields
+          document.getElementById('r-name').value = '';
+          document.getElementById('r-phone').value = '';
+          document.getElementById('r-whatsapp').value = '';
+          document.getElementById('r-color').value = '';
+          document.getElementById('r-qty').value = '1';
+          document.getElementById('r-fabric-len').value = '';
+          document.getElementById('r-notes').value = '';
+          document.getElementById('r-custom-type').value = '';
+          document.getElementById('r-custom-type').style.display = 'none';
+          document.getElementById('retail-measure-container').innerHTML = '';
+          
+          // Setup Garment Type Dropdown
+          const typeContainer = document.getElementById('opt-retail-type');
+          let typeHtml = '';
+          Object.keys(RETAIL_GARMENTS).forEach(garment => {
+            typeHtml += `<div class="dropdown-option" onclick="selectRetailGarment('${garment}')">${garment}</div>`;
+          });
+          typeContainer.innerHTML = typeHtml;
+
+          // Setup Date Dropdowns
+          initRetailDates();
+
+          if (code) {
+            // Edit mode
+            const order = state.retailOrders[code];
+            if (!order) return;
+            
+            document.getElementById('r-code-display').innerText = order.code;
+            document.getElementById('r-name').value = order.name || '';
+            document.getElementById('r-phone').value = order.phone || '';
+            document.getElementById('r-whatsapp').value = order.whatsapp || '';
+            document.getElementById('r-color').value = order.color || '';
+            document.getElementById('r-qty').value = order.qty || 1;
+            document.getElementById('r-fabric-len').value = order.fabricLen || '';
+            document.getElementById('r-notes').value = order.notes || '';
+            
+            document.getElementById('val-retail-type').innerText = order.garmentType;
+            state.selectedRetailGarment = order.garmentType;
+            
+            if (order.garmentType === 'سایر') {
+              document.getElementById('r-custom-type').style.display = 'block';
+              document.getElementById('r-custom-type').value = order.customType || '';
+            }
+            
+            // Set date dropdowns
+            if (order.date) {
+              const parts = order.date.split('/');
+              if (parts.length === 3) {
+                document.getElementById('val-r-year').innerText = parts[0];
+                const monthIdx = Number(parts[1]) - 1;
+                document.getElementById('val-r-month').innerText = shamsiMonths[monthIdx] || 'حمل';
+                document.getElementById('val-r-day').innerText = parts[2];
+              }
+            }
+
+            // Populate measurements
+            if (order.measurements) {
+              order.measurements.forEach(m => addRetailMeasureRow(m.name, m.value));
+            }
+          } else {
+            // New mode: Generate Code
+            let newCode = 10000;
+            const existingCodes = Object.keys(state.retailOrders).map(Number);
+            if (existingCodes.length > 0) {
+              newCode = Math.max(...existingCodes) + 1;
+            }
+            document.getElementById('r-code-display').innerText = newCode;
+            document.getElementById('r-code').value = newCode;
+            
+            // Default garment type
+            selectRetailGarment('پیراهن تنبان مردانه');
+          }
+
+          openModal('modal-retail');
+        }
+
+        function selectRetailGarment(garment) {
+          state.selectedRetailGarment = garment;
+          document.getElementById('val-retail-type').innerText = garment;
+          
+          // Close dropdown
+          document.getElementById('dd-retail-type').querySelector('.dropdown-options').classList.remove('active');
+          document.getElementById('dd-retail-type').querySelector('.dropdown-trigger').classList.remove('active');
+
+          const customInput = document.getElementById('r-custom-type');
+          const measureContainer = document.getElementById('retail-measure-container');
+          
+          if (garment === 'سایر') {
+            customInput.style.display = 'block';
+            measureContainer.innerHTML = '';
+            // 5 empty fields for "Other"
+            for (let i = 0; i < 5; i++) addRetailMeasureRow();
+          } else {
+            customInput.style.display = 'none';
+            measureContainer.innerHTML = '';
+            const fields = RETAIL_GARMENTS[garment] || [];
+            fields.forEach(field => addRetailMeasureRow(field, ''));
+          }
+        }
+
+        function addRetailMeasureRow(name = '', value = '') {
+          const container = document.getElementById('retail-measure-container');
+          const div = document.createElement('div');
+          div.className = 'measure-row';
+          div.innerHTML = `
+            <input type="text" class="m-name" placeholder="نام اندازه (مثلا دور سینه)" value="${esc(name)}">
+            <input type="number" step="0.1" class="m-value" placeholder="مقدار (cm)" value="${value}">
+            <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+          `;
+          container.appendChild(div);
+        }
+
+        function initRetailDates() {
+          const dayOpt = document.getElementById('opt-r-day');
+          const monthOpt = document.getElementById('opt-r-month');
+          const yearOpt = document.getElementById('opt-r-year');
+          
+          let dHtml = '', mHtml = '', yHtml = '';
+          for(let i=1; i<=31; i++) dHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-day', '${i}', '${i}')">${i}</div>`;
+          shamsiMonths.forEach((m) => mHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-month', '${m}', '${m}')">${m}</div>`);
+          for(let y=1400; y<=1410; y++) yHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-year', '${y}', '${y}')">${y}</div>`;
+          
+          dayOpt.innerHTML = dHtml;
+          monthOpt.innerHTML = mHtml;
+          yearOpt.innerHTML = yHtml;
+          
+          // Set today
+          const today = todayStr().split('/');
+          if (today.length === 3) {
+            document.getElementById('val-r-year').innerText = today[0];
+            document.getElementById('val-r-month').innerText = shamsiMonths[parseInt(today[1]) - 1] || 'حمل';
+            document.getElementById('val-r-day').innerText = today[2];
+          }
+        }
+
+        async function saveRetailOrder() {
+          const code = document.getElementById('r-code').value || document.getElementById('r-code-display').innerText;
+          const name = document.getElementById('r-name').value.trim();
+          const phone = document.getElementById('r-phone').value.trim();
+          const whatsapp = document.getElementById('r-whatsapp').value.trim();
+          const garmentType = state.selectedRetailGarment;
+          const customType = document.getElementById('r-custom-type').value.trim();
+          const color = document.getElementById('r-color').value.trim();
+          const qty = Number(document.getElementById('r-qty').value) || 1;
+          const fabricLen = Number(document.getElementById('r-fabric-len').value) || 0;
+          const notes = document.getElementById('r-notes').value.trim();
+          
+          // Date
+          const y = document.getElementById('val-r-year').innerText;
+          const m = document.getElementById('val-r-month').innerText;
+          const d = document.getElementById('val-r-day').innerText;
+          const mIdx = shamsiMonths.indexOf(m) + 1;
+          const dateStr = `${y}/${String(mIdx).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
+
+          if (!name || !phone) {
+            showAlert('error', 'خطا', 'نام و شماره تماس الزامی است');
+            return;
+          }
+
+          // Gather measurements
+          const measurements = [];
+          document.querySelectorAll('#retail-measure-container .measure-row').forEach(row => {
+            const mName = row.querySelector('.m-name').value.trim();
+            const mVal = row.querySelector('.m-value').value.trim();
+            if (mName && mVal) {
+              measurements.push({ name: mName, value: Number(mVal) });
+            }
+          });
+
+          if (measurements.length === 0) {
+            showAlert('error', 'خطا', 'حداقل یک اندازه‌گیری وارد کنید');
+            return;
+          }
+
+          const orderData = {
+            code: code,
+            name: name,
+            phone: phone,
+            whatsapp: whatsapp,
+            garmentType: garmentType,
+            customType: customType,
+            color: color,
+            qty: qty,
+            fabricLen: fabricLen,
+            date: dateStr,
+            measurements: measurements,
+            notes: notes,
+            timestamp: Date.now()
+          };
+
+          try {
+            await db.ref(`users/${userPhone}/retail_orders/${code}`).set(orderData);
+            showAlert('success', 'موفق', 'سفارش پرچون ذخیره شد');
+            closeModal('modal-retail');
+            loadRetailData();
+          } catch (err) {
+            showAlert('error', 'خطا', err.message);
+          }
+        }
+
+        function editRetailOrder(code) {
+          openRetailForm(code);
+        }
+
+        function deleteRetailOrder(code) {
+          if (confirm(`آیا از حذف سفارش با کد ${code} مطمئن هستید؟`)) {
+            db.ref(`users/${userPhone}/retail_orders/${code}`).remove().then(() => {
+              showAlert('success', 'حذف شد', 'سفارش پرچون حذف گردید');
+              loadRetailData();
+            }).catch(err => showAlert('error', 'خطا', err.message));
+          }
+        }
+
+        // ==================== INIT ====================
+        window.onload = () => {
+          if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
+          
+          // Initialize Wholesale
+          loadAllData();
+          
+          // Initialize Retail
+          loadRetailData();
+          initRetailDates();
+          
+          // Auto refresh interval
+          setInterval(() => {
+            db.ref('users/' + userPhone + '/contracts').once('value').then(snap => {
+              state.contracts = snap.val() || {};
+              if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+              if(document.getElementById('view-contracts').classList.contains('active')) renderContractsList();
+            });
+          }, 60000);
+        };
+    </script>
+</body>
+</html>

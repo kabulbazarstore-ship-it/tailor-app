@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tailor | تولید</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        /* ================= متغیرهای تم ================= */
+        :root {
+            --bg-body: radial-gradient(circle at top, #0a261d 0%, #050b09 100%);
+            --bg-panel: linear-gradient(180deg, #0a1c16 0%, #040b09 100%);
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --text-main: #ffffff;
+            --text-muted: #78909c;
+            --gold: #d4af37;
+            --gold-light: #f3d58b;
+            --border: rgba(212, 175, 55, 0.3);
+            --danger: #ff4757;
+            --success: #2ed573;
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            --dropdown-bg: #0a1c16;
+            --card-bg: #0a1c16;
+        }
+
+        body.light-mode {
+            --bg-body: radial-gradient(circle at top, #f2ecd9 0%, #e6dec9 100%);
+            --bg-panel: linear-gradient(180deg, #ffffff 0%, #f9f6f0 100%);
+            --bg-card: rgba(0, 0, 0, 0.02);
+            --text-main: #1c2b26;
+            --text-muted: #6b7a73;
+            --border: rgba(212, 175, 55, 0.5);
+            --input-bg: #fdfcf9;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --dropdown-bg: #ffffff;
+            --card-bg: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* ================= هدر ================= */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--gold); font-size: 24px; cursor: pointer; text-decoration: none; display: flex; align-items: center; }
+        .header-title { color: var(--gold); font-weight: bold; font-size: 18px; }
+        .header-actions { display: flex; gap: 10px; }
+        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* ================= خلاصه آمار ================= */
+        .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+        .summary-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; text-align: center; }
+        .summary-card h4 { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
+        .summary-card .val { font-size: 20px; font-weight: bold; color: var(--gold); }
+
+        /* ================= دکمه ثبت ================= */
+        .add-btn { width: 100%; padding: 15px; background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; border: none; border-radius: 12px; font-size: 15px; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
+
+        /* ================= لیست تولیدات (کارت‌های زیبا) ================= */
+        #batch-list { display: flex; flex-direction: column; gap: 15px; }
+        
+        .batch-card { 
+            background: var(--card-bg); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 15px; 
+            box-shadow: var(--shadow); 
+            position: relative;
+            overflow: hidden;
+        }
+        /* نوار رنگی سمت راست کارت */
+        .batch-card::before {
+            content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--gold);
+        }
+
+        .batch-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px dashed var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+        .batch-title { font-size: 15px; color: var(--gold); font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .batch-date { font-size: 11px; color: var(--text-muted); background: rgba(128,128,128,0.1); padding: 3px 8px; border-radius: 6px; }
+        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 10px; background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid var(--border); }
+        .status-badge.done { background: rgba(46, 213, 115, 0.1); color: var(--success); border-color: var(--success); }
+
+        .batch-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .b-item { 
+            display: flex; align-items: center; gap: 5px; font-size: 11px; 
+            background: rgba(128, 128, 128, 0.05); padding: 5px 8px; 
+            border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.1); 
+        }
+        .b-item span.color { font-weight: bold; }
+        .b-item span.size { color: var(--text-muted); }
+        .b-item span.qty { color: var(--gold); font-weight: bold; margin-right: 5px; }
+
+        .batch-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(128, 128, 128, 0.1); padding-top: 12px; margin-top: 5px; }
+        .worker-info { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+        .total-info { font-size: 13px; font-weight: bold; color: var(--text-main); }
+        .total-info span { color: var(--gold); font-size: 15px; }
+
+        /* دکمه‌های عملیات (ویرایش و حذف) */
+        .card-actions { display: flex; gap: 8px; margin-top: 15px; }
+        .action-btn { 
+            flex: 1; display: flex; justify-content: center; align-items: center; gap: 6px;
+            padding: 8px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-edit { background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid var(--border); }
+        .btn-edit:active { background: rgba(212, 175, 55, 0.2); }
+        .btn-delete { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.3); }
+        .btn-delete:active { background: rgba(255, 71, 87, 0.2); }
+        
+        .action-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* ================= مودال ثبت/ویرایش تولید ================= */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 10px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; padding: 15px; width: 100%; max-width: 400px; box-shadow: var(--shadow); position: relative; max-height: 95vh; overflow-y: auto; animation: popIn 0.3s; }
+        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-close { position: absolute; top: 10px; left: 10px; background: none; border: none; color: var(--danger); font-size: 22px; cursor: pointer; }
+        .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--gold); text-align: center; }
+
+        /* فرم‌ها */
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 11px; color: var(--gold); margin-bottom: 4px; }
+        .input-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text-main); font-size: 13px; outline: none; transition: 0.3s; }
+        .input-box input:focus { border-color: var(--gold); box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+        
+        /* منوی کشویی سفارشی */
+        .custom-select-wrapper { position: relative; width: 100%; }
+        .custom-select-trigger { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 13px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.3s; }
+        .custom-select-trigger:focus, .custom-select-trigger.active { border-color: var(--gold); box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+        .custom-select-trigger svg { width: 14px; height: 14px; stroke: var(--gold); transition: transform 0.3s; }
+        .custom-select-trigger.active svg { transform: rotate(180deg); }
+        .custom-options { position: absolute; top: 105%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 10px; z-index: 100; max-height: 200px; overflow-y: auto; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .custom-options.open { display: block; }
+        .custom-option { padding: 10px 12px; font-size: 13px; color: var(--text-main); cursor: pointer; border-bottom: 1px solid rgba(128, 128, 128, 0.1); transition: 0.2s; }
+        .custom-option:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+        .custom-option:last-child { border-bottom: none; }
+
+        /* گرید چیدمان */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-3 { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; }
+        
+        /* ردیف‌های داینامیک (مشخصات) */
+        .spec-row { 
+            display: grid; 
+            grid-template-columns: 1.5fr 1fr 0.7fr 1fr 28px; 
+            gap: 4px; margin-bottom: 8px; align-items: center; 
+            background: rgba(128, 128, 128, 0.05); padding: 6px; 
+            border-radius: 10px; border: 1px solid var(--border); 
+        }
+        .spec-row input { padding: 8px 4px; font-size: 12px; text-align: center; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); width: 100%; }
+        .spec-row .s-color { text-align: right; padding-right: 8px; }
+        
+        .spec-row .custom-select-trigger { padding: 8px 4px; font-size: 12px; justify-content: center; gap: 2px; }
+        .spec-row .custom-select-trigger svg { width: 10px; height: 10px; }
+        .spec-row .custom-select-trigger .trigger-text { text-align: center; flex: 1; }
+        
+        .spec-row .remove-btn { background: rgba(255, 71, 87, 0.15); color: var(--danger); border: none; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-size: 16px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        
+        .add-row-btn { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--gold); color: var(--gold); padding: 10px; border-radius: 10px; width: 100%; font-size: 12px; cursor: pointer; margin-bottom: 10px; transition: 0.3s; font-weight: bold; text-align: center; }
+        
+        /* مجموع قیمت */
+        .total-display { background: rgba(46, 213, 115, 0.1); border: 1px solid var(--success); color: var(--success); padding: 10px 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; margin-bottom: 10px; }
+        .total-display span#p-total { color: var(--text-main); font-size: 16px; font-weight: 900; }
+
+        .btn { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
+
+        /* ================= پیام‌رسان ================= */
+        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
+        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; padding: 20px; width: 85%; max-width: 300px; text-align: center; transform: scale(0.8); transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .custom-alert-overlay.active .custom-alert-box { transform: scale(1); }
+        .custom-alert-icon { width: 50px; height: 50px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 10px; }
+        .icon-success { background: rgba(46, 213, 115, 0.1); border: 2px solid var(--success); color: var(--success); }
+        .icon-error { background: rgba(255, 71, 87, 0.1); border: 2px solid var(--danger); color: var(--danger); }
+        .custom-alert-icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 3; }
+        .custom-alert-title { color: var(--text-main); font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .custom-alert-msg { font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+        .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 13px; border: none; border-radius: 8px; padding: 10px; width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- پیام‌رسان عمومی -->
+    <div class="custom-alert-overlay" id="custom-alert">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+            <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+            <p class="custom-alert-msg" id="alert-msg">پیام</p>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+        </div>
+    </div>
+
+    <!-- مودال تایید حذف -->
+    <div class="custom-alert-overlay" id="custom-confirm">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon icon-error"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+            <h3 class="custom-alert-title">حذف سری تولید</h3>
+            <p class="custom-alert-msg">آیا مطمئن هستید که می‌خواهید این سری را حذف کنید؟ این عمل قابل بازگشت نیست.</p>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="custom-alert-btn" style="background: var(--danger); color: white;" onclick="confirmDelete()">بله، حذف کن</button>
+                <button class="custom-alert-btn" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-main);" onclick="cancelDelete()">انصراف</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        
+        <div class="top-bar">
+            <a href="index.html" class="back-btn">➔</a>
+            <div class="header-title" data-i18n="productionTitle">دفتر تولید</div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card"><h4 data-i18n="summaryTotal">کل تولیدات (عدد)</h4><div class="val" id="sum-total">0</div></div>
+            <div class="summary-card"><h4 data-i18n="summaryValue">ارزش کل تولید</h4><div class="val" id="sum-value">0</div></div>
+        </div>
+
+        <button class="add-btn" onclick="openModal()">
+            <svg style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span data-i18n="btnNewBatch">ثبت سری جدید تولید</span>
+        </button>
+
+        <div id="batch-list"></div>
+
+    </div>
+
+    <!-- مودال ثبت/ویرایش تولید -->
+    <div class="modal-overlay" id="modal-production">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <h2 class="modal-title" id="modal-title">ثبت سری جدید</h2>
+            
+            <!-- ردیف اول: روز و تاریخ -->
+            <div class="grid-2">
+                <div class="form-group">
+                    <label data-i18n="dayOfWeek">روز هفته</label>
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger" id="trigger-day" onclick="toggleDropdown(this)">
+                            <span class="trigger-text" id="text-day">انتخاب کنید</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="custom-options" id="opt-day"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="date">تاریخ</label>
+                    <div class="grid-3">
+                        <div class="custom-select-wrapper">
+                            <div class="custom-select-trigger" id="trigger-daynum" onclick="toggleDropdown(this)">
+                                <span class="trigger-text" id="text-daynum">روز</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="custom-options" id="opt-daynum"></div>
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <div class="custom-select-trigger" id="trigger-month" onclick="toggleDropdown(this)">
+                                <span class="trigger-text" id="text-month">ماه</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="custom-options" id="opt-month"></div>
+                        </div>
+                        <div class="custom-select-wrapper">
+                            <div class="custom-select-trigger" id="trigger-year" onclick="toggleDropdown(this)">
+                                <span class="trigger-text" id="text-year">سال</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="custom-options" id="opt-year"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ردیف دوم: نام سری، نوع لباس، مسئول -->
+            <div class="grid-3" style="gap: 5px;">
+                <div class="form-group">
+                    <label data-i18n="batchName">نام سری</label>
+                    <div class="input-box"><input type="text" id="p-batch-name" placeholder="سری اول"></div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="specialty">نوع لباس</label>
+                    <div class="custom-select-wrapper">
+                        <div class="custom-select-trigger" id="trigger-specialty" onclick="toggleDropdown(this)">
+                            <span class="trigger-text" id="text-specialty">انتخاب</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="custom-options" id="opt-specialty"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label data-i18n="worker">مسئول</label>
+                    <div class="input-box"><input type="text" id="p-worker" placeholder="نام خلیفه"></div>
+                </div>
+            </div>
+
+            <!-- ردیف سوم: وضعیت -->
+            <div class="form-group">
+                <label data-i18n="status">وضعیت</label>
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger" id="trigger-status" onclick="toggleDropdown(this)">
+                        <span class="trigger-text" id="text-status">در حال دوخت</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="custom-options" id="opt-status"></div>
+                </div>
+            </div>
+
+            <!-- بخش مشخصات -->
+            <label style="display:block; font-size:11px; color:var(--gold); margin-bottom:4px; margin-top:10px;" data-i18n="specsTitle">مشخصات (رنگ، سایز، تعداد، قیمت)</label>
+            
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr 0.7fr 1fr 28px; gap: 4px; margin-bottom: 4px; font-size: 10px; color: var(--text-muted); text-align: center; padding: 0 4px;">
+                <div style="text-align: right; padding-right: 8px;" data-i18n="color">رنگ</div>
+                <div data-i18n="size">سایز</div>
+                <div data-i18n="qty">تعداد</div>
+                <div data-i18n="price">قیمت</div>
+                <div></div>
+            </div>
+
+            <div id="items-container"></div>
+            
+            <button class="add-row-btn" onclick="addItemRow()">+ <span data-i18n="addRow">افزودن ردیف دیگر</span></button>
+
+            <div class="total-display">
+                <span data-i18n="totalPrice">جمع کل:</span>
+                <span id="p-total">0</span>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 10px;">
+                <label data-i18n="notes">یادداشت</label>
+                <div class="input-box"><input type="text" id="p-notes" placeholder="سفارش آقای..."></div>
+            </div>
+
+            <button class="btn btn-primary" id="btn-save" onclick="saveBatch()" data-i18n="btnSave">ذخیره سری</button>
+        </div>
+    </div>
+
+    <script>
+        // ================= تنظیمات فایربیس =================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+            authDomain: "tailor-64f7f.firebaseapp.com",
+            databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+            projectId: "tailor-64f7f",
+            storageBucket: "tailor-64f7f.firebasestorage.app",
+            messagingSenderId: "16067911685",
+            appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const userPhone = localStorage.getItem('tailor_user');
+        
+        const monthsFa = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+        const daysFa = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+        const statuses = ["در حال دوخت", "تکمیل شده", "در انتظار"];
+        const clothingTypes = ["واسکت", "جمپر", "جمپر نوجوان", "پیراهن", "پتلون", "دریشی", "کت", "یونیفرم مکتب", "لباس زنانه", "لباس مردانه", "لباس کودک", "محلی", "مجلسی", "عروسی", "پرده", "سایر"];
+
+        let selectedValues = { day: daysFa[0], dayNum: "1", month: "1", year: "1403", specialty: "واسکت", status: "در حال دوخت" };
+        let currentEditingId = null; // برای نگهداری شناسه سری در حال ویرایش
+        let itemToDelete = null; // برای نگهداری شناسه سری در حال حذف
+
+        // ================= پیام‌رسان =================
+        function showAlert(type, title, msg) {
+            const overlay = document.getElementById('custom-alert');
+            const iconBox = document.getElementById('alert-icon-box');
+            const iconSvg = document.getElementById('alert-icon-svg');
+            if(type === 'success') {
+                iconBox.className = 'custom-alert-icon icon-success';
+                iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+            } else {
+                iconBox.className = 'custom-alert-icon icon-error';
+                iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>';
+            }
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            overlay.classList.add('active');
+        }
+        function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
+
+        // ================= تایید حذف =================
+        function showConfirmDelete(id) {
+            itemToDelete = id;
+            document.getElementById('custom-confirm').classList.add('active');
+        }
+        function cancelDelete() {
+            itemToDelete = null;
+            document.getElementById('custom-confirm').classList.remove('active');
+        }
+        function confirmDelete() {
+            if(itemToDelete) {
+                database.ref('users/' + userPhone + '/production/' + itemToDelete).remove().then(() => {
+                    cancelDelete();
+                    showAlert('success', 'حذف شد', 'سری تولید با موفقیت حذف شد.');
+                    loadProductionData();
+                }).catch(err => showAlert('error', 'خطا', err.message));
+            }
+        }
+
+        // ================= منطق منوهای کشویی سفارشی =================
+        function toggleDropdown(trigger) {
+            document.querySelectorAll('.custom-select-trigger').forEach(t => { if(t !== trigger) t.classList.remove('active'); });
+            document.querySelectorAll('.custom-options').forEach(o => { if(o !== trigger.nextElementSibling) o.classList.remove('open'); });
+            trigger.classList.toggle('active');
+            trigger.nextElementSibling.classList.toggle('open');
+        }
+
+        function selectOption(id, value, text, trigger) {
+            selectedValues[id] = value;
+            trigger.querySelector('.trigger-text').innerText = text;
+            trigger.classList.remove('active');
+            trigger.nextElementSibling.classList.remove('open');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-select-wrapper')) {
+                document.querySelectorAll('.custom-select-trigger').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.custom-options').forEach(o => o.classList.remove('open'));
+            }
+        });
+
+        function populateDropdowns() {
+            const dayOpts = document.getElementById('opt-day');
+            dayOpts.innerHTML = daysFa.map(d => `<div class="custom-option" onclick="selectOption('day', '${d}', '${d}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${d}</div>`).join('');
+            
+            const dayNumOpts = document.getElementById('opt-daynum');
+            dayNumOpts.innerHTML = Array.from({length: 31}, (_, i) => `<div class="custom-option" onclick="selectOption('dayNum', '${i+1}', '${i+1}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${i+1}</div>`).join('');
+            
+            const monthOpts = document.getElementById('opt-month');
+            monthOpts.innerHTML = monthsFa.map((m, i) => `<div class="custom-option" onclick="selectOption('month', '${i+1}', '${m}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${m}</div>`).join('');
+            
+            const yearOpts = document.getElementById('opt-year');
+            yearOpts.innerHTML = [1403, 1404, 1405, 1406].map(y => `<div class="custom-option" onclick="selectOption('year', '${y}', '${y}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${y}</div>`).join('');
+
+            const specOpts = document.getElementById('opt-specialty');
+            specOpts.innerHTML = clothingTypes.map(t => `<div class="custom-option" onclick="selectOption('specialty', '${t}', '${t}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${t}</div>`).join('');
+
+            const statusOpts = document.getElementById('opt-status');
+            statusOpts.innerHTML = statuses.map(s => `<div class="custom-option" onclick="selectOption('status', '${s}', '${s}', this.closest('.custom-select-wrapper').querySelector('.custom-select-trigger'))">${s}</div>`).join('');
+        }
+
+        // ================= ردیف‌های داینامیک =================
+        function addItemRow(data = null) {
+            const container = document.getElementById('items-container');
+            const div = document.createElement('div');
+            div.className = 'spec-row';
+            
+            const colorVal = data ? data.color : '';
+            const sizeVal = data ? data.size : 'S';
+            const qtyVal = data ? data.qty : '1';
+            const priceVal = data ? data.price : '0';
+
+            div.innerHTML = `
+                <input type="text" class="s-color" placeholder="مثلا سیاه" value="${colorVal}">
+                <div class="custom-select-wrapper">
+                    <div class="custom-select-trigger" onclick="toggleDropdown(this)">
+                        <span class="trigger-text">${sizeVal}</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="custom-options">
+                        ${['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'].map(s => `<div class="custom-option" onclick="this.closest('.custom-select-wrapper').querySelector('.trigger-text').innerText = '${s}'">${s}</div>`).join('')}
+                    </div>
+                </div>
+                <input type="number" class="s-qty" min="1" value="${qtyVal}" oninput="calculateTotal()">
+                <input type="number" class="s-price" min="0" value="${priceVal}" oninput="calculateTotal()">
+                <button class="remove-btn" onclick="this.parentElement.remove(); calculateTotal()">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('.spec-row').forEach(row => {
+                const qty = Number(row.querySelector('.s-qty').value) || 0;
+                const price = Number(row.querySelector('.s-price').value) || 0;
+                total += (qty * price);
+            });
+            document.getElementById('p-total').innerText = total.toLocaleString() + ' افغانی';
+        }
+
+        // ================= باز کردن مودال برای ثبت جدید =================
+        function openModal() {
+            currentEditingId = null;
+            document.getElementById('modal-title').innerText = 'ثبت سری جدید';
+            document.getElementById('btn-save').innerText = 'ذخیره سری';
+            
+            document.getElementById('p-batch-name').value = '';
+            document.getElementById('p-worker').value = '';
+            document.getElementById('p-notes').value = '';
+            document.getElementById('p-total').innerText = '0 افغانی';
+            document.getElementById('items-container').innerHTML = '';
+            addItemRow();
+
+            // بازنشانی تاریخ به امروز
+            const today = new Date();
+            const mappedIdx = (today.getDay() + 1) % 7;
+            selectedValues = { day: daysFa[mappedIdx], dayNum: today.getDate().toString(), month: "1", year: "1403", specialty: clothingTypes[0], status: statuses[0] };
+            
+            document.getElementById('text-day').innerText = selectedValues.day;
+            document.getElementById('text-daynum').innerText = selectedValues.dayNum;
+            document.getElementById('text-month').innerText = monthsFa[0];
+            document.getElementById('text-year').innerText = '1403';
+            document.getElementById('text-specialty').innerText = selectedValues.specialty;
+            document.getElementById('text-status').innerText = selectedValues.status;
+
+            document.getElementById('modal-production').classList.add('active');
+        }
+
+        // ================= باز کردن مودال برای ویرایش =================
+        function editBatch(id) {
+            database.ref('users/' + userPhone + '/production/' + id).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if(!data) return;
+
+                currentEditingId = id;
+                document.getElementById('modal-title').innerText = 'ویرایش سری تولید';
+                document.getElementById('btn-save').innerText = 'به‌روزرسانی سری';
+
+                // پر کردن فیلدهای متنی
+                document.getElementById('p-batch-name').value = data.batchName || '';
+                document.getElementById('p-worker').value = data.worker || '';
+                document.getElementById('p-notes').value = data.notes || '';
+
+                // تنظیم مقادیر منوهای سفارشی
+                selectedValues.specialty = data.specialty;
+                selectedValues.status = data.status;
+                
+                // بازسازی تاریخ از رشته ذخیره شده (تقریبی)
+                // فرمت: "28 حمل 1403 (چهارشنبه)"
+                const dateParts = data.date.split(' '); // ["28", "حمل", "1403", "(چهارشنبه)"]
+                if(dateParts.length >= 3) {
+                    selectedValues.dayNum = dateParts[0];
+                    const monthIdx = monthsFa.indexOf(dateParts[1]) + 1;
+                    selectedValues.month = monthIdx.toString();
+                    selectedValues.year = dateParts[2];
+                    selectedValues.day = dateParts[3] ? dateParts[3].replace(/[()]/g, '') : daysFa[0];
+                }
+
+                // اعمال متن‌ها به منوها
+                document.getElementById('text-specialty').innerText = selectedValues.specialty;
+                document.getElementById('text-status').innerText = selectedValues.status;
+                document.getElementById('text-daynum').innerText = selectedValues.dayNum;
+                document.getElementById('text-month').innerText = monthsFa[selectedValues.month - 1];
+                document.getElementById('text-year').innerText = selectedValues.year;
+                document.getElementById('text-day').innerText = selectedValues.day;
+
+                // پر کردن ردیف‌های سایز/رنگ
+                document.getElementById('items-container').innerHTML = '';
+                data.items.forEach(item => {
+                    addItemRow(item);
+                });
+                
+                calculateTotal();
+                document.getElementById('modal-production').classList.add('active');
+            });
+        }
+
+        function closeModal() { document.getElementById('modal-production').classList.remove('active'); }
+
+        // ================= ذخیره یا به‌روزرسانی سری =================
+        function saveBatch() {
+            const batchName = document.getElementById('p-batch-name').value.trim();
+            const worker = document.getElementById('p-worker').value;
+            const notes = document.getElementById('p-notes').value;
+
+            if(!batchName) return showAlert('error', 'خطا', 'نام سری را وارد کنید.');
+
+            const items = [];
+            let totalQty = 0;
+            let totalValue = 0;
+            let hasError = false;
+
+            document.querySelectorAll('.spec-row').forEach(row => {
+                const color = row.querySelector('.s-color').value.trim();
+                const size = row.querySelector('.custom-select-trigger .trigger-text').innerText;
+                const qty = parseInt(row.querySelector('.s-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.s-price').value) || 0;
+
+                if(!color) { hasError = true; }
+                if(qty > 0) {
+                    items.push({ color, size, qty, price });
+                    totalQty += qty;
+                    totalValue += (qty * price);
+                }
+            });
+
+            if(hasError) return showAlert('error', 'خطا', 'لطفاً رنگ همه ردیف‌ها را وارد کنید.');
+            if(items.length === 0) return showAlert('error', 'خطا', 'حداقل یک ردیف با تعداد معتبر ثبت کنید.');
+
+            const dateString = `${selectedValues.dayNum} ${monthsFa[selectedValues.month-1]} ${selectedValues.year} (${selectedValues.day})`;
+
+            const batchData = {
+                batchName: batchName,
+                date: dateString,
+                specialty: selectedValues.specialty,
+                worker: worker || '---',
+                status: selectedValues.status,
+                notes: notes,
+                items: items,
+                totalQty: totalQty,
+                totalValue: totalValue,
+                timestamp: Date.now()
+            };
+
+            if(currentEditingId) {
+                // حالت ویرایش
+                database.ref('users/' + userPhone + '/production/' + currentEditingId).update(batchData).then(() => {
+                    closeModal();
+                    showAlert('success', 'ویرایش شد', 'سری تولید با موفقیت به‌روزرسانی شد.');
+                    loadProductionData();
+                }).catch(err => {
+                    showAlert('error', 'خطا', err.message);
+                });
+            } else {
+                // حالت ثبت جدید
+                batchData.id = Date.now().toString(); // تولید ID جدید
+                database.ref('users/' + userPhone + '/production/' + batchData.id).set(batchData).then(() => {
+                    closeModal();
+                    showAlert('success', 'ثبت شد', 'سری تولید با موفقیت ذخیره شد.');
+                    loadProductionData();
+                }).catch(err => {
+                    showAlert('error', 'خطا', err.message);
+                });
+            }
+        }
+
+        // ================= بارگذاری لیست =================
+        function loadProductionData() {
+            const listContainer = document.getElementById('batch-list');
+            
+            database.ref('users/' + userPhone + '/production').once('value').then(snapshot => {
+                const data = snapshot.val();
+                if(!data) {
+                    listContainer.innerHTML = `<p style="text-align:center; color:var(--text-muted); font-size:12px;">هیچ تولیدی ثبت نشده است.</p>`;
+                    document.getElementById('sum-total').innerText = '0';
+                    document.getElementById('sum-value').innerText = '0';
+                    return;
+                }
+
+                const batches = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
+                
+                let grandTotalQty = 0;
+                let grandTotalValue = 0;
+                batches.forEach(b => {
+                    grandTotalQty += (b.totalQty || 0);
+                    grandTotalValue += (b.totalValue || 0);
+                });
+                
+                document.getElementById('sum-total').innerText = grandTotalQty.toLocaleString();
+                document.getElementById('sum-value').innerText = grandTotalValue.toLocaleString();
+
+                let html = '';
+                batches.forEach(b => {
+                    let itemsHtml = '';
+                    b.items.forEach(i => {
+                        itemsHtml += `<div class="b-item">
+                            <span class="color">${i.color}</span>
+                            <span class="size">(${i.size})</span>
+                            <span class="qty">${i.qty} عدد</span>
+                        </div>`;
+                    });
+
+                    // تعیین رنگ بج وضعیت
+                    const statusClass = b.status === 'تکمیل شده' ? 'status-badge done' : 'status-badge';
+
+                    html += `
+                        <div class="batch-card">
+                            <div class="batch-header">
+                                <div class="batch-title">
+                                    <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                    ${b.batchName} (${b.specialty})
+                                </div>
+                                <div class="batch-date">${b.date}</div>
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <span class="${statusClass}">${b.status}</span>
+                            </div>
+                            <div class="batch-items">
+                                ${itemsHtml}
+                            </div>
+                            <div class="batch-footer">
+                                <div class="worker-info">
+                                    <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    ${b.worker}
+                                </div>
+                                <div class="total-info">جمع: <span>${b.totalQty}</span> (${b.totalValue.toLocaleString()})</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="action-btn btn-edit" onclick="editBatch('${b.id}')">
+                                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    ویرایش
+                                </button>
+                                <button class="action-btn btn-delete" onclick="showConfirmDelete('${b.id}')">
+                                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    حذف
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                listContainer.innerHTML = html;
+            });
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+        }
+
+        window.onload = () => {
+            if(localStorage.getItem('tailor_theme') === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            }
+            populateDropdowns();
+            if(userPhone) loadProductionData();
+        };
+    </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(error => {
+          console.log('Service Worker registration failed:', error);
+        });
+    });
+  }
+  </script>
+</body>
+</html>

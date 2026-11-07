@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tailor | گالری مدل‌ها</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+:root{
+  --bg-body:radial-gradient(circle at top,#0a261d 0%,#050b09 100%);
+  --bg-panel:linear-gradient(180deg,#0a1c16 0%,#040b09 100%);
+  --text-main:#fff;--text-muted:#78909c;
+  --gold:#d4af37;--gold-light:#f3d58b;
+  --border:rgba(212,175,55,.3);
+  --danger:#ff4757;--success:#2ed573;--info:#3498db;
+  --input-bg:rgba(0,0,0,.4);--shadow:0 10px 30px rgba(0,0,0,.6);
+  --dropdown-bg:#0a1c16;
+}
+body.light-mode{
+  --bg-body:radial-gradient(circle at top,#e6dec9 0%,#d4cbb5 100%);
+  --bg-panel:linear-gradient(180deg,#f4ecd8 0%,#ebe1cc 100%);
+  --text-main:#1c2b26;--text-muted:#4a5a54;
+  --border:rgba(212,175,55,.6);--input-bg:#fdfcf9;
+  --shadow:0 10px 30px rgba(0,0,0,.08);--dropdown-bg:#f4ecd8;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;overflow-x:hidden;transition:background .3s,color .3s}
+.app-container{width:100%;max-width:460px;padding:15px;padding-bottom:80px;position:relative;min-height:100vh;display:flex;flex-direction:column}
+
+/* Top Bar */
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.back-btn{background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;text-decoration:none;display:flex;align-items:center}
+.header-title{color:var(--gold);font-weight:bold;font-size:18px}
+.theme-toggle{background:rgba(212,175,55,.1);border:1px solid var(--border);color:var(--gold);width:34px;height:34px;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer}
+.theme-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* Search & Add */
+.search-add-row{display:flex;gap:10px;margin-bottom:20px}
+.search-box{flex:1;position:relative}
+.search-box input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:12px 40px 12px 15px;color:var(--text-main);font-size:13px;outline:none}
+.search-box svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;fill:none;stroke:var(--text-muted);stroke-width:2}
+.add-btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;border:none;border-radius:12px;padding:0 15px;font-weight:bold;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.add-btn svg{width:16px;height:16px;stroke:#000;stroke-width:3;fill:none}
+
+/* Gallery Grid */
+.gallery-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sample-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.sample-img-box{width:100%;height:160px;background:rgba(0,0,0,0.2);position:relative;cursor:pointer}
+.sample-img-box img{width:100%;height:100%;object-fit:cover}
+.sample-img-box .no-img{width:100%;height:100%;display:flex;justify-content:center;align-items:center;color:var(--text-muted)}
+.sample-img-box .no-img svg{width:40px;height:40px;stroke:currentColor;fill:none;stroke-width:1.5}
+.sample-info{padding:10px;flex:1;display:flex;flex-direction:column}
+.sample-code{font-size:10px;color:var(--text-muted);margin-bottom:4px}
+.sample-name{font-size:13px;font-weight:bold;color:var(--gold);margin-bottom:4px;line-height:1.3}
+.sample-customer{font-size:11px;color:var(--text-main);margin-bottom:8px}
+.sample-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:auto;border-top:1px dashed var(--border);padding-top:8px}
+.sample-actions{display:flex;border-top:1px solid var(--border)}
+.sample-actions button{flex:1;background:none;border:none;padding:8px;font-size:11px;font-weight:bold;cursor:pointer}
+.btn-del-smp{color:var(--danger);border-left:1px solid var(--border)}
+.btn-view-smp{color:var(--info)}
+
+/* Modal & Forms */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(5px);display:none;justify-content:center;align-items:center;z-index:3000;padding:10px}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:20px;width:100%;max-width:440px;box-shadow:var(--shadow);position:relative;max-height:95vh;overflow-y:auto;animation:popIn .3s}
+@keyframes popIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-close{position:absolute;top:12px;left:12px;background:none;border:none;color:var(--danger);font-size:22px;cursor:pointer;z-index:10}
+.modal-title{font-size:16px;font-weight:bold;margin-bottom:15px;color:var(--gold);text-align:center;border-bottom:1px dashed var(--border);padding-bottom:10px}
+
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;color:var(--gold);margin-bottom:5px;font-weight:bold}
+.input-box input,.input-box textarea{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-main);font-size:12px;outline:none;transition:.3s}
+.input-box input:focus,.input-box textarea:focus{border-color:var(--gold)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* Custom Dropdown */
+.custom-dropdown{position:relative;width:100%;user-select:none}
+.dropdown-trigger{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-main);font-size:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.dropdown-trigger.active{border-color:var(--gold)}
+.dropdown-trigger svg{width:12px;height:12px;stroke:var(--gold);stroke-width:2;fill:none;transition:.3s}
+.dropdown-trigger.active svg{transform:rotate(180deg)}
+.dropdown-options{position:absolute;top:110%;left:0;right:0;background:var(--dropdown-bg);border:1px solid var(--gold);border-radius:8px;box-shadow:var(--shadow);z-index:100;display:none;flex-direction:column;max-height:180px;overflow-y:auto}
+.dropdown-options.active{display:flex}
+.dropdown-option{padding:10px;font-size:11px;cursor:pointer;color:var(--text-main);border-bottom:1px solid var(--border);transition:.2s}
+.dropdown-option:hover{background:rgba(212,175,55,.15);color:var(--gold)}
+
+/* Image Upload */
+.img-upload-box{border:2px dashed var(--border);border-radius:10px;padding:15px;text-align:center;cursor:pointer;position:relative;overflow:hidden;margin-bottom:10px}
+.img-upload-box svg{width:30px;height:30px;stroke:var(--gold);fill:none;stroke-width:2;margin-bottom:5px}
+.img-upload-box p{font-size:11px;color:var(--text-muted)}
+.img-preview{width:100%;height:150px;object-fit:contain;display:none;border-radius:8px;margin-top:10px;background:#000}
+
+.btn-primary{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;width:100%;padding:12px;border-radius:8px;border:none;font-size:13px;font-weight:bold;cursor:pointer;margin-top:10px}
+
+/* Alert & Confirm */
+.custom-alert-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:10000;opacity:0;pointer-events:none;transition:.3s}
+.custom-alert-overlay.active{opacity:1;pointer-events:auto}
+.custom-alert-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:25px 20px;width:85%;max-width:320px;text-align:center;transform:scale(.8);transition:.3s}
+.custom-alert-overlay.active .custom-alert-box{transform:scale(1)}
+.custom-alert-icon{width:60px;height:60px;border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto 15px}
+.icon-success{background:rgba(46,213,115,.1);border:2px solid var(--success);color:var(--success)}
+.icon-error{background:rgba(255,71,87,.1);border:2px solid var(--danger);color:var(--danger)}
+.custom-alert-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:3}
+.custom-alert-title{color:var(--gold);font-size:18px;font-weight:bold;margin-bottom:8px}
+.custom-alert-msg{font-size:13px;color:var(--text-main);margin-bottom:20px;line-height:1.5}
+.custom-alert-btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;font-weight:bold;font-size:14px;border:none;border-radius:10px;padding:10px 20px;width:100%;cursor:pointer}
+
+#confirm-modal .modal-box{text-align:center;border-color:var(--danger);max-width:340px}
+#confirm-modal .modal-title{color:var(--danger);border-bottom-color:rgba(255,71,87,.3)}
+#confirm-yes-btn{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+/* View Image Modal */
+#view-modal .modal-box{background:transparent;border:none;box-shadow:none;max-width:100%;display:flex;justify-content:center;align-items:center;padding:0}
+#view-modal img{max-width:100%;max-height:90vh;border-radius:10px;border:2px solid var(--gold)}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-panel);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:10px 0 15px;z-index:1000}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);cursor:pointer;width:20%;text-decoration:none}
+.nav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+.nav-item span{font-size:10px}
+.nav-item.active{color:var(--gold)}
+.empty{text-align:center;color:var(--text-muted);padding:30px 10px;font-size:13px;grid-column:span 2}
+</style>
+</head>
+<body>
+
+<div class="custom-alert-overlay" id="custom-alert">
+  <div class="custom-alert-box">
+    <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+    <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+    <p class="custom-alert-msg" id="alert-msg">پیام</p>
+    <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <h2 class="modal-title" id="confirm-title">تایید حذف</h2>
+    <p id="confirm-msg" style="font-size:13px; margin-bottom:20px; color:var(--text-muted); line-height:1.6;">آیا مطمئن هستید؟</p>
+    <div class="grid-2">
+      <button class="btn-primary" style="background:var(--input-bg); color:var(--text-main); border:1px solid var(--border); margin-top:0;" onclick="closeModal('confirm-modal')">انصراف</button>
+      <button class="btn-primary" style="margin-top:0;" id="confirm-yes-btn">بله، حذف کن</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-container">
+  <div class="top-bar">
+    <a href="index.html" class="back-btn">➔</a>
+    <div class="header-title">گالری مدل‌ها</div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+  </div>
+
+  <div class="search-add-row">
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="جستجوی مدل یا مشتری..." oninput="renderGallery()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <button class="add-btn" onclick="openSampleModal()">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> جدید
+    </button>
+  </div>
+
+  <div class="gallery-grid" id="gallery-container">
+    <div class="empty">در حال بارگذاری...</div>
+  </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<div class="modal-overlay" id="modal-sample">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-sample')">✕</button>
+    <h2 class="modal-title" id="modal-title">ثبت مدل جدید</h2>
+    
+    <form onsubmit="event.preventDefault(); saveSample();">
+      <input type="hidden" id="f-id">
+      <input type="hidden" id="f-base64">
+      
+      <!-- Image Upload -->
+      <div class="img-upload-box" onclick="document.getElementById('f-file').click()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <p>برای انتخاب عکس کلیک کنید</p>
+      </div>
+      <input type="file" id="f-file" accept="image/*" style="display:none" onchange="processImage(this)">
+      <img id="f-preview" class="img-preview">
+      
+      <div class="grid-2">
+        <div class="form-group"><label>کد مدل</label><div class="input-box"><input type="text" id="f-code" placeholder="M-001"></div></div>
+        <div class="form-group"><label>نام مدل *</label><div class="input-box"><input type="text" id="f-name" required placeholder="واسکت کلاسیک"></div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group"><label>سایز مدل</label><div class="input-box"><input type="text" id="f-size" placeholder="M / 40"></div></div>
+        <div class="form-group"><label>مشتری (سفارش‌دهنده)</label>
+          <div class="custom-dropdown" id="dd-customer">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-customer')"><span id="val-customer">انتخاب کنید...</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="dropdown-options" id="opt-customers"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>تاریخ ثبت مدل</label>
+        <div class="grid-3">
+          <div class="custom-dropdown" id="dd-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-day')"><span id="val-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-day"></div></div>
+          <div class="custom-dropdown" id="dd-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-month')"><span id="val-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-month"></div></div>
+          <div class="custom-dropdown" id="dd-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-year')"><span id="val-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-year"></div></div>
+        </div>
+      </div>
+
+      <div class="form-group"><label>توضیحات</label><div class="input-box"><textarea id="f-notes" placeholder="جزئیات دوخت..."></textarea></div></div>
+
+      <button type="submit" class="btn-primary">ذخیره در گالری</button>
+    </form>
+  </div>
+</div>
+
+<!-- View Image Modal -->
+<div class="modal-overlay" id="view-modal" onclick="closeModal('view-modal')">
+  <div class="modal-box">
+    <img id="view-image-src" src="">
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
+  <a href="production.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
+  <a href="students.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان</span></a>
+  <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
+  <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>بیشتر</span></a>
+</nav>
+
+<script>
+/* ============ Firebase Config ============ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+  authDomain: "tailor-64f7f.firebaseapp.com",
+  databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+  projectId: "tailor-64f7f",
+  storageBucket: "tailor-64f7f.firebasestorage.app",
+  messagingSenderId: "16067911685",
+  appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const userPhone = localStorage.getItem('tailor_user') || 'demo_user';
+
+const state = {
+  samples: [],
+  customers: [],
+  selectedCustomer: null,
+  selections: {}
+};
+
+const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+
+/* ============ Utils ============ */
+function uid(p='id'){ return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function todayShamsi(){
+  const d = new Date();
+  return d.toLocaleDateString('fa-AF-u-nu-latn') || `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function showAlert(type, title, msg){
+  const box = document.getElementById('alert-icon-box');
+  const svg = document.getElementById('alert-icon-svg');
+  if(type==='success'){ box.className='custom-alert-icon icon-success'; svg.innerHTML='<polyline points="20 6 9 17 4 12"/>'; }
+  else { box.className='custom-alert-icon icon-error'; svg.innerHTML='<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+  document.getElementById('alert-title').textContent = title;
+  document.getElementById('alert-msg').textContent = msg;
+  document.getElementById('custom-alert').classList.add('active');
+}
+function closeCustomAlert(){ document.getElementById('custom-alert').classList.remove('active'); }
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+let confirmCallback = null;
+function showConfirm(title, msg, btnText, callback) {
+  document.getElementById('confirm-title').innerText = title;
+  document.getElementById('confirm-msg').innerText = msg;
+  const btn = document.getElementById('confirm-yes-btn');
+  btn.innerText = btnText || 'تایید';
+  confirmCallback = callback;
+  openModal('confirm-modal');
+}
+document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+  if(confirmCallback) confirmCallback();
+  closeModal('confirm-modal');
+});
+
+function toggleTheme(){
+  document.body.classList.toggle('light-mode');
+  localStorage.setItem('tailor_theme', document.body.classList.contains('light-mode')?'light':'dark');
+}
+
+/* ============ Dropdowns ============ */
+function toggleDropdown(id){
+  document.querySelectorAll('.dropdown-options').forEach(el => {
+    if(el.parentElement.id !== id){ el.classList.remove('active'); el.previousElementSibling.classList.remove('active'); }
+  });
+  const d = document.getElementById(id);
+  d.querySelector('.dropdown-options').classList.toggle('active');
+  d.querySelector('.dropdown-trigger').classList.toggle('active');
+}
+function selectOption(id, label, val=null){
+  document.getElementById('val-'+id.replace('dd-','')).innerText = label;
+  if(id === 'dd-customer') state.selectedCustomer = label;
+  else state.selections[id] = {label, val: val||label};
+  
+  document.getElementById(id).querySelector('.dropdown-options').classList.remove('active');
+  document.getElementById(id).querySelector('.dropdown-trigger').classList.remove('active');
+}
+window.addEventListener('click', e => {
+  if(!e.target.closest('.custom-dropdown')){
+    document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+  }
+});
+
+/* ============ Init Dates & Customers ============ */
+function initDateDropdowns() {
+  const daysHtml = Array.from({length:31}, (_,i) => `<div class="dropdown-option" onclick="selectOption('dd-day', '${i+1}', '${i+1}')">${i+1}</div>`).join('');
+  document.getElementById('opt-day').innerHTML = daysHtml;
+
+  const monthsHtml = shamsiMonths.map((m, i) => `<div class="dropdown-option" onclick="selectOption('dd-month', '${m}', '${i+1}')">${m}</div>`).join('');
+  document.getElementById('opt-month').innerHTML = monthsHtml;
+
+  const yearsHtml = Array.from({length:11}, (_,i) => `<div class="dropdown-option" onclick="selectOption('dd-year', '${1400+i}', '${1400+i}')">${1400+i}</div>`).join('');
+  document.getElementById('opt-year').innerHTML = yearsHtml;
+}
+
+function loadCustomers() {
+  db.ref('users/'+userPhone+'/customers').once('value').then(snap => {
+    const data = snap.val() || {};
+    state.customers = Object.values(data);
+    const html = state.customers.map(c => `<div class="dropdown-option" onclick="selectOption('dd-customer', '${esc(c.name)}')">${esc(c.name)}</div>`).join('');
+    document.getElementById('opt-customers').innerHTML = html || '<div class="dropdown-option">مشتری یافت نشد</div>';
+  });
+}
+
+function setDateDropdowns(dateStr) {
+  const parts = dateStr.split('/');
+  if(parts.length === 3) {
+    selectOption('dd-day', parts[2], parts[2]);
+    selectOption('dd-month', shamsiMonths[Number(parts[1])-1] || 'حمل', parts[1]);
+    selectOption('dd-year', parts[0], parts[0]);
+  }
+}
+
+function getDateFromDropdowns() {
+  const d = state.selections['dd-day']?.val || '1';
+  const m = state.selections['dd-month']?.val || '1';
+  const y = state.selections['dd-year']?.val || '1403';
+  return `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+}
+
+/* ============ Image Processing (Compression) ============ */
+function processImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7); // 70% quality
+        
+        document.getElementById('f-preview').src = compressedBase64;
+        document.getElementById('f-preview').style.display = 'block';
+        document.getElementById('f-base64').value = compressedBase64;
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+/* ============ Load & Render Gallery ============ */
+function loadSamples() {
+  db.ref('users/'+userPhone+'/samples').once('value').then(snap => {
+    const data = snap.val() || {};
+    state.samples = Object.values(data).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+    renderGallery();
+  });
+}
+
+function renderGallery() {
+  const box = document.getElementById('gallery-container');
+  const q = document.getElementById('search-input').value.toLowerCase();
+  
+  let filtered = state.samples;
+  if(q) {
+    filtered = filtered.filter(s => 
+      (s.name||'').toLowerCase().includes(q) || 
+      (s.customer||'').toLowerCase().includes(q) ||
+      (s.code||'').toLowerCase().includes(q)
+    );
+  }
+
+  if(!filtered.length) {
+    box.innerHTML = '<div class="empty">هیچ مدلی یافت نشد</div>';
+    return;
+  }
+
+  box.innerHTML = filtered.map(s => {
+    const imgHtml = s.image 
+      ? `<div class="sample-img-box" onclick="viewImage('${s.image}')"><img src="${s.image}"></div>`
+      : `<div class="sample-img-box"><div class="no-img"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div></div>`;
+    
+    return `
+      <div class="sample-card">
+        ${imgHtml}
+        <div class="sample-info">
+          <div class="sample-code">${esc(s.code || 'بدون کد')}</div>
+          <div class="sample-name">${esc(s.name)}</div>
+          <div class="sample-customer">مشتری: ${esc(s.customer || '---')}</div>
+          <div class="sample-meta">
+            <span>سایز: ${esc(s.size || '-')}</span>
+            <span>${esc(s.date)}</span>
+          </div>
+        </div>
+        <div class="sample-actions">
+          <button class="btn-view-smp" onclick="editSample('${s.id}')">ویرایش</button>
+          <button class="btn-del-smp" onclick="deleteSample('${s.id}')">حذف</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============ Modal Logic ============ */
+function openSampleModal(id = null) {
+  document.getElementById('modal-sample').classList.add('active');
+  document.getElementById('f-id').value = id || '';
+  document.getElementById('modal-title').innerText = id ? 'ویرایش مدل' : 'ثبت مدل جدید';
+  
+  if(id) {
+    const s = state.samples.find(x => x.id === id);
+    if(s) {
+      document.getElementById('f-code').value = s.code || '';
+      document.getElementById('f-name').value = s.name || '';
+      document.getElementById('f-size').value = s.size || '';
+      document.getElementById('f-notes').value = s.notes || '';
+      document.getElementById('f-base64').value = s.image || '';
+      if(s.image) {
+        document.getElementById('f-preview').src = s.image;
+        document.getElementById('f-preview').style.display = 'block';
+      } else {
+        document.getElementById('f-preview').style.display = 'none';
+      }
+      state.selectedCustomer = s.customer || null;
+      document.getElementById('val-customer').innerText = s.customer || 'انتخاب کنید...';
+      setDateDropdowns(s.date);
+    }
+  } else {
+    document.getElementById('f-code').value = '';
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-size').value = '';
+    document.getElementById('f-notes').value = '';
+    document.getElementById('f-base64').value = '';
+    document.getElementById('f-file').value = '';
+    document.getElementById('f-preview').style.display = 'none';
+    
+    state.selectedCustomer = null;
+    document.getElementById('val-customer').innerText = 'انتخاب کنید...';
+    setDateDropdowns(todayShamsi());
+  }
+}
+
+function editSample(id) {
+  openSampleModal(id);
+}
+
+async function saveSample() {
+  const id = document.getElementById('f-id').value || uid('smp');
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) return showAlert('error', 'خطا', 'نام مدل الزامی است');
+  
+  const data = {
+    id,
+    code: document.getElementById('f-code').value.trim(),
+    name,
+    size: document.getElementById('f-size').value.trim(),
+    customer: state.selectedCustomer || '',
+    date: getDateFromDropdowns(),
+    notes: document.getElementById('f-notes').value.trim(),
+    image: document.getElementById('f-base64').value,
+    timestamp: Date.now()
+  };
+
+  try {
+    await db.ref(`users/${userPhone}/samples/${id}`).set(data);
+    showAlert('success', 'موفق', 'مدل در گالری ذخیره شد');
+    closeModal('modal-sample');
+    loadSamples();
+  } catch(e) {
+    showAlert('error', 'خطا', e.message);
+  }
+}
+
+function deleteSample(id) {
+  showConfirm('حذف مدل', 'آیا از حذف این مدل از گالری مطمئن هستید؟', 'بله، حذف کن', async () => {
+    try {
+      await db.ref(`users/${userPhone}/samples/${id}`).remove();
+      showAlert('success', 'حذف شد', 'مدل حذف گردید');
+      loadSamples();
+    } catch(e) {
+      showAlert('error', 'خطا', e.message);
+    }
+  });
+}
+
+function viewImage(base64) {
+  document.getElementById('view-image-src').src = base64;
+  openModal('view-modal');
+}
+
+/* ============ Init ============ */
+window.onload = () => {
+  if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
+  initDateDropdowns();
+  loadCustomers();
+  loadSamples();
+};
+</script>
+</body>
+</html>

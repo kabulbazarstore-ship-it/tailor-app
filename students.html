@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tailor | مدیریت کارکنان</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+:root{
+  --bg-body:radial-gradient(circle at top,#0a261d 0%,#050b09 100%);
+  --bg-panel:linear-gradient(180deg,#0a1c16 0%,#040b09 100%);
+  --bg-card:rgba(255,255,255,.03);
+  --text-main:#fff;--text-muted:#78909c;
+  --gold:#d4af37;--gold-light:#f3d58b;
+  --border:rgba(212,175,55,.3);
+  --danger:#ff4757;--success:#2ed573;--info:#3498db;--warning:#f39c12;
+  --input-bg:rgba(0,0,0,.4);--shadow:0 10px 30px rgba(0,0,0,.6);
+  --dropdown-bg:#0a1c16;
+}
+body.light-mode{
+  --bg-body:radial-gradient(circle at top,#e6dec9 0%,#d4cbb5 100%);
+  --bg-panel:linear-gradient(180deg,#f4ecd8 0%,#ebe1cc 100%);
+  --bg-card:rgba(0,0,0,.04);
+  --text-main:#1c2b26;--text-muted:#4a5a54;
+  --border:rgba(212,175,55,.6);--input-bg:#fdfcf9;
+  --shadow:0 10px 30px rgba(0,0,0,.08);--dropdown-bg:#f4ecd8;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;overflow-x:hidden;transition:background .3s,color .3s}
+.app-container{width:100%;max-width:460px;padding:15px;padding-bottom:80px;position:relative;min-height:100vh;display:flex;flex-direction:column}
+
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.back-btn{background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;text-decoration:none;display:flex;align-items:center}
+.header-title{color:var(--gold);font-weight:bold;font-size:18px}
+.theme-toggle{background:rgba(212,175,55,.1);border:1px solid var(--border);color:var(--gold);width:32px;height:32px;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer}
+.theme-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* Dashboard Stats */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+.stat-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;padding:12px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:4px;height:100%;background:var(--gold)}
+.stat-card:nth-child(2)::before{background:var(--success)}
+.stat-card:nth-child(3)::before{background:var(--info)}
+.stat-card:nth-child(4)::before{background:var(--danger)}
+.stat-info{display:flex;flex-direction:column;gap:4px}
+.stat-info .title{font-size:10px;color:var(--text-muted)}
+.stat-info .value{font-size:15px;font-weight:bold;color:var(--text-main);display:flex;align-items:baseline;gap:3px}
+.stat-info .value span{font-size:9px;color:var(--gold)}
+.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;justify-content:center;align-items:center;background:rgba(212,175,55,.1);color:var(--gold)}
+.stat-card:nth-child(2) .stat-icon{background:rgba(46,213,115,.1);color:var(--success)}
+.stat-card:nth-child(3) .stat-icon{background:rgba(52,152,219,.1);color:var(--info)}
+.stat-card:nth-child(4) .stat-icon{background:rgba(255,71,87,.1);color:var(--danger)}
+.stat-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* Filter Tabs */
+.tabs{display:flex;gap:6px;margin-bottom:15px;overflow-x:auto;padding-bottom:4px}
+.tab{background:var(--bg-panel);border:1px solid var(--border);color:var(--text-muted);padding:8px 16px;border-radius:20px;font-size:12px;white-space:nowrap;cursor:pointer;font-weight:bold;flex:1;text-align:center}
+.tab.active{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;border-color:var(--gold)}
+
+/* Search Add */
+.search-add-row{display:flex;gap:10px;margin-bottom:15px}
+.search-box{flex:1;position:relative}
+.search-box input{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:12px 40px 12px 15px;color:var(--text-main);font-size:13px;outline:none}
+.search-box svg{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;fill:none;stroke:var(--text-muted);stroke-width:2}
+.add-btn-sm{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;border:none;border-radius:12px;padding:0 15px;font-weight:bold;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.add-btn-sm svg{width:16px;height:16px;stroke:#000;stroke-width:3;fill:none}
+
+/* Staff Card */
+.staff-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:12px;box-shadow:var(--shadow);position:relative;cursor:pointer}
+.staff-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.staff-info h4{color:var(--gold);font-size:15px;margin-bottom:3px}
+.staff-info p{font-size:11px;color:var(--text-muted)}
+.badge{padding:4px 10px;border-radius:20px;font-size:10px;font-weight:bold;background:rgba(46,213,115,.1);color:var(--success);border:1px solid var(--success)}
+.badge.inactive{background:rgba(255,71,87,.1);color:var(--danger);border-color:var(--danger)}
+.badge.leave{background:rgba(241,196,15,.1);color:#f1c40f;border-color:#f1c40f}
+.badge.khalifa{background:rgba(52,152,219,.1);color:var(--info);border-color:var(--info)}
+.badge.cutter{background:rgba(155,89,182,.1);color:#9b59b6;border-color:#9b59b6}
+
+.staff-details{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin-bottom:10px;background:rgba(0,0,0,.1);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.05)}
+.staff-details div{display:flex;flex-direction:column;gap:2px}
+.staff-details div span{color:var(--text-muted);font-size:10px}
+.balance-row{display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,.15);border-radius:8px;font-size:11px}
+.balance-row>div{display:flex;flex-direction:column;gap:2px}
+.balance-row span{color:var(--text-muted);font-size:9px}
+.balance-row strong{font-size:12px}
+.bal-owe strong{color:var(--danger)}
+.bal-loan strong{color:var(--warning)}
+
+/* Full Screen Profile */
+.full-screen-view{position:fixed;inset:0;background:var(--bg-body);z-index:2000;overflow-y:auto;display:none;flex-direction:column;padding-bottom:80px}
+.full-screen-view.active{display:flex}
+.profile-top{background:var(--bg-panel);padding:20px 15px;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.profile-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.profile-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ps-box{background:rgba(0,0,0,.3);border:1px solid var(--border);padding:10px;border-radius:10px;text-align:center}
+.ps-box span{font-size:10px;color:var(--text-muted);display:block;margin-bottom:4px}
+.ps-box strong{font-size:14px}
+.ps-box.owe strong{color:var(--danger)}
+.ps-box.loan strong{color:var(--warning)}
+
+/* Sections in Profile */
+.profile-body{padding:15px}
+.section-title{font-size:13px;color:var(--gold);font-weight:bold;margin-bottom:10px;border-bottom:1px dashed var(--border);padding-bottom:5px;margin-top:20px}
+.section-title:first-child{margin-top:0}
+
+/* Action Buttons Grid */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+.btn-action{padding:12px;border-radius:10px;font-size:12px;font-weight:bold;cursor:pointer;display:flex;justify-content:center;align-items:center;border:1px solid;background:transparent;text-align:center}
+.btn-action.attendance{border-color:var(--success);color:var(--success);background:rgba(46,213,115,.1)}
+.btn-action.wage{border-color:var(--info);color:var(--info);background:rgba(52,152,219,.1)}
+.btn-action.payment{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.1)}
+.btn-action.loan{border-color:var(--warning);color:var(--warning);background:rgba(243,156,18,.1)}
+.btn-action.work{border-color:#9b59b6;color:#9b59b6;background:rgba(155,89,182,.1);grid-column:span 2}
+
+/* Work Stats Box */
+.work-stats-box{background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:15px;display:none}
+.work-stats-box.show{display:block}
+.work-stats-title{font-size:11px;color:var(--gold);margin-bottom:10px;text-align:center;font-weight:bold}
+.work-stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.ws-item{background:rgba(0,0,0,.2);padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.05)}
+.ws-item span{display:block;font-size:9px;color:var(--text-muted);margin-bottom:4px}
+.ws-item strong{font-size:14px}
+.ws-item.total strong{color:var(--info)}
+.ws-item.done strong{color:var(--success)}
+.ws-item.rem strong{color:var(--danger)}
+
+/* Common Boxes */
+.info-box{background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:15px;margin-bottom:15px}
+.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(128,128,128,.2);font-size:12px}
+.info-row:last-child{border:none}
+.info-row span:first-child{color:var(--text-muted)}
+.info-row span:last-child{font-weight:bold}
+
+.list-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;font-size:12px}
+.li-info{flex:1}
+.li-title{font-weight:bold;color:var(--text-main);margin-bottom:4px}
+.li-sub{font-size:10px;color:var(--text-muted)}
+.li-amt{font-weight:bold;font-size:13px}
+.li-amt.pos{color:var(--success)}
+.li-amt.neg{color:var(--danger)}
+.li-del{background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:0 5px}
+
+/* Calc Box */
+.calc-box{background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:15px;text-align:center}
+.calc-box .title{font-size:11px;color:var(--gold);margin-bottom:5px}
+.calc-box .value{font-size:18px;font-weight:bold;color:var(--gold-light)}
+.calc-box .desc{font-size:11px;color:var(--text-main);margin-top:8px;line-height:1.5;background:rgba(0,0,0,.2);padding:8px;border-radius:6px}
+
+/* Modal & Forms */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(5px);display:none;justify-content:center;align-items:center;z-index:3000;padding:10px}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:20px;width:100%;max-width:440px;box-shadow:var(--shadow);position:relative;max-height:95vh;overflow-y:auto;animation:popIn .3s}
+@keyframes popIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-close{position:absolute;top:12px;left:12px;background:none;border:none;color:var(--danger);font-size:22px;cursor:pointer;z-index:10}
+.modal-title{font-size:16px;font-weight:bold;margin-bottom:15px;color:var(--gold);text-align:center;border-bottom:1px dashed var(--border);padding-bottom:10px}
+
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;color:var(--gold);margin-bottom:5px;font-weight:bold}
+.input-box input,.input-box textarea{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-main);font-size:12px;outline:none;transition:.3s}
+.input-box input:focus,.input-box textarea:focus{border-color:var(--gold)}
+.input-box textarea{resize:vertical;min-height:50px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+.btn-primary{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;width:100%;padding:12px;border-radius:8px;border:none;font-size:13px;font-weight:bold;cursor:pointer;margin-top:10px}
+.btn-sm{padding:8px 12px;border-radius:8px;font-size:11px;font-weight:bold;cursor:pointer;border:1px solid;background:transparent;display:inline-flex;justify-content:center;align-items:center;gap:4px}
+.btn-danger{background:rgba(255,71,87,.1);color:var(--danger);border-color:var(--danger)}
+.btn-outline{border-color:var(--gold);color:var(--gold)}
+
+/* Custom Dropdown */
+.custom-dropdown{position:relative;width:100%;user-select:none}
+.dropdown-trigger{width:100%;background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text-main);font-size:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.dropdown-trigger.active{border-color:var(--gold)}
+.dropdown-trigger svg{width:12px;height:12px;stroke:var(--gold);stroke-width:2;fill:none;transition:.3s}
+.dropdown-trigger.active svg{transform:rotate(180deg)}
+.dropdown-options{position:absolute;top:110%;left:0;right:0;background:var(--dropdown-bg);border:1px solid var(--gold);border-radius:8px;box-shadow:var(--shadow);z-index:100;display:none;flex-direction:column;max-height:180px;overflow-y:auto}
+.dropdown-options.active{display:flex}
+.dropdown-option{padding:10px;font-size:11px;cursor:pointer;color:var(--text-main);border-bottom:1px solid var(--border);transition:.2s}
+.dropdown-option:hover{background:rgba(212,175,55,.15);color:var(--gold)}
+
+/* Alert & Confirm */
+.custom-alert-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:10000;opacity:0;pointer-events:none;transition:.3s}
+.custom-alert-overlay.active{opacity:1;pointer-events:auto}
+.custom-alert-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:25px 20px;width:85%;max-width:320px;text-align:center;transform:scale(.8);transition:.3s}
+.custom-alert-overlay.active .custom-alert-box{transform:scale(1)}
+.custom-alert-icon{width:60px;height:60px;border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto 15px}
+.icon-success{background:rgba(46,213,115,.1);border:2px solid var(--success);color:var(--success)}
+.icon-error{background:rgba(255,71,87,.1);border:2px solid var(--danger);color:var(--danger)}
+.custom-alert-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:3}
+.custom-alert-title{color:var(--gold);font-size:18px;font-weight:bold;margin-bottom:8px}
+.custom-alert-msg{font-size:13px;color:var(--text-main);margin-bottom:20px;line-height:1.5}
+.custom-alert-btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;font-weight:bold;font-size:14px;border:none;border-radius:10px;padding:10px 20px;width:100%;cursor:pointer}
+
+/* Confirm Box Specific */
+#confirm-modal .modal-box{text-align:center;border-color:var(--danger);max-width:340px}
+#confirm-modal .modal-title{color:var(--danger);border-bottom-color:rgba(255,71,87,.3)}
+#confirm-yes-btn{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-panel);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:10px 0 15px;z-index:1000}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);cursor:pointer;width:20%;text-decoration:none}
+.nav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+.nav-item span{font-size:10px}
+.nav-item.active{color:var(--gold)}
+.empty{text-align:center;color:var(--text-muted);padding:20px 10px;font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="custom-alert-overlay" id="custom-alert">
+  <div class="custom-alert-box">
+    <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+    <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+    <p class="custom-alert-msg" id="alert-msg">پیام</p>
+    <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <h2 class="modal-title" id="confirm-title">تایید حذف</h2>
+    <p id="confirm-msg" style="font-size:13px; margin-bottom:20px; color:var(--text-muted); line-height:1.6;">آیا مطمئن هستید؟</p>
+    <div class="grid-2">
+      <button class="btn-sm btn-outline" onclick="closeModal('confirm-modal')">انصراف</button>
+      <button class="btn-sm" id="confirm-yes-btn">بله، حذف کن</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-container">
+  <div class="top-bar">
+    <a href="index.html" class="back-btn">➔</a>
+    <div class="header-title">مدیریت کارکنان</div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-info"><div class="title">کل کارکنان</div><div class="value" id="stat-total">0</div></div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-info"><div class="title">حاضران امروز</div><div class="value" id="stat-today">0</div></div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-info"><div class="title">طلب کارکنان</div><div class="value" id="stat-payable">0 <span>افغانی</span></div></div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-info"><div class="title">مجموع قرض‌ها</div><div class="value" id="stat-loans">0 <span>افغانی</span></div></div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="filterList('all', this)">همه</button>
+    <button class="tab" onclick="filterList('shagerd', this)">شاگردان</button>
+    <button class="tab" onclick="filterList('khalifa', this)">خلیفه‌ها</button>
+    <button class="tab" onclick="filterList('cutter', this)">برش‌کارها</button>
+  </div>
+
+  <div class="search-add-row">
+    <div class="search-box">
+      <input type="text" id="search-input" placeholder="جستجوی نام یا شماره..." oninput="renderList()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <button class="add-btn-sm" onclick="openStaffForm()">+ جدید</button>
+  </div>
+
+  <div id="staff-list"></div>
+</div>
+
+<!-- ================= FULL SCREEN PROFILE ================= -->
+<div class="full-screen-view" id="profile-view">
+  <div class="profile-top">
+    <div class="profile-header">
+      <button class="back-btn" onclick="closeProfile()">➔</button>
+      <div style="font-weight:bold;color:var(--gold);font-size:16px" id="p-name">نام</div>
+      <button class="theme-toggle" onclick="openStaffForm(state.currentStaffId)"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+    </div>
+    <div class="profile-summary">
+      <div class="ps-box owe"><span>طلب باقی‌مانده</span><strong id="p-balance">0</strong></div>
+      <div class="ps-box loan"><span>قرض باقی‌مانده</span><strong id="p-loan">0</strong></div>
+    </div>
+  </div>
+
+  <div class="profile-body">
+    
+    <!-- دکمه‌های عملیات -->
+    <div class="action-grid">
+      <button class="btn-action attendance" onclick="openAttendanceModal()">ثبت حاضری</button>
+      <button class="btn-action wage" onclick="openWageModal()">ثبت معاش</button>
+      <button class="btn-action payment" onclick="openPaymentModal()">ثبت پرداخت</button>
+      <button class="btn-action loan" onclick="openLoanModal()">ثبت قرض</button>
+      <button class="btn-action work" id="btn-new-work" onclick="openWorkModal()">توزیع کار جدید (برای خلیفه و برش‌کار)</button>
+    </div>
+
+    <!-- نمودار آماری کارها -->
+    <div class="work-stats-box" id="work-stats-box">
+      <div class="work-stats-title">آمار کلی کارهای واگذار شده</div>
+      <div class="work-stats-grid">
+        <div class="ws-item total"><span>کل توزیع شده</span><strong id="ws-total">0</strong></div>
+        <div class="ws-item done"><span>دوخته/تکمیل شده</span><strong id="ws-done">0</strong></div>
+        <div class="ws-item rem"><span>باقی مانده</span><strong id="ws-rem">0</strong></div>
+      </div>
+    </div>
+
+    <!-- محاسبه خودکار معاش -->
+    <div class="calc-box" id="auto-calc-box" style="display:none;">
+      <div class="title">معاش محاسبه شده (بر اساس حاضری)</div>
+      <div class="value" id="auto-calc-value">0 افغانی</div>
+      <div class="desc" id="auto-calc-desc"></div>
+    </div>
+
+    <!-- اطلاعات شخصی -->
+    <div class="section-title">اطلاعات شخصی</div>
+    <div class="info-box" id="p-info"></div>
+
+    <!-- حساب و کتاب -->
+    <div class="section-title">حساب مالی و تراکنش‌ها</div>
+    <div id="p-finance"></div>
+
+    <!-- تاریخچه حاضری -->
+    <div class="section-title">تاریخچه حاضری</div>
+    <div id="p-attendance"></div>
+
+    <!-- کارهای توزیع شده -->
+    <div class="section-title" id="p-works-title">کارهای واگذار شده</div>
+    <div id="p-works"></div>
+
+    <button class="btn-sm btn-danger" style="width:100%;margin-top:20px" onclick="deleteStaff(state.currentStaffId)">حذف کامل پرونده (غیرقابل بازگشت)</button>
+  </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- Staff Form -->
+<div class="modal-overlay" id="modal-staff">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-staff')">✕</button>
+    <h2 class="modal-title" id="staff-modal-title">ثبت کارمند جدید</h2>
+    <form onsubmit="event.preventDefault(); saveStaff();">
+      <input type="hidden" id="f-id">
+      
+      <div class="grid-2">
+        <div class="form-group"><label>نوع کارمند</label>
+          <div class="custom-dropdown" id="dd-type">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-type')"><span id="val-type">شاگرد</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="dropdown-options">
+              <div class="dropdown-option" onclick="selectOption('dd-type','شاگرد', 'shagerd')">شاگرد</div>
+              <div class="dropdown-option" onclick="selectOption('dd-type','خلیفه', 'khalifa')">خلیفه</div>
+              <div class="dropdown-option" onclick="selectOption('dd-type','برش کار', 'cutter')">برش کار</div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group"><label>وضعیت</label>
+          <div class="custom-dropdown" id="dd-status">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-status')"><span id="val-status">فعال</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="dropdown-options">
+              <div class="dropdown-option" onclick="selectOption('dd-status','فعال')">فعال</div>
+              <div class="dropdown-option" onclick="selectOption('dd-status','رخصت')">رخصت</div>
+              <div class="dropdown-option" onclick="selectOption('dd-status','موقت')">موقت</div>
+              <div class="dropdown-option" onclick="selectOption('dd-status','خاتمه کار')">خاتمه کار</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group"><label>نام و تخلص *</label><div class="input-box"><input type="text" id="f-name" required></div></div>
+        <div class="form-group"><label>نام پدر</label><div class="input-box"><input type="text" id="f-father"></div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="f-phone"></div></div>
+        <div class="form-group"><label>شماره تذکره</label><div class="input-box"><input type="text" id="f-tazkira"></div></div>
+      </div>
+
+      <div class="form-group"><label>آدرس</label><div class="input-box"><input type="text" id="f-address"></div></div>
+
+      <div class="form-group"><label>تخصص / وظیفه</label><div class="input-box"><input type="text" id="f-specialty"></div></div>
+
+      <div class="form-group">
+        <label>تاریخ شروع</label>
+        <div class="grid-3">
+          <div class="custom-dropdown" id="dd-start-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-start-day')"><span id="val-start-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-start-day"></div></div>
+          <div class="custom-dropdown" id="dd-start-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-start-month')"><span id="val-start-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-start-month"></div></div>
+          <div class="custom-dropdown" id="dd-start-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-start-year')"><span id="val-start-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-start-year"></div></div>
+        </div>
+      </div>
+
+      <div class="info-box" style="padding:10px;margin-bottom:12px">
+        <div class="form-group"><label>نوع معاش</label>
+          <div class="custom-dropdown" id="dd-salary-type">
+            <div class="dropdown-trigger" onclick="toggleDropdown('dd-salary-type')"><span id="val-salary-type">هفته‌وار</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+            <div class="dropdown-options">
+              <div class="dropdown-option" onclick="selectOption('dd-salary-type','هفته‌وار', 'weekly')">هفته‌وار</div>
+              <div class="dropdown-option" onclick="selectOption('dd-salary-type','ماهانه', 'monthly')">ماهانه</div>
+              <div class="dropdown-option" onclick="selectOption('dd-salary-type','دانه‌ای (کارمزدی)', 'piece')">دانه‌ای (کارمزدی)</div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group"><label>مبلغ معاش (افغانی)</label><div class="input-box"><input type="number" id="f-salary-amount" placeholder="1000"></div></div>
+          <div class="form-group"><label>روزهای کاری در دوره</label><div class="input-box"><input type="number" id="f-working-days" placeholder="6"></div></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);line-height:1.5">مثال: اگر معاش هفته‌وار ۱۰۰۰ و روزهای کاری ۶ روز باشد، معاش هر روز ۱۶۶ افغانی محاسبه می‌شود.</div>
+      </div>
+
+      <button type="submit" class="btn-primary">ذخیره اطلاعات</button>
+    </form>
+  </div>
+</div>
+
+<!-- Attendance Modal -->
+<div class="modal-overlay" id="modal-attendance">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-attendance')">✕</button>
+    <h2 class="modal-title">ثبت حاضری</h2>
+    
+    <div class="grid-2">
+      <div class="form-group"><label>روز هفته</label>
+        <div class="custom-dropdown" id="dd-weekday">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-weekday')"><span id="val-weekday">شنبه</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options">
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','شنبه', 'sat')">شنبه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','یکشنبه', 'sun')">یکشنبه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','دوشنبه', 'mon')">دوشنبه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','سه‌شنبه', 'tue')">سه‌شنبه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','چهارشنبه', 'wed')">چهارشنبه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','پنجشنبه', 'thu')">پنجشنبه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-weekday','جمعه', 'fri')">جمعه</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group"><label>وضعیت</label>
+        <div class="custom-dropdown" id="dd-att-status">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-att-status')"><span id="val-att-status">حاضر</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options">
+            <div class="dropdown-option" onclick="selectOption('dd-att-status','حاضر', 'present')">حاضر</div>
+            <div class="dropdown-option" onclick="selectOption('dd-att-status','غایب', 'absent')">غایب</div>
+            <div class="dropdown-option" onclick="selectOption('dd-att-status','رخصتی با اجازه', 'leave_auth')">رخصتی با اجازه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-att-status','رخصتی بدون اجازه', 'leave_unauth')">رخصتی بدون اجازه</div>
+            <div class="dropdown-option" onclick="selectOption('dd-att-status','نیم‌روز', 'half')">نیم‌روز</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:15px">
+      <div class="form-group"><label>روز</label>
+        <div class="custom-dropdown" id="dd-day">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-day')"><span id="val-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-day"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>ماه</label>
+        <div class="custom-dropdown" id="dd-month">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-month')"><span id="val-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-month"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>سال</label>
+        <div class="custom-dropdown" id="dd-year">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-year')"><span id="val-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-year"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveAttendance()">ثبت شود</button>
+    <button class="btn-primary" style="background:var(--success); color:#fff; margin-top:10px;" onclick="markSixDaysPresent()">ثبت سریع یک هفته (۶ روز متوالی حاضر)</button>
+  </div>
+</div>
+
+<!-- Wage Modal -->
+<div class="modal-overlay" id="modal-wage">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-wage')">✕</button>
+    <h2 class="modal-title">ثبت معاش / دستمزد</h2>
+    <div class="form-group"><label>مبلغ (افغانی) *</label><div class="input-box"><input type="number" id="wg-amount" placeholder="0"></div></div>
+    <div class="form-group">
+      <label>تاریخ</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-wg-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-wg-day')"><span id="val-wg-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-wg-day"></div></div>
+        <div class="custom-dropdown" id="dd-wg-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-wg-month')"><span id="val-wg-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-wg-month"></div></div>
+        <div class="custom-dropdown" id="dd-wg-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-wg-year')"><span id="val-wg-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-wg-year"></div></div>
+      </div>
+    </div>
+    <div class="form-group"><label>توضیحات</label><div class="input-box"><input type="text" id="wg-note" placeholder="مثلا معاش هفته اول"></div></div>
+    <button class="btn-primary" onclick="saveWage()">ثبت در حساب</button>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-payment')">✕</button>
+    <h2 class="modal-title">ثبت پرداخت به کارمند</h2>
+    <div class="form-group"><label>مبلغ (افغانی) *</label><div class="input-box"><input type="number" id="pay-inp-amount"></div></div>
+    <div class="form-group">
+      <label>تاریخ</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-pay-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-pay-day')"><span id="val-pay-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-pay-day"></div></div>
+        <div class="custom-dropdown" id="dd-pay-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-pay-month')"><span id="val-pay-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-pay-month"></div></div>
+        <div class="custom-dropdown" id="dd-pay-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-pay-year')"><span id="val-pay-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-pay-year"></div></div>
+      </div>
+    </div>
+    <div class="form-group"><label>توضیحات</label><div class="input-box"><input type="text" id="pay-inp-note"></div></div>
+    <button class="btn-primary" onclick="savePayment()">ثبت پرداخت</button>
+  </div>
+</div>
+
+<!-- Loan Modal -->
+<div class="modal-overlay" id="modal-loan">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-loan')">✕</button>
+    <h2 class="modal-title">ثبت قرض / مساعده</h2>
+    <div class="form-group"><label>نوع</label>
+      <div class="custom-dropdown" id="dd-loan-type">
+        <div class="dropdown-trigger" onclick="toggleDropdown('dd-loan-type')"><span id="val-loan-type">قرض داده شده (ما دادیم)</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="dropdown-options">
+          <div class="dropdown-option" onclick="selectOption('dd-loan-type','قرض داده شده (ما دادیم)', 'given')">قرض داده شده (ما دادیم)</div>
+          <div class="dropdown-option" onclick="selectOption('dd-loan-type','قرض پس داده (او داد)', 'taken')">قرض پس داده (او داد)</div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group"><label>مبلغ (افغانی) *</label><div class="input-box"><input type="number" id="loan-inp-amount"></div></div>
+    <div class="form-group">
+      <label>تاریخ</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-loan-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-loan-day')"><span id="val-loan-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-loan-day"></div></div>
+        <div class="custom-dropdown" id="dd-loan-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-loan-month')"><span id="val-loan-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-loan-month"></div></div>
+        <div class="custom-dropdown" id="dd-loan-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-loan-year')"><span id="val-loan-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-loan-year"></div></div>
+      </div>
+    </div>
+    <div class="form-group"><label>توضیحات</label><div class="input-box"><input type="text" id="loan-inp-note"></div></div>
+    <button class="btn-primary" onclick="saveLoan()">ثبت قرض</button>
+  </div>
+</div>
+
+<!-- Work Modal -->
+<div class="modal-overlay" id="modal-work">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-work')">✕</button>
+    <h2 class="modal-title">توزیع کار (دانه‌ای)</h2>
+    <div class="grid-2">
+      <div class="form-group"><label>نام مدل / کار</label><div class="input-box"><input type="text" id="wo-model" placeholder="واسکت / برش"></div></div>
+      <div class="form-group"><label>رنگ</label><div class="input-box"><input type="text" id="wo-color" placeholder="سیاه"></div></div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>سایز</label><div class="input-box"><input type="text" id="wo-size" placeholder="M"></div></div>
+      <div class="form-group"><label>تعداد کل</label><div class="input-box"><input type="number" id="wo-qty" oninput="calcWorkOrderTotal()"></div></div>
+    </div>
+    <div class="form-group"><label>دستمزد هر دانه</label><div class="input-box"><input type="number" id="wo-price" oninput="calcWorkOrderTotal()"></div></div>
+    
+    <div class="form-group">
+      <label>تاریخ توزیع</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-wo-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-wo-day')"><span id="val-wo-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-wo-day"></div></div>
+        <div class="custom-dropdown" id="dd-wo-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-wo-month')"><span id="val-wo-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-wo-month"></div></div>
+        <div class="custom-dropdown" id="dd-wo-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-wo-year')"><span id="val-wo-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-wo-year"></div></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>تاریخ تحویل (موعد)</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-deliv-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-deliv-day')"><span id="val-deliv-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-deliv-day"></div></div>
+        <div class="custom-dropdown" id="dd-deliv-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-deliv-month')"><span id="val-deliv-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-deliv-month"></div></div>
+        <div class="custom-dropdown" id="dd-deliv-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-deliv-year')"><span id="val-deliv-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-deliv-year"></div></div>
+      </div>
+    </div>
+
+    <div class="calc-box" style="padding:10px;margin-bottom:10px">
+      <div class="title">مبلغ کل این سفارش</div>
+      <div class="value" id="wo-total-display">0 افغانی</div>
+    </div>
+    <button class="btn-primary" onclick="saveWorkOrder()">ثبت کار</button>
+  </div>
+</div>
+
+<!-- Update Work Modal -->
+<div class="modal-overlay" id="modal-work-update">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-work-update')">✕</button>
+    <h2 class="modal-title">ثبت پیشرفت کار</h2>
+    <input type="hidden" id="upd-wo-id">
+    
+    <div class="info-box">
+      <div class="info-row"><span>تعداد توزیع شده:</span><strong id="upd-wo-total">0</strong></div>
+      <div class="info-row"><span>تأیید شده تا حالا:</span><strong id="upd-wo-approved">0</strong></div>
+      <div class="info-row"><span>باقی‌مانده:</span><strong id="upd-wo-remain" style="color:var(--danger)">0</strong></div>
+    </div>
+
+    <div class="form-group"><label>تعداد جدید (دوخته شده)</label><div class="input-box"><input type="number" id="upd-wo-add" placeholder="0" oninput="calcUpdateRemain()"></div></div>
+    
+    <div class="form-group">
+      <label>تاریخ تحویل این بخش</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-upd-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-upd-day')"><span id="val-upd-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-upd-day"></div></div>
+        <div class="custom-dropdown" id="dd-upd-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-upd-month')"><span id="val-upd-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-upd-month"></div></div>
+        <div class="custom-dropdown" id="dd-upd-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-upd-year')"><span id="val-upd-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-upd-year"></div></div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="updateWorkOrder()">به‌روزرسانی</button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
+  <a href="production.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
+  <a href="students.html" class="nav-item active"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>کارکنان</span></a>
+  <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
+  <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>تنظیمات</span></a>
+</nav>
+
+<script>
+/* ============ Firebase & Config ============ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+  authDomain: "tailor-64f7f.firebaseapp.com",
+  databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+  projectId: "tailor-64f7f",
+  storageBucket: "tailor-64f7f.firebasestorage.app",
+  messagingSenderId: "16067911685",
+  appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const userPhone = localStorage.getItem('tailor_user') || 'demo_user';
+
+const state = {
+  staff: [],
+  currentStaffId: null,
+  filterType: 'all',
+  selections: {
+    'dd-type': {label:'شاگرد', val:'shagerd'},
+    'dd-status': {label:'فعال', val:'فعال'},
+    'dd-salary-type': {label:'هفته‌وار', val:'weekly'},
+    'dd-att-status': {label:'حاضر', val:'present'},
+    'dd-weekday': {label:'شنبه', val:'sat'},
+    'dd-loan-type': {label:'قرض داده شده (ما دادیم)', val:'given'}
+  }
+};
+
+const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+
+/* ============ Utils ============ */
+function fmt(n){ return Number(n||0).toLocaleString('fa-AF'); }
+function uid(p='id'){ return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function todayShamsi(){
+  const d = new Date();
+  return d.toLocaleDateString('fa-AF-u-nu-latn') || `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function showAlert(type, title, msg){
+  const box = document.getElementById('alert-icon-box');
+  const svg = document.getElementById('alert-icon-svg');
+  if(type==='success'){ box.className='custom-alert-icon icon-success'; svg.innerHTML='<polyline points="20 6 9 17 4 12"/>'; }
+  else { box.className='custom-alert-icon icon-error'; svg.innerHTML='<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+  document.getElementById('alert-title').textContent = title;
+  document.getElementById('alert-msg').textContent = msg;
+  document.getElementById('custom-alert').classList.add('active');
+}
+function closeCustomAlert(){ document.getElementById('custom-alert').classList.remove('active'); }
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+/* Confirm System */
+let confirmCallback = null;
+function showConfirm(title, msg, btnText, callback) {
+  document.getElementById('confirm-title').innerText = title;
+  document.getElementById('confirm-msg').innerText = msg;
+  const btn = document.getElementById('confirm-yes-btn');
+  btn.innerText = btnText || 'تایید';
+  confirmCallback = callback;
+  openModal('confirm-modal');
+}
+
+document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+  if(confirmCallback) confirmCallback();
+  closeModal('confirm-modal');
+});
+
+
+function toggleTheme(){
+  document.body.classList.toggle('light-mode');
+  localStorage.setItem('tailor_theme', document.body.classList.contains('light-mode')?'light':'dark');
+}
+function toggleDropdown(id){
+  document.querySelectorAll('.dropdown-options').forEach(el => {
+    if(el.parentElement.id !== id){ el.classList.remove('active'); el.previousElementSibling.classList.remove('active'); }
+  });
+  const d = document.getElementById(id);
+  d.querySelector('.dropdown-options').classList.toggle('active');
+  d.querySelector('.dropdown-trigger').classList.toggle('active');
+}
+function selectOption(id, label, val=null){
+  document.getElementById('val-'+id.replace('dd-','')).innerText = label;
+  state.selections[id] = {label, val: val||label};
+  document.getElementById(id).querySelector('.dropdown-options').classList.remove('active');
+  document.getElementById(id).querySelector('.dropdown-trigger').classList.remove('active');
+}
+window.addEventListener('click', e => {
+  if(!e.target.closest('.custom-dropdown')){
+    document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+  }
+});
+
+/* ============ Date Dropdowns Initialization ============ */
+function initDateDropdowns() {
+  const populate = (prefix) => {
+    const dayOpt = document.getElementById(`opt-${prefix}-day`);
+    if (dayOpt) {
+      let html = '';
+      for(let i=1; i<=31; i++) html += `<div class="dropdown-option" onclick="selectOption('dd-${prefix}-day', '${i}', '${i}')">${i}</div>`;
+      dayOpt.innerHTML = html;
+    }
+    const monthOpt = document.getElementById(`opt-${prefix}-month`);
+    if (monthOpt) {
+      let html = '';
+      shamsiMonths.forEach((m, idx) => {
+        html += `<div class="dropdown-option" onclick="selectOption('dd-${prefix}-month', '${m}', '${idx+1}')">${m}</div>`;
+      });
+      monthOpt.innerHTML = html;
+    }
+    const yearOpt = document.getElementById(`opt-${prefix}-year`);
+    if (yearOpt) {
+      let html = '';
+      for(let y=1400; y<=1410; y++) html += `<div class="dropdown-option" onclick="selectOption('dd-${prefix}-year', '${y}', '${y}')">${y}</div>`;
+      yearOpt.innerHTML = html;
+    }
+  };
+
+  ['start', 'wg', 'pay', 'loan', 'wo', 'deliv', 'upd'].forEach(populate);
+
+  const dayOpt = document.getElementById('opt-day');
+  if (dayOpt) {
+    let html = '';
+    for(let i=1; i<=31; i++) html += `<div class="dropdown-option" onclick="selectOption('dd-day', '${i}', '${i}')">${i}</div>`;
+    dayOpt.innerHTML = html;
+  }
+  const monthOpt = document.getElementById('opt-month');
+  if (monthOpt) {
+    let html = '';
+    shamsiMonths.forEach((m, idx) => {
+      html += `<div class="dropdown-option" onclick="selectOption('dd-month', '${m}', '${idx+1}')">${m}</div>`;
+    });
+    monthOpt.innerHTML = html;
+  }
+  const yearOpt = document.getElementById('opt-year');
+  if (yearOpt) {
+    let html = '';
+    for(let y=1400; y<=1410; y++) html += `<div class="dropdown-option" onclick="selectOption('dd-year', '${y}', '${y}')">${y}</div>`;
+    yearOpt.innerHTML = html;
+  }
+}
+
+function getDateFromDropdowns(prefix) {
+  let d = '1', m = '1', y = '1403';
+  if (prefix === 'att') {
+    d = state.selections['dd-day']?.val || '1';
+    m = state.selections['dd-month']?.val || '1';
+    y = state.selections['dd-year']?.val || '1403';
+  } else {
+    d = state.selections[`dd-${prefix}-day`]?.val || '1';
+    m = state.selections[`dd-${prefix}-month`]?.val || '1';
+    y = state.selections[`dd-${prefix}-year`]?.val || '1403';
+  }
+  return `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+}
+
+function setDropdownDate(prefix, dateStr) {
+  if (!dateStr) dateStr = todayShamsi();
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    if (prefix === 'att') {
+      selectOption('dd-day', parts[2], parts[2]);
+      selectOption('dd-month', shamsiMonths[Number(parts[1])-1] || 'حمل', parts[1]);
+      selectOption('dd-year', parts[0], parts[0]);
+    } else {
+      selectOption(`dd-${prefix}-day`, parts[2], parts[2]);
+      selectOption(`dd-${prefix}-month`, shamsiMonths[Number(parts[1])-1] || 'حمل', parts[1]);
+      selectOption(`dd-${prefix}-year`, parts[0], parts[0]);
+    }
+  }
+}
+
+/* ============ Calculations ============ */
+function calcStaffBalance(s){
+  let payments = 0, loansGiven = 0, loansRepaid = 0;
+  if(s.payments) Object.values(s.payments).forEach(p => payments += Number(p.amount)||0);
+  if(s.loans) Object.values(s.loans).forEach(l => {
+    if(l.type === 'given') loansGiven += Number(l.amount)||0;
+    else loansRepaid += Number(l.amount)||0;
+  });
+  const loansOutstanding = loansGiven - loansRepaid;
+  
+  let wages = 0;
+  if(s.wages) Object.values(s.wages).forEach(w => wages += Number(w.amount)||0);
+  
+  let autoCalculatedWage = 0;
+  let presentDays = 0;
+  let dailyRate = 0;
+  if(s.salaryType === 'weekly' || s.salaryType === 'monthly'){
+    if(s.attendance) {
+      Object.values(s.attendance).forEach(a => { 
+        if(a.status === 'present') presentDays += 1;
+        if(a.status === 'half') presentDays += 0.5;
+      });
+    }
+    dailyRate = s.workingDays > 0 ? (s.salaryAmount / s.workingDays) : 0;
+    autoCalculatedWage = Math.round(presentDays * dailyRate);
+  }
+
+  let pieceWage = 0;
+  let totalWorkQty = 0;
+  let sewnWorkQty = 0;
+  
+  if(s.workOrders){
+    Object.values(s.workOrders).forEach(w => {
+      totalWorkQty += Number(w.qty) || 0;
+      sewnWorkQty += Number(w.approvedQty) || 0;
+      pieceWage += (Number(w.approvedQty)||0) * (Number(w.price)||0);
+    });
+  }
+  
+  const remainingWorkQty = totalWorkQty - sewnWorkQty;
+
+  const totalEarned = wages + (s.salaryType === 'piece' ? pieceWage : autoCalculatedWage);
+  const netPayable = totalEarned - payments - loansOutstanding;
+  
+  return { payments, loansOutstanding, netPayable, autoCalculatedWage, pieceWage, manualWages: wages, totalWorkQty, sewnWorkQty, remainingWorkQty, presentDays, dailyRate };
+}
+
+function updateDashboard(){
+  let total = state.staff.length;
+  let payable = 0, loans = 0;
+  const today = todayShamsi();
+  let presentToday = 0;
+
+  state.staff.forEach(s => {
+    const b = calcStaffBalance(s);
+    if(b.netPayable > 0) payable += b.netPayable;
+    if(b.loansOutstanding > 0) loans += b.loansOutstanding;
+    
+    if(s.attendance && s.attendance[today]){
+      const st = s.attendance[today].status;
+      if(st === 'present' || st === 'half') presentToday++;
+    }
+  });
+
+  document.getElementById('stat-total').innerText = total;
+  document.getElementById('stat-today').innerText = presentToday;
+  document.getElementById('stat-payable').innerHTML = fmt(payable) + ' <span>افغانی</span>';
+  document.getElementById('stat-loans').innerHTML = fmt(loans) + ' <span>افغانی</span>';
+}
+
+/* ============ Load & Render List ============ */
+function loadStaff(){
+  db.ref('users/'+userPhone+'/staff').once('value').then(snap => {
+    const data = snap.val() || {};
+    state.staff = Object.values(data).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    updateDashboard();
+    renderList();
+  });
+}
+
+function filterList(type, btn){
+  state.filterType = type;
+  document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function renderList(){
+  const box = document.getElementById('staff-list');
+  const q = document.getElementById('search-input').value.toLowerCase();
+  
+  let filtered = state.staff;
+  if(state.filterType !== 'all') filtered = filtered.filter(s => s.type === state.filterType);
+  if(q) filtered = filtered.filter(s => (s.name||'').toLowerCase().includes(q) || (s.phone||'').includes(q));
+
+  if(!filtered.length){ box.innerHTML = '<div class="empty">کارمندی یافت نشد</div>'; return; }
+
+  box.innerHTML = filtered.map(s => {
+    const b = calcStaffBalance(s);
+    let badgeCls = s.status === 'فعال' ? '' : (s.status === 'خاتمه کار' ? 'inactive' : 'leave');
+    let roleText = 'شاگرد';
+    
+    if(s.type === 'khalifa') { badgeCls += ' khalifa'; roleText = 'خلیفه'; }
+    if(s.type === 'cutter') { badgeCls += ' cutter'; roleText = 'برش کار'; }
+
+    return `
+      <div class="staff-card" onclick="openProfile('${s.id}')">
+        <div class="staff-header">
+          <div class="staff-info">
+            <h4>${esc(s.name)}</h4>
+            <p>${esc(s.phone||'بدون شماره')} - ${roleText}</p>
+          </div>
+          <span class="badge ${badgeCls}">${esc(s.status)}</span>
+        </div>
+        <div class="staff-details">
+          <div><span>تخصص</span>${esc(s.specialty||'-')}</div>
+          <div><span>نوع معاش</span>${s.salaryType==='weekly'?'هفته‌وار':s.salaryType==='monthly'?'ماهانه':'دانه‌ای'}</div>
+        </div>
+        <div class="balance-row">
+          <div class="bal-owe"><span>طلب باقی‌مانده</span><strong>${fmt(b.netPayable>0?b.netPayable:0)}</strong></div>
+          <div class="bal-loan"><span>قرض باقی‌مانده</span><strong>${fmt(b.loansOutstanding>0?b.loansOutstanding:0)}</strong></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============ Staff Form ============ */
+function openStaffForm(id = null){
+  document.getElementById('modal-staff').classList.add('active');
+  document.getElementById('staff-modal-title').innerText = id ? 'ویرایش کارمند' : 'ثبت کارمند جدید';
+  document.getElementById('f-id').value = id || '';
+  
+  if(id){
+    const s = state.staff.find(x => x.id === id);
+    if(s){
+      document.getElementById('f-name').value = s.name||'';
+      document.getElementById('f-father').value = s.father||'';
+      document.getElementById('f-phone').value = s.phone||'';
+      document.getElementById('f-tazkira').value = s.tazkira||'';
+      document.getElementById('f-address').value = s.address||'';
+      setDropdownDate('start', s.startDate || todayShamsi());
+      document.getElementById('f-specialty').value = s.specialty||'';
+      document.getElementById('f-salary-amount').value = s.salaryAmount||'';
+      document.getElementById('f-working-days').value = s.workingDays||'';
+      
+      const typeLabel = s.type==='khalifa'?'خلیفه':(s.type==='cutter'?'برش کار':'شاگرد');
+      selectOption('dd-type', typeLabel, s.type);
+      selectOption('dd-status', s.status, s.status);
+      const stypeLabel = s.salaryType==='weekly'?'هفته‌وار':s.salaryType==='monthly'?'ماهانه':'دانه‌ای (کارمزدی)';
+      selectOption('dd-salary-type', stypeLabel, s.salaryType);
+    }
+  } else {
+    ['f-name','f-father','f-phone','f-tazkira','f-address','f-specialty','f-salary-amount','f-working-days'].forEach(f => document.getElementById(f).value = '');
+    setDropdownDate('start', todayShamsi());
+    selectOption('dd-type', 'شاگرد', 'shagerd');
+    selectOption('dd-status', 'فعال', 'فعال');
+    selectOption('dd-salary-type', 'هفته‌وار', 'weekly');
+  }
+}
+
+async function saveStaff(){
+  const id = document.getElementById('f-id').value || uid('stf');
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ showAlert('error','خطا','نام الزامی است'); return; }
+  
+  const existing = state.staff.find(x => x.id === id);
+  
+  const data = {
+    id, name,
+    type: state.selections['dd-type'].val,
+    status: state.selections['dd-status'].val,
+    father: document.getElementById('f-father').value,
+    phone: document.getElementById('f-phone').value,
+    tazkira: document.getElementById('f-tazkira').value,
+    address: document.getElementById('f-address').value,
+    startDate: getDateFromDropdowns('start'),
+    specialty: document.getElementById('f-specialty').value,
+    salaryType: state.selections['dd-salary-type'].val,
+    salaryAmount: Number(document.getElementById('f-salary-amount').value) || 0,
+    workingDays: Number(document.getElementById('f-working-days').value) || 0,
+    createdAt: existing?.createdAt || Date.now()
+  };
+  
+  try {
+    await db.ref('users/'+userPhone+'/staff/'+id).update(data);
+    showAlert('success','موفق','اطلاعات ذخیره شد');
+    closeModal('modal-staff');
+    loadStaff();
+    if(state.currentStaffId === id) openProfile(id);
+  } catch(err){ showAlert('error','خطا',err.message); }
+}
+
+/* ============ Profile View ============ */
+function openProfile(id){
+  state.currentStaffId = id;
+  document.getElementById('profile-view').classList.add('active');
+  renderProfile();
+}
+
+function closeProfile(){
+  document.getElementById('profile-view').classList.remove('active');
+  state.currentStaffId = null;
+  loadStaff();
+}
+
+function renderProfile(){
+  const s = state.staff.find(x => x.id === state.currentStaffId);
+  if(!s) return;
+  
+  document.getElementById('p-name').innerText = s.name;
+  const b = calcStaffBalance(s);
+  
+  document.getElementById('p-balance').innerText = fmt(b.netPayable > 0 ? b.netPayable : 0);
+  document.getElementById('p-loan').innerText = fmt(b.loansOutstanding > 0 ? b.loansOutstanding : 0);
+
+  const isWorker = s.type === 'khalifa' || s.type === 'cutter' || s.salaryType === 'piece';
+  document.getElementById('btn-new-work').style.display = isWorker ? 'flex' : 'none';
+  document.getElementById('p-works-title').style.display = isWorker ? 'block' : 'none';
+  document.getElementById('p-works').style.display = isWorker ? 'block' : 'none';
+
+  if (isWorker) {
+    document.getElementById('work-stats-box').classList.add('show');
+    document.getElementById('ws-total').innerText = fmt(b.totalWorkQty);
+    document.getElementById('ws-done').innerText = fmt(b.sewnWorkQty);
+    document.getElementById('ws-rem').innerText = fmt(b.remainingWorkQty);
+  } else {
+    document.getElementById('work-stats-box').classList.remove('show');
+  }
+
+  if(s.salaryType !== 'piece' && s.workingDays > 0){
+    document.getElementById('auto-calc-box').style.display = 'block';
+    document.getElementById('auto-calc-value').innerText = fmt(b.autoCalculatedWage) + ' افغانی';
+    document.getElementById('auto-calc-desc').innerHTML = `
+      معاش روزانه: ${fmt(b.dailyRate)} افغانی<br>
+      روزهای حاضر: <strong>${b.presentDays}</strong> از ${s.workingDays} روز کاری<br>
+      محاسبه: ${b.presentDays} × ${fmt(b.dailyRate)}
+    `;
+  } else {
+    document.getElementById('auto-calc-box').style.display = 'none';
+  }
+
+  document.getElementById('p-info').innerHTML = `
+    <div class="info-row"><span>نام پدر</span><span>${esc(s.father||'-')}</span></div>
+    <div class="info-row"><span>شماره تماس</span><span>${esc(s.phone||'-')}</span></div>
+    <div class="info-row"><span>شماره تذکره</span><span>${esc(s.tazkira||'-')}</span></div>
+    <div class="info-row"><span>آدرس</span><span>${esc(s.address||'-')}</span></div>
+    <div class="info-row"><span>تاریخ شروع</span><span>${esc(s.startDate||'-')}</span></div>
+    <div class="info-row"><span>تخصص</span><span>${esc(s.specialty||'-')}</span></div>
+    <div class="info-row"><span>نوع معاش</span><span>${s.salaryType==='weekly'?'هفته‌وار':s.salaryType==='monthly'?'ماهانه':'دانه‌ای'}</span></div>
+    <div class="info-row"><span>مبلغ معاش</span><span>${s.salaryType!=='piece' ? fmt(s.salaryAmount)+' افغانی' : 'بر اساس کار'}</span></div>
+    ${s.salaryType!=='piece' ? `<div class="info-row"><span>روزهای کاری دوره</span><span>${s.workingDays} روز</span></div>` : ''}
+  `;
+
+  let transactions = [];
+  if(s.wages) Object.entries(s.wages).forEach(([k,v]) => transactions.push({...v, type:'wage', key:k}));
+  if(s.payments) Object.entries(s.payments).forEach(([k,v]) => transactions.push({...v, type:'payment', key:k}));
+  if(s.loans) Object.entries(s.loans).forEach(([k,v]) => transactions.push({...v, type:'loan', key:k}));
+  
+  transactions.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+
+  let financeHtml = '';
+  if(transactions.length){
+    financeHtml = transactions.map(t => {
+      let title = '', amt = 0, cls = '';
+      if(t.type === 'wage'){ title = 'معاش/دستمزد ثبت شده'; amt = t.amount; cls = 'pos'; }
+      if(t.type === 'payment'){ title = 'پرداخت نقدی'; amt = t.amount; cls = 'neg'; }
+      if(t.type === 'loan' && t.loanType === 'given'){ title = 'قرض داده شده'; amt = t.amount; cls = 'neg'; }
+      if(t.type === 'loan' && t.loanType === 'taken'){ title = 'قرض پس داده'; amt = t.amount; cls = 'pos'; }
+
+      return `
+        <div class="list-item">
+          <div class="li-info">
+            <div class="li-title">${title}</div>
+            <div class="li-sub">${esc(t.date)} ${t.note?' - '+esc(t.note):''}</div>
+          </div>
+          <div class="li-amt ${cls}">${cls==='neg'?'-':'+'}${fmt(amt)}</div>
+          <button class="li-del" onclick="deleteTransaction('${t.type}', '${t.key}')">✕</button>
+        </div>
+      `;
+    }).join('');
+  } else {
+    financeHtml = '<div class="empty">تراکنشی ثبت نشده</div>';
+  }
+  document.getElementById('p-finance').innerHTML = financeHtml;
+
+  const atts = Object.entries(s.attendance||{}).sort((a,b) => b[0].localeCompare(a[0]));
+  let attHtml = '';
+  if(atts.length){
+    attHtml = atts.map(([key, a]) => {
+      const stMap = {present:'حاضر', absent:'غایب', leave_auth:'رخصتی (با اجازه)', leave_unauth:'رخصتی (بدون اجازه)', half:'نیم‌روز'};
+      const color = a.status==='present'?'var(--success)':(a.status==='absent'||a.status==='leave_unauth')?'var(--danger)':'var(--warning)';
+      
+      // Use the saved date string instead of the raw key to avoid formatting issues
+      const displayDate = a.date || key; 
+      
+      return `
+        <div class="list-item">
+          <div class="li-info">
+            <div class="li-title">${esc(displayDate)} ${a.weekday ? `(${esc(a.weekday)})` : ''}</div>
+            <div class="li-sub">${a.note ? esc(a.note) : ''}</div>
+          </div>
+          <div class="li-amt" style="color:${color};font-size:12px">${stMap[a.status]||a.status}</div>
+          <button class="li-del" onclick="deleteRecord('attendance', '${key}')">✕</button>
+        </div>
+      `;
+    }).join('');
+  } else {
+    attHtml = '<div class="empty">حاضری ثبت نشده</div>';
+  }
+  document.getElementById('p-attendance').innerHTML = attHtml;
+
+  if(isWorker){
+    const works = Object.entries(s.workOrders||{}).sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
+    let worksHtml = '';
+    if(works.length){
+      worksHtml = works.map(([id, w]) => {
+        const total = Number(w.qty)||0;
+        const approved = Number(w.approvedQty)||0;
+        const remaining = total - approved;
+        const progress = total ? Math.round(approved/total*100) : 0;
+        const statusText = approved === 0 ? 'توزیع شده' : approved >= total ? 'تکمیل شده' : 'در حال انجام';
+        const statusColor = approved === 0 ? 'var(--info)' : approved >= total ? 'var(--success)' : 'var(--warning)';
+        const totalVal = total * w.price;
+        
+        return `
+          <div class="list-item" style="flex-direction:column;align-items:stretch;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <div class="li-title" style="color:var(--gold)">${esc(w.model)} - ${esc(w.color)} (${esc(w.size)})</div>
+                <div class="li-sub">توزیع: ${esc(w.date)} | تحویل: ${esc(w.deliveryDate||'---')}</div>
+                <div class="li-sub">مبلغ کل: ${fmt(totalVal)}</div>
+              </div>
+              <span style="font-size:10px;color:${statusColor};border:1px solid ${statusColor};padding:2px 8px;border-radius:10px">${statusText}</span>
+            </div>
+            <div style="font-size:11px;display:flex;justify-content:space-between;background:rgba(0,0,0,.2);padding:6px;border-radius:6px">
+              <span>تعداد کل: ${total} عدد</span>
+              <span>تأیید شده: ${approved}</span>
+              <span style="color:var(--danger);font-weight:bold">مانده: ${remaining}</span>
+            </div>
+            <div style="height:4px;background:rgba(0,0,0,.3);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${progress}%;background:var(--success)"></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <button class="btn-sm btn-outline" style="flex:1" onclick="openUpdateWorkModal('${id}')">ثبت پیشرفت</button>
+              <button class="btn-sm btn-danger" onclick="deleteWorkOrder('${id}')">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      worksHtml = '<div class="empty">کار توزیع‌شده‌ای ثبت نشده</div>';
+    }
+    document.getElementById('p-works').innerHTML = worksHtml;
+  }
+}
+
+/* ============ Attendance Logic ============ */
+function openAttendanceModal(){
+  setDropdownDate('att', todayShamsi());
+  selectOption('dd-weekday', 'شنبه', 'sat');
+  selectOption('dd-att-status', 'حاضر', 'present');
+  openModal('modal-attendance');
+}
+
+async function saveAttendance(){
+  const dateStr = getDateFromDropdowns('att');
+  const status = state.selections['dd-att-status'].val;
+  const weekday = state.selections['dd-weekday'].label;
+  const key = dateStr.replace(/\//g,'-');
+  
+  try {
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/attendance/${key}`).set({
+      date: dateStr, status, weekday, note: '', timestamp: Date.now()
+    });
+    showAlert('success','موفق','حاضری ثبت شد');
+    closeModal('modal-attendance');
+    refreshCurrentStaff();
+  } catch(e){ showAlert('error','خطا',e.message); }
+}
+
+async function markSixDaysPresent() {
+  const dateStr = getDateFromDropdowns('att');
+  let [y, m, d] = dateStr.split('/').map(Number);
+  
+  const updates = {};
+  for (let i=0; i<6; i++) {
+    const curDateStr = `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+    const key = curDateStr.replace(/\//g,'-');
+    updates[`users/${userPhone}/staff/${state.currentStaffId}/attendance/${key}`] = {
+      date: curDateStr, status: 'present', weekday: 'نامشخص', note: '', timestamp: Date.now() + i
+    };
+    
+    d++;
+    if (d > 31) {
+      d = 1; m++;
+      if (m > 12) { m = 1; y++; }
+    }
+  }
+  
+  try {
+    await db.ref().update(updates);
+    showAlert('success', 'موفق', '۶ روز متوالی حاضر ثبت شد');
+    closeModal('modal-attendance');
+    refreshCurrentStaff();
+  } catch(e) { showAlert('error', 'خطا', e.message); }
+}
+
+/* ============ Wage / Payment / Loan ============ */
+function openWageModal(){
+  document.getElementById('wg-amount').value = '';
+  setDropdownDate('wg', todayShamsi());
+  document.getElementById('wg-note').value = '';
+  openModal('modal-wage');
+}
+
+async function saveWage(){
+  const amt = Number(document.getElementById('wg-amount').value);
+  if(amt <= 0) return showAlert('error','خطا','مبلغ نامعتبر');
+  
+  const id = uid('wg');
+  try {
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/wages/${id}`).set({
+      amount: amt, date: getDateFromDropdowns('wg'), note: document.getElementById('wg-note').value, timestamp: Date.now()
+    });
+    showAlert('success','موفق','معاش ثبت شد');
+    closeModal('modal-wage');
+    refreshCurrentStaff();
+  } catch(e){ showAlert('error','خطا',e.message); }
+}
+
+function openPaymentModal(){
+  document.getElementById('pay-inp-amount').value = '';
+  setDropdownDate('pay', todayShamsi());
+  document.getElementById('pay-inp-note').value = '';
+  openModal('modal-payment');
+}
+
+async function savePayment(){
+  const amt = Number(document.getElementById('pay-inp-amount').value);
+  if(amt <= 0) return showAlert('error','خطا','مبلغ نامعتبر');
+  
+  const id = uid('pay');
+  try {
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/payments/${id}`).set({
+      amount: amt, date: getDateFromDropdowns('pay'), note: document.getElementById('pay-inp-note').value, timestamp: Date.now()
+    });
+    showAlert('success','موفق','پرداخت ثبت شد');
+    closeModal('modal-payment');
+    refreshCurrentStaff();
+  } catch(e){ showAlert('error','خطا',e.message); }
+}
+
+function openLoanModal(){
+  document.getElementById('loan-inp-amount').value = '';
+  setDropdownDate('loan', todayShamsi());
+  document.getElementById('loan-inp-note').value = '';
+  selectOption('dd-loan-type', 'قرض داده شده (ما دادیم)', 'given');
+  openModal('modal-loan');
+}
+
+async function saveLoan(){
+  const amt = Number(document.getElementById('loan-inp-amount').value);
+  if(amt <= 0) return showAlert('error','خطا','مبلغ نامعتبر');
+  
+  const id = uid('ln');
+  try {
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/loans/${id}`).set({
+      amount: amt, type: state.selections['dd-loan-type'].val,
+      date: getDateFromDropdowns('loan'), note: document.getElementById('loan-inp-note').value, timestamp: Date.now()
+    });
+    showAlert('success','موفق','قرض ثبت شد');
+    closeModal('modal-loan');
+    refreshCurrentStaff();
+  } catch(e){ showAlert('error','خطا',e.message); }
+}
+
+/* ============ Work Orders ============ */
+function openWorkModal(){
+  document.getElementById('wo-model').value = '';
+  setDropdownDate('wo', todayShamsi());
+  setDropdownDate('deliv', todayShamsi());
+  document.getElementById('wo-color').value = '';
+  document.getElementById('wo-size').value = '';
+  document.getElementById('wo-qty').value = '';
+  document.getElementById('wo-price').value = '';
+  document.getElementById('wo-total-display').innerText = '0 افغانی';
+  openModal('modal-work');
+}
+
+function calcWorkOrderTotal(){
+  const qty = Number(document.getElementById('wo-qty').value) || 0;
+  const price = Number(document.getElementById('wo-price').value) || 0;
+  document.getElementById('wo-total-display').innerText = fmt(qty * price) + ' افغانی';
+}
+
+async function saveWorkOrder(){
+  const model = document.getElementById('wo-model').value;
+  const qty = Number(document.getElementById('wo-qty').value);
+  const price = Number(document.getElementById('wo-price').value);
+  
+  if(!model || qty <= 0) return showAlert('error','خطا','اطلاعات ناقص است');
+
+  const woId = uid('wo');
+  const distDate = getDateFromDropdowns('wo');
+  const delivDate = getDateFromDropdowns('deliv');
+  
+  try {
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/workOrders/${woId}`).set({
+      model, qty, price,
+      date: distDate,
+      deliveryDate: delivDate,
+      color: document.getElementById('wo-color').value,
+      size: document.getElementById('wo-size').value,
+      approvedQty: 0,
+      timestamp: Date.now()
+    });
+
+    // Auto mark attendance for distribution date
+    const attKey = distDate.replace(/\//g,'-');
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/attendance/${attKey}`).set({
+      date: distDate, status: 'present', weekday: 'نامشخص', note: 'توزیع کار', timestamp: Date.now()
+    });
+
+    showAlert('success','موفق','کار توزیع شد و در حاضری ثبت گردید');
+    closeModal('modal-work');
+    refreshCurrentStaff();
+  } catch(e){ showAlert('error','خطا',e.message); }
+}
+
+function openUpdateWorkModal(woId){
+  const s = state.staff.find(x => x.id === state.currentStaffId);
+  const wo = s.workOrders[woId];
+  
+  document.getElementById('upd-wo-id').value = woId;
+  document.getElementById('upd-wo-total').innerText = wo.qty;
+  document.getElementById('upd-wo-approved').innerText = wo.approvedQty || 0;
+  document.getElementById('upd-wo-remain').innerText = (wo.qty - (wo.approvedQty||0));
+  document.getElementById('upd-wo-add').value = '';
+  setDropdownDate('upd', todayShamsi());
+  openModal('modal-work-update');
+}
+
+function calcUpdateRemain() {
+  const s = state.staff.find(x => x.id === state.currentStaffId);
+  const woId = document.getElementById('upd-wo-id').value;
+  const wo = s.workOrders[woId];
+  const add = Number(document.getElementById('upd-wo-add').value) || 0;
+  const rem = wo.qty - (wo.approvedQty || 0) - add;
+  document.getElementById('upd-wo-remain').innerText = rem >= 0 ? rem : 0;
+}
+
+async function updateWorkOrder(){
+  const woId = document.getElementById('upd-wo-id').value;
+  const addQty = Number(document.getElementById('upd-wo-add').value);
+  if(!addQty || addQty <= 0) return;
+  
+  const s = state.staff.find(x => x.id === state.currentStaffId);
+  const wo = s.workOrders[woId];
+  const newApproved = (wo.approvedQty||0) + addQty;
+  
+  if(newApproved > wo.qty) return showAlert('error','خطا','تعداد بیش از سفارش است');
+
+  const delivDate = getDateFromDropdowns('upd');
+
+  try {
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/workOrders/${woId}/approvedQty`).set(newApproved);
+    
+    // Auto mark attendance for delivery date
+    const attKey = delivDate.replace(/\//g,'-');
+    await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/attendance/${attKey}`).set({
+      date: delivDate, status: 'present', weekday: 'نامشخص', note: 'تحویل کار', timestamp: Date.now()
+    });
+
+    showAlert('success','موفق','پیشرفت ثبت شد و در حاضری ثبت گردید');
+    closeModal('modal-work-update');
+    refreshCurrentStaff();
+  } catch(e){ showAlert('error','خطا',e.message); }
+}
+
+/* ============ Delete & Refresh ============ */
+async function deleteRecord(type, key){
+  showConfirm('حذف حاضری', 'آیا از حذف این رکورد حاضری مطمئن هستید؟', 'بله، حذف کن', async () => {
+    try {
+      await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/${type}/${key}`).remove();
+      refreshCurrentStaff();
+    } catch(e){ showAlert('error','خطا',e.message); }
+  });
+}
+
+async function deleteTransaction(type, key){
+  showConfirm('حذف تراکنش', 'آیا از حذف این تراکنش مالی مطمئن هستید؟ این عمل قابل بازگشت نیست.', 'بله، حذف کن', async () => {
+    const path = type === 'wage' ? 'wages' : type === 'payment' ? 'payments' : 'loans';
+    try {
+      await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/${path}/${key}`).remove();
+      refreshCurrentStaff();
+    } catch(e){ showAlert('error','خطا',e.message); }
+  });
+}
+
+async function deleteWorkOrder(woId){
+  showConfirm('حذف کار', 'آیا از حذف این کار توزیع‌شده مطمئن هستید؟', 'بله، حذف کن', async () => {
+    try {
+      await db.ref(`users/${userPhone}/staff/${state.currentStaffId}/workOrders/${woId}`).remove();
+      refreshCurrentStaff();
+    } catch(e){ showAlert('error','خطا',e.message); }
+  });
+}
+
+async function deleteStaff(id){
+  showConfirm('حذف کارمند', 'هشدار! با حذف کارمند، تمام سوابق مالی و حاضری او نیز پاک می‌شود. آیا مطمئنید؟', 'بله، حذف کن', async () => {
+    try {
+      await db.ref(`users/${userPhone}/staff/${id}`).remove();
+      closeProfile();
+      showAlert('success','حذف شد','کارمند حذف گردید');
+    } catch(e){ showAlert('error','خطا',e.message); }
+  });
+}
+
+async function refreshCurrentStaff(){
+  const snap = await db.ref('users/'+userPhone+'/staff/'+state.currentStaffId).once('value');
+  const data = snap.val();
+  if(data){
+    const idx = state.staff.findIndex(x => x.id === state.currentStaffId);
+    if(idx >= 0) state.staff[idx] = data;
+    renderProfile();
+    updateDashboard();
+  }
+}
+
+/* ============ Init ============ */
+window.onload = () => {
+  if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
+  initDateDropdowns();
+  loadStaff();
+};
+</script>
+</body>
+</html>

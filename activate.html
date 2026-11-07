@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tailor | فعال‌سازی حساب</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root { --bg: radial-gradient(circle at top, #0a261d 0%, #050b09 100%); --panel: #0a1c16; --gold: #d4af37; --text: #fff; --muted: #78909c; --border: rgba(212,175,55,0.3); --success: #2ed573; --danger: #ff4757; }
+        * { box-sizing: border-box; font-family: Tahoma; }
+        body { background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px; }
+        .card { background: var(--panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: var(--gold); margin-bottom: 10px; }
+        p { font-size: 13px; color: var(--muted); line-height: 1.8; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; border-radius: 10px; border: 1px solid var(--border); background: #000; color: var(--gold); font-size: 18px; text-align: center; font-weight: bold; letter-spacing: 2px; margin-bottom: 15px; outline: none; text-transform: uppercase; }
+        input:focus { border-color: var(--gold); }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; background: linear-gradient(90deg, #f3d58b, #d4af37); color: #000; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
+        .btn-pay { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+        .msg { font-size: 12px; margin-top: 15px; display: none; padding: 10px; border-radius: 8px; }
+        .error { color: var(--danger); background: rgba(255,71,87,0.1); border: 1px solid var(--danger); }
+        .success { color: var(--success); background: rgba(46,213,115,0.1); border: 1px solid var(--success); }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>فعال‌سازی حساب</h2>
+        <p>دوستم، لطفاً کد فعال‌سازی که پس از پرداخت برایتان ارسال شده را در کادر زیر وارد کنید.</p>
+        
+        <input type="text" id="code-input" placeholder="TAILOR-XXXX-XXXX">
+        <button onclick="activateCode()">تایید و فعال‌سازی</button>
+        <button class="btn-pay" onclick="window.location.href='payment.html'">هنوز پرداخت نکرده‌ام (راهنمای پرداخت)</button>
+        
+        <div class="msg error" id="err-msg"></div>
+        <div class="msg success" id="succ-msg"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+            authDomain: "tailor-64f7f.firebaseapp.com",
+            databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+            projectId: "tailor-64f7f",
+            storageBucket: "tailor-64f7f.firebasestorage.app",
+            messagingSenderId: "16067911685",
+            appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const userPhone = localStorage.getItem('tailor_user') || 'unknown_user';
+
+        function activateCode() {
+            const code = document.getElementById('code-input').value.trim().toUpperCase();
+            const errMsg = document.getElementById('err-msg');
+            const succMsg = document.getElementById('succ-msg');
+            
+            errMsg.style.display = 'none';
+            succMsg.style.display = 'none';
+
+            if(!code) {
+                errMsg.innerText = 'لطفاً کد را وارد کنید.';
+                errMsg.style.display = 'block';
+                return;
+            }
+
+            // ۱. بررسی کد در دیتابیس
+            db.ref('activation_codes/' + code).once('value').then(snapshot => {
+                const data = snapshot.val();
+                
+                if(!data) {
+                    errMsg.innerText = 'کد وارد شده نامعتبر است.';
+                    errMsg.style.display = 'block';
+                    return;
+                }
+
+                if(data.isUsed === true) {
+                    errMsg.innerText = 'این کد قبلاً استفاده شده است.';
+                    errMsg.style.display = 'block';
+                    return;
+                }
+
+                // ۲. اگر کد معتبر بود، آن را مصرف کن
+                const updates = {};
+                updates['activation_codes/' + code + '/isUsed'] = true;
+                updates['activation_codes/' + code + '/usedAt'] = Date.now();
+                updates['activation_codes/' + code + '/usedBy'] = userPhone;
+                
+                // ۳. تنظیم اشتراک برای "همیشه" (تاریخ ۲۱۰۰)
+                // نکته: ما فقط این بخش را آپدیت می‌کنیم، بقیه اطلاعات (users/phone/...) دست نمی‌خورد
+                updates['users/' + userPhone + '/subscription/status'] = 'active';
+                updates['users/' + userPhone + '/subscription/endDate'] = 4102444800000; // سال 2100
+                updates['users/' + userPhone + '/subscription/plan'] = 'Pro'; 
+
+                db.ref().update(updates).then(() => {
+                    // ۴. ذخیره در گوشی
+                    localStorage.setItem('tailor_activated', 'true');
+                    
+                    succMsg.innerText = 'تبریک! حساب شما برای همیشه فعال شد. اطلاعات شما کاملاً محفوظ است. در حال انتقال...';
+                    succMsg.style.display = 'block';
+                    setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+                });
+            }).catch(err => {
+                errMsg.innerText = 'خطا در ارتباط با سرور.';
+                errMsg.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tailor | پنل مدیریت (مخفی)</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        :root {
+            --bg-body: #0a0f0d; --bg-panel: #111a16; --text-main: #ffffff; --text-muted: #78909c;
+            --gold: #d4af37; --gold-light: #f3d58b; --border: rgba(212, 175, 55, 0.3);
+            --danger: #ff4757; --success: #2ed573; --info: #3498db; --input-bg: #050a08;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; }
+
+        /* ورود */
+        #login-screen { width: 100%; max-width: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .login-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 30px 20px; width: 100%; box-shadow: var(--shadow); text-align: center; }
+        .login-box h2 { color: var(--gold); margin-bottom: 20px; font-size: 20px; }
+        .input-group { position: relative; margin-bottom: 15px; }
+        .input-group input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 45px 14px 15px; color: var(--text-main); font-size: 14px; outline: none; }
+        .btn-login { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; margin-top:10px;}
+
+        /* داشبورد */
+        #admin-dashboard { display: none; width: 100%; max-width: 600px; padding: 20px; padding-bottom: 50px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 15px; }
+        .header h1 { color: var(--gold); font-size: 20px; }
+        .btn-logout { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px; }
+
+        .admin-info { background: var(--bg-panel); border: 1px dashed var(--border); border-radius: 10px; padding: 10px; margin-bottom: 20px; font-size: 12px; color: var(--text-muted); text-align: center; }
+        .admin-info b { color: var(--gold); }
+
+        /* نوتیفیکیشن */
+        .notification-box { background: rgba(255, 71, 87, 0.1); border: 1px solid var(--danger); border-radius: 10px; padding: 12px; margin-bottom: 20px; display: none; }
+        .notification-box h4 { color: var(--danger); font-size: 13px; margin-bottom: 8px; }
+        .notif-item { font-size: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 8px 0; display: flex; justify-content: space-between; }
+        .notif-item:last-child { border: none; }
+        .btn-verify { background: var(--danger); color: #fff; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 10px; }
+
+        .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px; }
+        .stat-box { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 15px 10px; text-align: center; }
+        .stat-box h3 { color: var(--text-muted); font-size: 11px; margin-bottom: 8px; }
+        .stat-box p { font-size: 20px; font-weight: bold; }
+        .stat-box.total p { color: var(--gold); }
+        .stat-box.active p { color: var(--success); }
+        .stat-box.expired p { color: var(--danger); }
+
+        .search-box input { width: 100%; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text-main); font-size: 13px; outline: none; margin-bottom: 15px; }
+
+        .user-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .user-info h4 { color: var(--gold); font-size: 15px; margin-bottom: 5px; }
+        .user-info p { font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
+        .user-status { font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 6px; }
+        .status-active { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .status-expired { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-details { background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 12px; }
+
+        /* مودال */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; position: relative; }
+        .modal-close { position: absolute; top: 15px; left: 15px; background: none; border: none; color: var(--danger); font-size: 22px; cursor: pointer; }
+        
+        .detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); font-size: 13px; }
+        .detail-row:last-child { border: none; }
+        .detail-row span { color: var(--text-muted); }
+        .detail-row strong { color: var(--text-main); }
+        
+        .activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .activity-card { background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 10px; border-radius: 10px; text-align: center; }
+        .activity-card p { font-size: 11px; color: var(--text-muted); margin-bottom: 5px; }
+        .activity-card h4 { font-size: 16px; color: var(--info); }
+
+        .action-section { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px; }
+        .btn-danger-full { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-success-full { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); width: 100%; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+
+        .code-box-container { background: rgba(212, 175, 55, 0.05); border: 1px dashed var(--gold); padding: 15px; border-radius: 12px; text-align: center; margin-top: 10px; }
+        .btn-generate { background: var(--gold); color: #000; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
+        .code-result { margin-top: 10px; font-size: 20px; font-weight: bold; color: var(--success); display: none; letter-spacing: 2px; cursor: pointer; padding: 10px; border-radius: 8px; background: rgba(46, 213, 115, 0.1); }
+        .wa-btn { display: none; background: #25d366; color: #fff; text-decoration: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 10px; text-align: center; }
+
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--bg-panel); border: 1px solid var(--gold); color: var(--text-main); padding: 12px 25px; border-radius: 30px; font-size: 13px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast">پیام</div>
+
+    <!-- صفحه ورود -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>ورود به پنل مدیریت</h2>
+            <div class="input-group">
+                <input type="password" id="admin-pass" placeholder="رمز عبور مدیر">
+            </div>
+            <button class="btn-login" onclick="login()">ورود</button>
+        </div>
+    </div>
+
+    <!-- داشبورد ادمین -->
+    <div id="admin-dashboard">
+        <div class="header">
+            <h1>مدیریت کاربران</h1>
+            <button class="btn-logout" onclick="logout()">خروج</button>
+        </div>
+
+        <div class="admin-info">
+            پشتیبانی: <b>hussaini11855@gmail.com</b> | واتساپ: <b>0744002790</b>
+        </div>
+
+        <div class="notification-box" id="notif-box">
+            <h4>درخواست‌های فعال‌سازی</h4>
+            <div id="notif-list"></div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-box total"><h3>کل کاربران</h3><p id="stat-total">0</p></div>
+            <div class="stat-box active"><h3>فعال</h3><p id="stat-active">0</p></div>
+            <div class="stat-box expired"><h3>منقضی</h3><p id="stat-expired">0</p></div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="search-user" placeholder="جستجوی نام یا شماره..." oninput="filterUsers()">
+        </div>
+
+        <div id="users-list"></div>
+    </div>
+
+    <!-- مودال جزئیات کاربر -->
+    <div class="modal-overlay" id="user-modal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <h2 style="color: var(--gold); margin-bottom: 15px; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;">مدیریت کاربر</h2>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+            authDomain: "tailor-64f7f.firebaseapp.com",
+            databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+            projectId: "tailor-64f7f",
+            storageBucket: "tailor-64f7f.firebasestorage.app",
+            messagingSenderId: "16067911685",
+            appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const ADMIN_PASSWORD = "TailorBoss2024"; // رمز خود را تغییر دهید
+        let allUsers = [];
+        let currentSelectedPhone = null;
+        let currentGeneratedCode = null;
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.borderColor = isError ? 'var(--danger)' : 'var(--gold)';
+            toast.style.color = isError ? 'var(--danger)' : 'var(--text-main)';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => showToast('کد کپی شد!'));
+        }
+
+        function login() {
+            const pass = document.getElementById('admin-pass').value;
+            if (pass === ADMIN_PASSWORD) {
+                localStorage.setItem('admin_logged_in', 'true');
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                loadUsers();
+                loadNotifications();
+            } else {
+                showToast('رمز عبور اشتباه است!', true);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_logged_in');
+            location.reload();
+        }
+
+        function loadUsers() {
+            database.ref('users').once('value').then(snapshot => {
+                const users = snapshot.val();
+                allUsers = [];
+                if (users) {
+                    Object.keys(users).forEach(phone => {
+                        allUsers.push({ phone: phone, data: users[phone] });
+                    });
+                }
+                allUsers.sort((a, b) => (b.data.registeredAt || 0) - (a.data.registeredAt || 0));
+                updateStats();
+                renderUsersList(allUsers);
+            });
+        }
+
+        function updateStats() {
+            let total = allUsers.length;
+            let active = 0;
+            let expired = 0;
+            const now = Date.now();
+
+            allUsers.forEach(u => {
+                const sub = u.data.subscription;
+                if (sub && (now > sub.endDate || sub.status === 'locked')) expired++;
+                else active++;
+            });
+
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-active').innerText = active;
+            document.getElementById('stat-expired').innerText = expired;
+        }
+
+        function renderUsersList(users) {
+            const container = document.getElementById('users-list');
+            if (users.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">هیچ کاربری یافت نشد.</p>';
+                return;
+            }
+            let html = '';
+            const now = Date.now();
+
+            users.forEach(u => {
+                const phone = u.phone;
+                const d = u.data;
+                let statusClass = 'status-active';
+                let statusText = 'فعال';
+                
+                if (d.subscription) {
+                    if (now > d.subscription.endDate || d.subscription.status === 'locked') {
+                        statusClass = 'status-expired';
+                        statusText = 'منقضی / غیرفعال';
+                    }
+                } else if (d.subscription && d.subscription.status === 'trial') {
+                    statusText = 'آزمایشی';
+                }
+
+                html += `
+                    <div class="user-card">
+                        <div class="user-info">
+                            <h4>${d.tailorName || 'بدون نام'}</h4>
+                            <p>شماره: ${phone}</p>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
+                            <span class="user-status ${statusClass}">${statusText}</span>
+                            <button class="btn-details" onclick="showUserDetails('${phone}')">مدیریت</button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function filterUsers() {
+            const q = document.getElementById('search-user').value.toLowerCase();
+            const filtered = allUsers.filter(u => (u.data.tailorName || '').toLowerCase().includes(q) || u.phone.includes(q));
+            renderUsersList(filtered);
+        }
+
+        function loadNotifications() {
+            database.ref('payment_requests').on('value', snapshot => {
+                const data = snapshot.val();
+                const box = document.getElementById('notif-box');
+                const list = document.getElementById('notif-list');
+                
+                if (!data) {
+                    box.style.display = 'none';
+                    return;
+                }
+
+                box.style.display = 'block';
+                list.innerHTML = '';
+                
+                Object.keys(data).forEach(phone => {
+                    const req = data[phone];
+                    if(req.status === 'pending') {
+                        list.innerHTML += `
+                            <div class="notif-item">
+                                <span>${req.name} (${phone}) اعلام پرداخت کرده.</span>
+                                <button class="btn-verify" onclick="showUserDetails('${phone}'); markNotificationRead('${phone}')">بررسی</button>
+                            </div>
+                        `;
+                    }
+                });
+            });
+        }
+
+        function markNotificationRead(phone) {
+            database.ref('payment_requests/' + phone).update({ status: 'seen' });
+        }
+
+        function showUserDetails(phone) {
+            currentSelectedPhone = phone;
+            currentGeneratedCode = null;
+            const u = allUsers.find(x => x.phone === phone);
+            if (!u) return;
+            const d = u.data;
+            
+            // آمار فعالیت‌ها
+            const ordersCount = d.orders ? Object.keys(d.orders).length : 0;
+            const studentsCount = d.students ? Object.keys(d.students).length : 0;
+            const cutsCount = d.cuts ? Object.keys(d.cuts).length : 0;
+            const samplesCount = d.samples ? Object.keys(d.samples).length : 0;
+            // آمار استفاده از الگوها
+            const patternsCount = d.patternUsage ? Object.keys(d.patternUsage).length : 0;
+            
+            const joinDate = d.registeredAt ? new Date(d.registeredAt).toLocaleDateString('fa-AF') : 'نامشخص';
+            const statusStr = d.subscription && d.subscription.status === 'active' ? '<span style="color:var(--success)">فعال</span>' : '<span style="color:var(--warning)">آزمایشی / منقضی</span>';
+
+            let html = `
+                <div class="detail-row"><span>نام خیاطی:</span><strong>${d.tailorName || '---'}</strong></div>
+                <div class="detail-row"><span>شماره تماس:</span><strong>${phone}</strong></div>
+                <div class="detail-row"><span>تاریخ عضویت:</span><strong>${joinDate}</strong></div>
+                <div class="detail-row"><span>وضعیت:</span><strong>${statusStr}</strong></div>
+                
+                <div class="activity-grid">
+                    <div class="activity-card"><p>سفارشات عمده</p><h4>${ordersCount} مورد</h4></div>
+                    <div class="activity-card"><p>شاگردان</p><h4>${studentsCount} نفر</h4></div>
+                    <div class="activity-card"><p>کارهای برش</p><h4>${cutsCount} سری</h4></div>
+                    <div class="activity-card"><p>الگوهای استفاده شده</p><h4>${patternsCount} عدد</h4></div>
+                </div>
+
+                <div class="code-box-container">
+                    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">برای فعال‌سازی این کاربر، یک کد یکتا تولید کنید.</p>
+                    <button class="btn-generate" onclick="generateCode('${phone}')">تولید کد فعال‌سازی</button>
+                    <div class="code-result" id="code-result-${phone}" onclick="copyToClipboard(this.innerText)"></div>
+                    <a href="#" id="wa-btn-${phone}" target="_blank" class="wa-btn">ارسال کد در واتساپ</a>
+                </div>
+
+                <div class="action-section">
+                    <button class="btn-success-full" onclick="activateForever('${phone}')">فعال‌سازی همیشگی (بدون کد)</button>
+                    <button class="btn-danger-full" onclick="deleteUser('${phone}')">حذف کامل کاربر</button>
+                </div>
+            `;
+            document.getElementById('modal-content').innerHTML = html;
+            document.getElementById('user-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('user-modal').classList.remove('active');
+            currentSelectedPhone = null;
+            currentGeneratedCode = null;
+        }
+
+        function generateCode(phone) {
+            const code = 'TAILOR-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            currentGeneratedCode = code;
+
+            database.ref('activation_codes/' + code).set({
+                phone: phone,
+                isUsed: false,
+                createdAt: Date.now()
+            }).then(() => {
+                const resultDiv = document.getElementById(`code-result-${phone}`);
+                resultDiv.innerText = code;
+                resultDiv.style.display = 'block';
+                
+                const waBtn = document.getElementById(`wa-btn-${phone}`);
+                const waMessage = encodeURIComponent(`سلام، کد فعال‌سازی برنامه Tailor شما: ${code}\nلطفا این کد را در صفحه فعال‌سازی وارد کنید.`);
+                waBtn.href = `https://wa.me/93${phone.substring(1)}?text=${waMessage}`;
+                waBtn.style.display = 'block';
+                
+                showToast('کد تولید شد. روی آن کلیک کنید تا کپی شود.');
+            });
+        }
+
+        function activateForever(phone) {
+            if(!confirm('آیا مطمئنید؟ این کاربر برای همیشه بدون نیاز به پرداخت فعال می‌شود.')) return;
+            
+            database.ref('users/' + phone + '/subscription').set({
+                status: 'active',
+                endDate: 4102444800000, // سال ۲۱۰۰
+                plan: 'Manual_Active'
+            }).then(() => {
+                showToast('کاربر برای همیشه فعال شد.');
+                closeModal();
+                loadUsers();
+            });
+        }
+
+        function deleteUser(phone) {
+            if(!confirm('هشدار جدی! تمام اطلاعات این کاربر (سفارشات، شاگردان و...) برای همیشه پاک می‌شود. آیا مطمئنید؟')) return;
+            
+            database.ref('users/' + phone).remove().then(() => {
+                showToast('کاربر حذف شد.', true);
+                closeModal();
+                loadUsers();
+            });
+        }
+
+        window.onload = () => {
+            if (localStorage.getItem('admin_logged_in') === 'true') {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('admin-dashboard').style.display = 'block';
+                loadUsers();
+                loadNotifications();
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tailor | قرض شاگردان</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        /* ================= متغیرهای تم ================= */
+        :root {
+            --bg-body: radial-gradient(circle at top, #0a261d 0%, #050b09 100%);
+            --bg-panel: linear-gradient(180deg, #0a1c16 0%, #040b09 100%);
+            --text-main: #ffffff;
+            --text-muted: #78909c;
+            --gold: #d4af37;
+            --gold-light: #f3d58b;
+            --border: rgba(212, 175, 55, 0.3);
+            --danger: #ff4757;
+            --success: #2ed573;
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            --dropdown-bg: #0a1c16;
+        }
+
+        body.light-mode {
+            --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
+            --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
+            --text-main: #1c2b26;
+            --text-muted: #4a5a54;
+            --border: rgba(212, 175, 55, 0.6);
+            --input-bg: #fdfcf9;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --dropdown-bg: #f4ecd8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* ================= هدر ================= */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .back-btn { background: none; border: none; color: var(--gold); font-size: 24px; cursor: pointer; text-decoration: none; display: flex; align-items: center; }
+        .header-title { color: var(--gold); font-weight: bold; font-size: 18px; }
+        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* ================= 4 کارت آماری ================= */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 12px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--gold); }
+        .stat-card:nth-child(2)::before { background: var(--success); }
+        .stat-card:nth-child(3)::before { background: var(--danger); }
+        .stat-card:nth-child(4)::before { background: #3498db; }
+        
+        .stat-info { display: flex; flex-direction: column; gap: 4px; }
+        .stat-info .title { font-size: 10px; color: var(--text-muted); }
+        .stat-info .value { font-size: 16px; font-weight: bold; color: var(--text-main); display: flex; align-items: baseline; gap: 3px; }
+        .stat-info .value span { font-size: 9px; color: var(--gold); }
+        
+        .stat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; justify-content: center; align-items: center; background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+        .stat-card:nth-child(2) .stat-icon { background: rgba(46, 213, 115, 0.1); color: var(--success); }
+        .stat-card:nth-child(3) .stat-icon { background: rgba(255, 71, 87, 0.1); color: var(--danger); }
+        .stat-card:nth-child(4) .stat-icon { background: rgba(52, 152, 219, 0.1); color: #3498db; }
+        .stat-icon svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* ================= نوار جستجو و دکمه ثبت ================= */
+        .search-add-row { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box { flex: 1; position: relative; }
+        .search-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px 40px 12px 15px; color: var(--text-main); font-size: 13px; outline: none; }
+        .search-box svg { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: none; stroke: var(--text-muted); stroke-width: 2; }
+        .add-btn-sm { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; border: none; border-radius: 12px; padding: 0 15px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .add-btn-sm svg { width: 16px; height: 16px; stroke: #000; stroke-width: 3; fill: none; }
+
+        /* ================= لیست تراکنش‌ها ================= */
+        .loan-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; margin-bottom: 15px; box-shadow: var(--shadow); position: relative; display: flex; flex-direction: column; gap: 10px; }
+        .loan-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .loan-info h4 { color: var(--gold); font-size: 15px; margin-bottom: 3px; }
+        .loan-info p { font-size: 11px; color: var(--text-muted); }
+        
+        .loan-amount { font-size: 16px; font-weight: bold; }
+        .loan-amount.debt { color: var(--danger); }
+        .loan-amount.paid { color: var(--success); }
+
+        .loan-details { display: flex; justify-content: space-between; font-size: 11px; background: rgba(0,0,0,0.1); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .loan-details .type-badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+        .type-loan { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .type-repay { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .type-deduction { background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 1px solid var(--gold); }
+
+        .card-actions { display: flex; gap: 8px; margin-top: 5px; }
+        .action-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 5px; }
+        .btn-delete { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid rgba(255, 71, 87, 0.3); }
+
+        /* ================= مودال‌ها ================= */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 10px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; box-shadow: var(--shadow); position: relative; max-height: 95vh; overflow-y: auto; animation: popIn 0.3s; }
+        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-close { position: absolute; top: 15px; left: 15px; background: none; border: none; color: var(--danger); font-size: 22px; cursor: pointer; }
+        .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--gold); text-align: center; border-bottom: 1px dashed var(--border); padding-bottom: 10px; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; color: var(--gold); margin-bottom: 5px; font-weight: bold; }
+        .input-box input, .input-box select { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text-main); font-size: 13px; outline: none; transition: 0.3s; }
+        .input-box input:focus { border-color: var(--gold); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        
+        /* ================= منوی کشویی سفارشی ================= */
+        .custom-dropdown { position: relative; width: 100%; user-select: none; }
+        .dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text-main); font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .dropdown-trigger.active { border-color: var(--gold); }
+        .dropdown-trigger svg { width: 14px; height: 14px; stroke: var(--gold); stroke-width: 2; fill: none; transition: 0.3s; }
+        .dropdown-trigger.active svg { transform: rotate(180deg); }
+        .dropdown-options { position: absolute; top: 110%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 10px; box-shadow: var(--shadow); z-index: 100; display: none; flex-direction: column; max-height: 180px; overflow-y: auto; }
+        .dropdown-options.active { display: flex; }
+        .dropdown-option { padding: 10px 12px; font-size: 12px; cursor: pointer; color: var(--text-main); border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .dropdown-option:last-child { border-bottom: none; }
+        .dropdown-option:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+        
+        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 15px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2); }
+
+        /* ================= پیام‌رسان ================= */
+        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
+        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.8); transition: 0.3s; }
+        .custom-alert-overlay.active .custom-alert-box { transform: scale(1); }
+        .custom-alert-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; }
+        .icon-success { background: rgba(46, 213, 115, 0.1); border: 2px solid var(--success); color: var(--success); }
+        .icon-error { background: rgba(255, 71, 87, 0.1); border: 2px solid var(--danger); color: var(--danger); }
+        .custom-alert-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 3; }
+        .custom-alert-title { color: var(--gold); font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; }
+        .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
+
+        /* منوی پایین */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 0 15px; z-index: 1000; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; width: 20%; text-decoration: none; }
+        .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .nav-item span { font-size: 10px; }
+        .nav-item.active { color: var(--gold); }
+    </style>
+</head>
+<body>
+
+    <!-- پیام‌رسان -->
+    <div class="custom-alert-overlay" id="custom-alert">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+            <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+            <p class="custom-alert-msg" id="alert-msg">پیام</p>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        
+        <div class="top-bar">
+            <a href="index.html" class="back-btn">➔</a>
+            <div class="header-title">قرض شاگردان</div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+        </div>
+
+        <!-- 4 کارت آماری -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">کل قرض داده شده</div>
+                    <div class="value" id="stat-total-loans">0 <span>افغانی</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">کل تسویه شده</div>
+                    <div class="value" id="stat-total-repaid">0 <span>افغانی</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">مانده بدهی کل</div>
+                    <div class="value" id="stat-remaining">0 <span>افغانی</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-info">
+                    <div class="title">شاگردان بدهکار</div>
+                    <div class="value" id="stat-debtors">0 <span>نفر</span></div>
+                </div>
+                <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            </div>
+        </div>
+
+        <!-- جستجو و افزودن -->
+        <div class="search-add-row">
+            <div class="search-box">
+                <input type="text" id="search-loan" placeholder="جستجوی نام شاگرد..." oninput="filterLoans()">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <button class="add-btn-sm" onclick="openModal()">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> ثبت
+            </button>
+        </div>
+
+        <!-- لیست تراکنش‌ها -->
+        <div id="loan-list">
+            <p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">در حال بارگذاری...</p>
+        </div>
+
+    </div>
+
+    <!-- مودال ثبت تراکنش -->
+    <div class="modal-overlay" id="modal-loan">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <h2 class="modal-title">ثبت قرض جدید</h2>
+            
+            <form onsubmit="event.preventDefault(); saveLoan();">
+                <input type="hidden" id="l-id">
+                
+                <!-- انتخاب شاگرد -->
+                <div class="form-group">
+                    <label>انتخاب شاگرد</label>
+                    <div class="custom-dropdown" id="dd-student">
+                        <div class="dropdown-trigger" onclick="toggleDropdown('dd-student')">
+                            <span id="val-student">در حال بارگذاری...</span>
+                            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                        </div>
+                        <div class="dropdown-options" id="student-options">
+                            <!-- با جاوااسکریپت پر می‌شود -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- نوع تراکنش و مقدار -->
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>نوع تراکنش</label>
+                        <div class="custom-dropdown" id="dd-type">
+                            <div class="dropdown-trigger" onclick="toggleDropdown('dd-type')">
+                                <span id="val-type">قرض دادن</span>
+                                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="dropdown-options">
+                                <div class="dropdown-option" onclick="selectOption('dd-type', 'قرض دادن', 'loan')">قرض دادن (پیش‌پرداخت)</div>
+                                <div class="dropdown-option" onclick="selectOption('dd-type', 'دریافت وجه', 'repay')">دریافت وجه (تسویه)</div>
+                                <div class="dropdown-option" onclick="selectOption('dd-type', 'کسر از معاش', 'deduction')">کسر از معاش</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>مقدار (افغانی)</label>
+                        <div class="input-box"><input type="number" id="l-amount" placeholder="مثلا 500" required></div>
+                    </div>
+                </div>
+
+                <!-- تاریخ و توضیحات -->
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>تاریخ</label>
+                        <div class="input-box"><input type="text" id="l-date" placeholder="1403/01/01" required></div>
+                    </div>
+                    <div class="form-group">
+                        <label>توضیحات (اختیاری)</label>
+                        <div class="input-box"><input type="text" id="l-desc" placeholder="مثلا: خریداری پارچه"></div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">ذخیره تراکنش</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- منوی پایین -->
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
+        <a href="production.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
+        <a href="students.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان</span></a>
+        <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
+        <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>تنظیمات</span></a>
+    </nav>
+
+    <script>
+        // ================= تنظیمات فایربیس =================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+            authDomain: "tailor-64f7f.firebaseapp.com",
+            databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+            projectId: "tailor-64f7f",
+            storageBucket: "tailor-64f7f.firebasestorage.app",
+            messagingSenderId: "16067911685",
+            appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const userPhone = localStorage.getItem('tailor_user');
+        
+        let allLoans = [];
+        let allStudents = [];
+        
+        // متغیرهای ذخیره مقادیر منوهای کشویی
+        let selectedValues = {
+            'dd-student': '', // ID شاگرد انتخاب شده
+            'dd-type': 'loan', // نوع تراکنش
+            'dd-type-label': 'قرض دادن' // نام نمایشی
+        };
+
+        // ================= سیستم منوی کشویی سفارشی =================
+        function toggleDropdown(id) {
+            document.querySelectorAll('.dropdown-options').forEach(el => {
+                if(el.parentElement.id !== id) {
+                    el.classList.remove('active');
+                    el.previousElementSibling.classList.remove('active');
+                }
+            });
+            const dropdown = document.getElementById(id);
+            const options = dropdown.querySelector('.dropdown-options');
+            const trigger = dropdown.querySelector('.dropdown-trigger');
+            
+            options.classList.toggle('active');
+            trigger.classList.toggle('active');
+        }
+
+        // تابع اختصاصی برای منوهایی که شناسه (ID) و نام دارند (مثل انتخاب شاگرد)
+        function selectStudent(studentId, studentName) {
+            document.getElementById('val-student').innerText = studentName;
+            selectedValues['dd-student'] = studentId;
+            document.getElementById('dd-student').querySelector('.dropdown-options').classList.remove('active');
+            document.getElementById('dd-student').querySelector('.dropdown-trigger').classList.remove('active');
+        }
+
+        function selectOption(dropdownId, label, value) {
+            document.getElementById('val-' + dropdownId.replace('dd-', '')).innerText = label;
+            if (dropdownId === 'dd-type') {
+                selectedValues['dd-type'] = value;
+                selectedValues['dd-type-label'] = label;
+            } else {
+                selectedValues[dropdownId] = value;
+            }
+            document.getElementById(dropdownId).querySelector('.dropdown-options').classList.remove('active');
+            document.getElementById(dropdownId).querySelector('.dropdown-trigger').classList.remove('active');
+        }
+
+        // بستن منوها با کلیک بیرون
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        // ================= پیام‌رسان =================
+        function showAlert(type, title, msg) {
+            const overlay = document.getElementById('custom-alert');
+            const iconBox = document.getElementById('alert-icon-box');
+            const iconSvg = document.getElementById('alert-icon-svg');
+            if(type === 'success') { iconBox.className = 'custom-alert-icon icon-success'; iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>'; } 
+            else { iconBox.className = 'custom-alert-icon icon-error'; iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            overlay.classList.add('active');
+        }
+        function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
+
+        // ================= تم =================
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+        }
+
+        // ================= بارگذاری شاگردان برای منو =================
+        function loadStudentsForDropdown() {
+            database.ref('users/' + userPhone + '/students').once('value').then(snapshot => {
+                const data = snapshot.val();
+                allStudents = data ? Object.values(data) : [];
+                
+                const optionsContainer = document.getElementById('student-options');
+                if(allStudents.length === 0) {
+                    optionsContainer.innerHTML = '<div class="dropdown-option" style="color:var(--danger); text-align:center;">هیچ شاگردی ثبت نشده است</div>';
+                    document.getElementById('val-student').innerText = 'ابتدا شاگرد ثبت کنید';
+                    return;
+                }
+                
+                let html = '';
+                allStudents.forEach(s => {
+                    html += `<div class="dropdown-option" onclick="selectStudent('${s.id}', '${s.name}')">${s.name}</div>`;
+                });
+                optionsContainer.innerHTML = html;
+                document.getElementById('val-student').innerText = 'انتخاب کنید...';
+            });
+        }
+
+        // ================= مودال =================
+        function openModal() {
+            document.getElementById('modal-loan').classList.add('active');
+            document.getElementById('l-id').value = '';
+            document.getElementById('l-amount').value = '';
+            document.getElementById('l-date').value = '';
+            document.getElementById('l-desc').value = '';
+            
+            // ریست کردن منوها
+            selectOption('dd-type', 'قرض دادن', 'loan');
+            if(allStudents.length > 0) {
+                document.getElementById('val-student').innerText = 'انتخاب کنید...';
+                selectedValues['dd-student'] = '';
+            }
+        }
+        function closeModal() { document.getElementById('modal-loan').classList.remove('active'); }
+
+        // ================= ذخیره تراکنش =================
+        function saveLoan() {
+            const id = document.getElementById('l-id').value || Date.now().toString();
+            const studentId = selectedValues['dd-student'];
+            const amount = document.getElementById('l-amount').value;
+            const date = document.getElementById('l-date').value;
+            const desc = document.getElementById('l-desc').value;
+            const type = selectedValues['dd-type'];
+            const typeLabel = selectedValues['dd-type-label'];
+
+            if(!studentId) return showAlert('error', 'خطا', 'لطفاً یک شاگرد انتخاب کنید.');
+            if(!amount || amount <= 0) return showAlert('error', 'خطا', 'مقدار پول را وارد کنید.');
+
+            const studentObj = allStudents.find(s => s.id === studentId);
+            const studentName = studentObj ? studentObj.name : 'ناشناس';
+
+            const loanData = {
+                id: id,
+                studentId: studentId,
+                studentName: studentName,
+                amount: Number(amount),
+                date: date,
+                desc: desc,
+                type: type,
+                typeLabel: typeLabel,
+                timestamp: Date.now()
+            };
+
+            database.ref('users/' + userPhone + '/ledger/' + id).set(loanData).then(() => {
+                closeModal();
+                showAlert('success', 'موفق', 'تراکنش با موفقیت ثبت شد.');
+                loadLoans();
+            }).catch(err => showAlert('error', 'خطا در دیتابیس', err.message));
+        }
+
+        // ================= حذف تراکنش =================
+        function deleteLoan(id) {
+            if(confirm('آیا از حذف این تراکنش مطمئن هستید؟')) {
+                database.ref('users/' + userPhone + '/ledger/' + id).remove().then(() => {
+                    showAlert('success', 'حذف شد', 'تراکنش حذف گردید.');
+                    loadLoans();
+                });
+            }
+        }
+
+        // ================= بارگذاری تراکنش‌ها =================
+        function loadLoans() {
+            database.ref('users/' + userPhone + '/ledger').once('value').then(snapshot => {
+                const data = snapshot.val();
+                allLoans = data ? Object.values(data).sort((a,b) => b.timestamp - a.timestamp) : [];
+                
+                calculateStats();
+                renderLoansList(allLoans);
+            });
+        }
+
+        // ================= محاسبه آمار =================
+        function calculateStats() {
+            let totalLoans = 0;
+            let totalRepaid = 0;
+            let debtors = new Set();
+
+            allLoans.forEach(l => {
+                if(l.type === 'loan') {
+                    totalLoans += l.amount;
+                    debtors.add(l.studentId);
+                }
+                else if(l.type === 'repay' || l.type === 'deduction') {
+                    totalRepaid += l.amount;
+                }
+            });
+
+            // برای محاسبه دقیق بدهکاران فعلی، باید ببینیم چه کسانی هنوز مانده حساب دارند
+            // یک نقشه برای نگه داشتن مانده هر شاگرد
+            let studentBalances = {};
+            allLoans.forEach(l => {
+                if(!studentBalances[l.studentId]) studentBalances[l.studentId] = 0;
+                if(l.type === 'loan') studentBalances[l.studentId] += l.amount;
+                if(l.type === 'repay' || l.type === 'deduction') studentBalances[l.studentId] -= l.amount;
+            });
+            
+            let activeDebtorsCount = 0;
+            Object.values(studentBalances).forEach(balance => {
+                if(balance > 0) activeDebtorsCount++;
+            });
+
+            const remaining = totalLoans - totalRepaid;
+
+            document.getElementById('stat-total-loans').innerHTML = `${totalLoans.toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-total-repaid').innerHTML = `${totalRepaid.toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-remaining').innerHTML = `${Math.abs(remaining).toLocaleString()} <span>افغانی</span>`;
+            document.getElementById('stat-debtors').innerHTML = `${activeDebtorsCount} <span>نفر</span>`;
+        }
+
+        // ================= نمایش لیست =================
+        function renderLoansList(loans) {
+            const listContainer = document.getElementById('loan-list');
+            
+            if(loans.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:20px;">هیچ تراکنشی ثبت نشده است.</p>';
+                return;
+            }
+
+            let html = '';
+            loans.forEach(l => {
+                let amountClass = 'debt';
+                let sign = '-';
+                let typeClass = 'type-loan';
+                
+                if(l.type === 'repay') { amountClass = 'paid'; sign = '+'; typeClass = 'type-repay'; }
+                if(l.type === 'deduction') { amountClass = 'paid'; sign = '+'; typeClass = 'type-deduction'; }
+
+                html += `
+                    <div class="loan-card">
+                        <div class="loan-header">
+                            <div class="loan-info">
+                                <h4>${l.studentName}</h4>
+                                <p>تاریخ: ${l.date}</p>
+                            </div>
+                            <div class="loan-amount ${amountClass}">${sign} ${l.amount.toLocaleString()} <span style="font-size:10px">افغانی</span></div>
+                        </div>
+                        
+                        <div class="loan-details">
+                            <span class="type-badge ${typeClass}">${l.typeLabel}</span>
+                            <span style="color:var(--text-muted);">${l.desc || 'بدون توضیحات'}</span>
+                        </div>
+
+                        <div class="card-actions">
+                            <button class="action-btn btn-delete" onclick="deleteLoan('${l.id}')">حذف تراکنش</button>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = html;
+        }
+
+        // ================= فیلتر جستجو =================
+        function filterLoans() {
+            const query = document.getElementById('search-loan').value.toLowerCase();
+            const filtered = allLoans.filter(l => 
+                l.studentName.toLowerCase().includes(query) || 
+                (l.desc && l.desc.toLowerCase().includes(query))
+            );
+            renderLoansList(filtered);
+        }
+
+        // ================= شروع =================
+        window.onload = () => {
+            if(localStorage.getItem('tailor_theme') === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            }
+            if(userPhone) {
+                loadStudentsForDropdown();
+                loadLoans();
+            }
+        };
+    </script>
+</body>
+</html>

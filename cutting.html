@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Tailor | سیستم برش‌کاری</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg-body:radial-gradient(circle at top,#0a261d 0%,#050b09 100%);
+  --bg-panel:linear-gradient(180deg,#0a1c16 0%,#040b09 100%);
+  --text-main:#fff;--text-muted:#78909c;
+  --gold:#d4af37;--gold-light:#f3d58b;
+  --border:rgba(212,175,55,.3);
+  --danger:#ff4757;--success:#2ed573;--info:#3498db;--warning:#f39c12;
+  --input-bg:rgba(0,0,0,.4);--shadow:0 10px 30px rgba(0,0,0,.6);
+  --dropdown-bg:#0a1c16;--card-bg:rgba(255,255,255,.03);
+}
+body.light-mode{
+  --bg-body:radial-gradient(circle at top,#e6dec9 0%,#d4cbb5 100%);
+  --bg-panel:linear-gradient(180deg,#f4ecd8 0%,#ebe1cc 100%);
+  --text-main:#1c2b26;--text-muted:#4a5a54;
+  --border:rgba(212,175,55,.6);--input-bg:#fdfcf9;
+  --shadow:0 10px 30px rgba(0,0,0,.08);--dropdown-bg:#f4ecd8;--card-bg:rgba(0,0,0,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Tahoma,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;overflow-x:hidden;transition:background .3s,color .3s}
+.app-container{width:100%;max-width:460px;padding:15px;padding-bottom:90px;position:relative;min-height:100vh;display:flex;flex-direction:column}
+
+/* Top Bar */
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.back-btn{background:none;border:none;color:var(--gold);cursor:pointer;display:flex;align-items:center;padding:4px 8px;text-decoration:none}
+.back-btn svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2}
+.header-title{color:var(--gold);font-weight:bold;font-size:18px}
+.theme-toggle{background:rgba(212,175,55,.1);border:1px solid var(--border);color:var(--gold);width:34px;height:34px;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer}
+.theme-toggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2}
+
+/* Tabs */
+.tabs{display:flex;background:var(--card-bg);border-radius:12px;padding:5px;margin-bottom:20px;border:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;text-align:center;padding:10px;font-size:11px;font-weight:bold;color:var(--text-muted);cursor:pointer;border-radius:8px;transition:.3s;white-space:nowrap}
+.tab.active{background:var(--gold);color:#000;box-shadow:0 2px 10px rgba(212,175,55,.3)}
+
+/* Tab Contents */
+.tab-content{display:none}
+.tab-content.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* Dashboard Stats */
+.dashboard-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:15px}
+.stat-box{background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:10px 2px;text-align:center}
+.stat-box .title{font-size:9px;color:var(--text-muted);margin-bottom:5px}
+.stat-box .val{font-size:14px;font-weight:bold;color:var(--gold)}
+
+/* Forms & Inputs */
+.form-group{margin-bottom:10px}
+.form-group label{display:block;font-size:11px;color:var(--gold);margin-bottom:4px;font-weight:bold}
+input, textarea, .custom-select-trigger{width:100%!important;background-color:var(--input-bg)!important;color:var(--text-main)!important;border:1px solid var(--border)!important;border-radius:8px!important;padding:10px!important;font-size:12px!important;outline:none!important;font-family:inherit!important;appearance:none!important;box-shadow:none!important;transition:.3s}
+input:focus, textarea:focus, .custom-select-trigger.active{border-color:var(--gold)!important}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+
+/* Custom Dropdown */
+.custom-select-wrapper{position:relative;width:100%}
+.custom-select-trigger{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.custom-select-trigger svg{width:14px;height:14px;stroke:var(--gold);fill:none;transition:.3s}
+.custom-select-trigger.active svg{transform:rotate(180deg)}
+.custom-options{position:absolute;top:105%;left:0;right:0;background:var(--dropdown-bg);border:1px solid var(--gold);border-radius:10px;z-index:100;max-height:200px;overflow-y:auto;display:none;box-shadow:0 5px 15px rgba(0,0,0,.5)}
+.custom-options.open{display:block}
+.custom-option{padding:10px 12px;font-size:13px;color:var(--text-main);cursor:pointer;border-bottom:1px solid rgba(128,128,128,.1)}
+.custom-option:hover{background:rgba(212,175,55,.15);color:var(--gold)}
+
+/* Buttons */
+.add-btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;border:none;border-radius:10px;padding:12px 15px;font-size:14px;font-weight:bold;cursor:pointer;width:100%;margin-bottom:15px;display:flex;justify-content:center;align-items:center;gap:8px;box-shadow:0 4px 10px rgba(212,175,55,.2)}
+.btn-primary{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;width:100%;padding:14px;border-radius:10px;border:none;font-size:14px;font-weight:bold;cursor:pointer;margin-top:15px;box-shadow:0 4px 10px rgba(212,175,55,.2)}
+.btn-secondary{background:rgba(212,175,55,.05);border:1px dashed var(--gold);color:var(--gold);width:100%;padding:10px;border-radius:10px;font-size:12px;cursor:pointer;margin-top:5px;font-weight:bold}
+.btn-export{background:rgba(46,213,115,.1);border:1px solid var(--success);color:var(--success);padding:8px 12px;border-radius:8px;font-size:11px;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:5px;}
+
+/* Cards */
+.card{background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:15px;box-shadow:var(--shadow)}
+.card-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed var(--border);padding-bottom:10px;margin-bottom:10px}
+.card-title{font-size:15px;color:var(--gold);font-weight:bold}
+.card-date{font-size:11px;color:var(--text-muted)}
+.card-actions{display:flex;gap:8px;margin-top:15px}
+.action-btn{flex:1;padding:8px;border-radius:8px;font-size:12px;font-weight:bold;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:5px;border:none}
+.btn-delete{background:rgba(255,71,87,.1);color:var(--danger);border:1px solid rgba(255,71,87,.3)}
+.btn-edit{background:rgba(212,175,55,.1);color:var(--gold);border:1px solid var(--border)}
+
+/* Gallery (Patterns) */
+.gallery-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pattern-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.pattern-img-box{width:100%;height:140px;background:rgba(0,0,0,.2);position:relative;cursor:pointer}
+.pattern-img-box img{width:100%;height:100%;object-fit:cover}
+.pattern-img-box .no-img{width:100%;height:100%;display:flex;justify-content:center;align-items:center;color:var(--text-muted)}
+.pattern-info{padding:10px;flex:1;display:flex;flex-direction:column}
+.pattern-name{font-size:13px;font-weight:bold;color:var(--gold);margin-bottom:4px}
+.pattern-cat{font-size:9px;color:var(--info);background:rgba(52,152,219,.1);padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:8px}
+.pattern-actions{display:flex;border-top:1px solid var(--border)}
+.pattern-actions button{flex:1;background:none;border:none;padding:8px;font-size:11px;font-weight:bold;cursor:pointer}
+.btn-del-pat{color:var(--danger);border-left:1px solid var(--border)}
+.btn-view-pat{color:var(--info)}
+.ready-badge{position:absolute;top:8px;right:8px;background:var(--info);color:#fff;font-size:9px;padding:3px 8px;border-radius:10px;font-weight:bold;z-index:2}
+
+/* Modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(5px);display:none;justify-content:center;align-items:center;z-index:2000;padding:10px}
+.modal-overlay.active{display:flex}
+.modal-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:20px;width:100%;max-width:440px;box-shadow:var(--shadow);position:relative;max-height:95vh;overflow-y:auto;animation:popIn .3s}
+@keyframes popIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-close{position:absolute;top:15px;left:15px;background:none;border:none;color:var(--danger);font-size:22px;cursor:pointer;z-index:10}
+.modal-title{font-size:16px;font-weight:bold;margin-bottom:15px;color:var(--gold);text-align:center;border-bottom:1px dashed var(--border);padding-bottom:10px}
+
+/* Image Upload */
+.image-upload-box{width:100%;height:120px;border:2px dashed var(--border);border-radius:15px;display:flex;flex-direction:column;justify-content:center;align-items:center;cursor:pointer;position:relative;overflow:hidden;background:var(--card-bg);margin-bottom:15px}
+.image-upload-box input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.image-upload-box svg{width:30px;height:30px;stroke:var(--gold);margin-bottom:10px}
+.image-upload-box span{font-size:12px;color:var(--text-muted)}
+#pat-img-preview, #m-img-preview{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:none;background:#000}
+
+/* Size Table */
+.size-table{width:100%;border-collapse:collapse;margin-top:15px;font-size:11px;text-align:center;display:none}
+.size-table.show{display:table}
+.size-table th, .size-table td{border:1px solid var(--border);padding:6px}
+.size-table th{background:rgba(212,175,55,.1);color:var(--gold)}
+.size-table td:first-child{font-weight:bold;color:var(--gold)}
+.size-data-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1.2fr 30px;gap:4px;margin-bottom:6px;align-items:center}
+.size-data-row input{padding:8px 5px!important;font-size:11px!important;text-align:center}
+
+/* Calculation Box */
+.calc-box{background:rgba(46,213,115,.1);border:1px solid var(--success);border-radius:10px;padding:12px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:bold;color:var(--success)}
+.calc-box span{font-size:18px;color:var(--text-main)}
+
+/* Alerts & Confirms */
+.custom-alert-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;justify-content:center;align-items:center;z-index:10000;opacity:0;pointer-events:none;transition:.3s}
+.custom-alert-overlay.active{opacity:1;pointer-events:auto}
+.custom-alert-box{background:var(--bg-panel);border:1px solid var(--gold);border-radius:20px;padding:25px 20px;width:85%;max-width:320px;text-align:center;transform:scale(.8);transition:.3s}
+.custom-alert-overlay.active .custom-alert-box{transform:scale(1)}
+.custom-alert-icon{width:60px;height:60px;border-radius:50%;display:flex;justify-content:center;align-items:center;margin:0 auto 15px}
+.icon-success{background:rgba(46,213,115,.1);border:2px solid var(--success);color:var(--success)}
+.icon-error{background:rgba(255,71,87,.1);border:2px solid var(--danger);color:var(--danger)}
+.custom-alert-icon svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:3}
+.custom-alert-title{color:var(--text-main);font-size:16px;font-weight:bold;margin-bottom:8px}
+.custom-alert-msg{font-size:13px;color:var(--text-muted);margin-bottom:20px}
+.custom-alert-btn{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;font-weight:bold;font-size:14px;border:none;border-radius:10px;padding:10px 20px;width:100%;cursor:pointer}
+
+#confirm-modal .modal-box{text-align:center;border-color:var(--danger);max-width:340px}
+#confirm-modal .modal-title{color:var(--danger);border-bottom-color:rgba(255,71,87,.3)}
+#confirm-yes-btn{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+/* Account Section */
+.acc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+.acc-title{font-size:16px;color:var(--gold);font-weight:bold}
+.acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px}
+.acc-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.acc-card .title{font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.acc-card .value{font-size:16px;font-weight:bold}
+.acc-card.owe .value{color:var(--danger)}
+.acc-card.loan .value{color:var(--warning)}
+.transaction-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed var(--border);font-size:12px}
+.transaction-item:last-child{border:none}
+.t-info .t-title{font-weight:bold;color:var(--text-main)}
+.t-info .t-sub{font-size:10px;color:var(--text-muted);margin-top:3px}
+.t-amt.pos{color:var(--success);font-weight:bold}
+.t-amt.neg{color:var(--danger);font-weight:bold}
+
+/* Bottom Nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-panel);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:10px 0 15px;z-index:1000}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);cursor:pointer;width:20%;text-decoration:none}
+.nav-item svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2}
+.nav-item span{font-size:10px}
+.nav-item.active{color:var(--gold)}
+.empty{text-align:center;color:var(--text-muted);padding:20px 10px;font-size:12px}
+
+/* Attendance Scroll List */
+.attendance-list {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.2);
+    margin-top: 10px;
+    padding: 0 10px;
+}
+.att-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 12px;
+}
+.att-row:last-child { border: none; }
+.att-date { font-weight: bold; color: var(--gold); width: 80px; }
+.status-toggle-group { display: flex; gap: 4px; }
+.status-btn { padding: 5px 8px; border-radius: 6px; font-size: 10px; cursor: pointer; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-muted); transition: 0.2s;}
+.status-btn.active { font-weight: bold; }
+.status-btn.btn-present.active { background: rgba(46,213,115,.2); border-color: var(--success); color: var(--success); }
+.status-btn.btn-absent.active { background: rgba(255,71,87,.2); border-color: var(--danger); color: var(--danger); }
+.status-btn.btn-leave.active { background: rgba(243,156,18,.2); border-color: var(--warning); color: var(--warning); }
+
+/* Report Table */
+.report-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; display: none; }
+.report-table.show { display: table; }
+.report-table th, .report-table td { border: 1px solid var(--border); padding: 6px; text-align: center; }
+.report-table th { background: rgba(212,175,55,.1); color: var(--gold); }
+.report-header { display: none; text-align: center; margin-bottom: 15px; }
+.report-summary-box { display: none; background: rgba(0,0,0,.2); padding: 10px; border-radius: 8px; margin-top: 15px; font-size: 12px; line-height: 1.8; }
+
+/* Dynamic Cut Items */
+.cut-item-row{background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;position:relative}
+.cut-item-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:5px}
+.cut-item-grid input{padding:8px 5px!important;font-size:11px!important;text-align:center}
+.cut-item-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px}
+.cut-item-grid-2 input{padding:8px 5px!important;font-size:11px!important;text-align:center}
+.cut-item-remove{position:absolute;top:-8px;left:-8px;background:var(--danger);color:#fff;border:none;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:12px;display:flex;justify-content:center;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,.5)}
+
+/* Print Styles */
+@media print {
+    @page { size: landscape; margin: 10mm; }
+    body { background: #fff; color: #000; }
+    .app-container { max-width: 100%; padding: 0; }
+    .no-print, .bottom-nav, .tabs, .top-bar, #tab-content-report .filter-section { display: none !important; }
+    #tab-content-report { display: block !important; }
+    .report-header { display: block !important; color: #000; }
+    .report-header h2 { color: #000; }
+    .report-table { display: table !important; width: 100%; border-collapse: collapse; font-size: 11px; }
+    .report-table th, .report-table td { border: 1px solid #000; padding: 4px; text-align: center; color: #000; }
+    .report-table th { background: #ddd; }
+    .report-table tr { break-inside: avoid; page-break-inside: avoid; }
+    .report-table thead { display: table-header-group; }
+    .report-summary-box { display: block !important; color: #000; border: 1px solid #000; }
+}
+</style>
+</head>
+<body>
+
+<script>
+if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
+</script>
+
+<div class="custom-alert-overlay" id="custom-alert">
+  <div class="custom-alert-box">
+    <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+    <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+    <p class="custom-alert-msg" id="alert-msg">پیام</p>
+    <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <h2 class="modal-title" id="confirm-title">تایید حذف</h2>
+    <p id="confirm-msg" style="font-size:13px;margin-bottom:20px;color:var(--text-muted);line-height:1.6;">آیا مطمئن هستید؟</p>
+    <div class="grid-2">
+      <button class="btn-primary" style="background:var(--input-bg);color:var(--text-main);border:1px solid var(--border);margin-top:0" onclick="closeModal('confirm-modal')">انصراف</button>
+      <button class="btn-primary" style="margin-top:0" id="confirm-yes-btn">بله، حذف کن</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-container">
+  <div class="top-bar no-print">
+    <a href="index.html" class="back-btn"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    <div class="header-title">سیستم برش‌کاری</div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+  </div>
+
+  <div class="dashboard-stats no-print">
+    <div class="stat-box"><div class="title">کل برش</div><div class="val" id="sum-cut">0</div></div>
+    <div class="stat-box"><div class="title">به دوخت</div><div class="val" id="sum-sent">0</div></div>
+    <div class="stat-box"><div class="title">دوخته شده</div><div class="val" id="sum-sewn">0</div></div>
+    <div class="stat-box"><div class="title">مانده</div><div class="val" id="sum-remain">0</div></div>
+  </div>
+
+  <div class="tabs no-print">
+    <div class="tab active" id="tab-btn-archive" onclick="switchTab('archive')">آرشیف برش</div>
+    <div class="tab" id="tab-btn-models" onclick="switchTab('models')">مدل‌ها</div>
+    <div class="tab" id="tab-btn-patterns" onclick="switchTab('patterns')">کتابخانه الگو</div>
+    <div class="tab" id="tab-btn-report" onclick="switchTab('report')">گزارش</div>
+    <div class="tab" id="tab-btn-account" onclick="switchTab('account')">حساب من</div>
+  </div>
+
+  <!-- Tab: Archive -->
+  <div id="tab-content-archive" class="tab-content active no-print">
+    <button class="add-btn" onclick="openCutModal()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      ثبت برش جدید
+    </button>
+    <div id="cut-list"></div>
+  </div>
+
+  <!-- Tab: Models -->
+  <div id="tab-content-models" class="tab-content no-print">
+    <button class="add-btn" onclick="openModelModal()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      تعریف مدل و سایزبندی
+    </button>
+    <div id="model-list"></div>
+  </div>
+
+  <!-- Tab: Patterns -->
+  <div id="tab-content-patterns" class="tab-content no-print">
+    <div style="display:flex;gap:10px;margin-bottom:15px">
+      <input type="text" id="search-pattern" placeholder="جستجوی الگو..." oninput="renderPatterns()" style="flex:1">
+      <button class="add-btn" style="width:auto;margin:0;padding:0 15px" onclick="openPatternModal()">
+         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+         جدید
+      </button>
+    </div>
+    <div class="gallery-grid" id="pattern-list"></div>
+  </div>
+
+  <!-- Tab: Report -->
+  <div id="tab-content-report" class="tab-content">
+    <div class="filter-section no-print">
+        <div class="card">
+            <div class="card-title">تنظیمات گزارش</div>
+            
+            <div class="form-group">
+                <label>نوع گزارش</label>
+                <div class="custom-select-wrapper" id="dd-report-type">
+                    <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+                        <span class="trigger-text" id="text-report-type">گزارش جامع (همه)</span>
+                        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                    <div class="custom-options">
+                        <div class="custom-option" onclick="selectReportType('combined', 'گزارش جامع (همه)', this)">گزارش جامع (همه)</div>
+                        <div class="custom-option" onclick="selectReportType('attendance', 'گزارش حاضری', this)">گزارش حاضری</div>
+                        <div class="custom-option" onclick="selectReportType('cuts', 'گزارش برش‌کاری', this)">گزارش برش‌کاری</div>
+                    </div>
+                    <input type="hidden" id="report-type-val" value="combined">
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>از تاریخ</label>
+                    <div class="grid-3">
+                        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-from-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-from-day"></div></div>
+                        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-from-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-from-month"></div></div>
+                        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-from-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-from-year"></div></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>تا تاریخ</label>
+                    <div class="grid-3">
+                        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-to-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-to-day"></div></div>
+                        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-to-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-to-month"></div></div>
+                        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-to-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-to-year"></div></div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-primary" style="margin-top:10px" onclick="generateReport()">نمایش گزارش</button>
+        </div>
+    </div>
+
+    <div class="report-header">
+        <h2>گزارش کارگاه برش‌کاری</h2>
+        <p id="print-date-range">از تاریخ: --- تا تاریخ: ---</p>
+        <p id="print-date-now" style="font-size:10px;">تاریخ چاپ: ---</p>
+    </div>
+
+    <div id="report-output-container">
+        <div class="empty">برای مشاهده گزارش، تنظیمات را انتخاب و روی دکمه «نمایش گزارش» کلیک کنید.</div>
+    </div>
+
+    <div class="no-print" style="margin-top:15px; margin-bottom:20px; display:flex; gap:10px;">
+      <button class="btn-export" onclick="exportReportToExcel()">خروجی اکسل</button>
+      <button class="btn-primary" style="margin-top:0; background:rgba(52,152,219,.1); color:var(--info); border:1px solid var(--info); flex:1;" onclick="window.print()">چاپ / PDF</button>
+    </div>
+  </div>
+
+  <!-- Tab: Account -->
+  <div id="tab-content-account" class="tab-content no-print">
+    <div class="acc-header">
+      <div class="acc-title">مدیریت حساب و معاش</div>
+      <button class="add-btn" style="width:auto;margin:0;padding:8px 12px;font-size:12px" onclick="openAddCutterModal()">+ برش‌کار</button>
+    </div>
+    
+    <div class="form-group">
+      <label>انتخاب برش‌کار</label>
+      <div class="custom-select-wrapper">
+        <div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="acc-cutter-trigger">انتخاب کنید</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="custom-options" id="opt-acc-cutter"></div>
+      </div>
+    </div>
+    
+    <div id="account-details">
+      <div class="empty">لطفا یک برش‌کار را انتخاب کنید.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================== MODALS ================== -->
+
+<!-- View Pattern Details Modal -->
+<div class="modal-overlay" id="view-pattern-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('view-pattern-modal')">✕</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;margin-top:10px">
+      <span style="font-size:11px;color:var(--info);background:rgba(52,152,219,.1);padding:4px 8px;border-radius:20px" id="vp-cat"></span>
+      <span style="font-size:12px;color:var(--text-muted)" id="vp-code"></span>
+    </div>
+    <h2 style="font-size:18px;font-weight:bold;color:var(--gold);margin-bottom:10px" id="vp-title"></h2>
+    <img style="width:100%;max-height:350px;object-fit:contain;background:rgba(0,0,0,.3);border-radius:12px;margin-bottom:15px;display:none" id="vp-image">
+    <p style="font-size:13px;line-height:1.8;color:var(--text-main);margin-bottom:15px" id="vp-desc"></p>
+    <h3 style="font-size:14px;font-weight:bold;color:var(--gold);margin-top:15px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px">قطعات الگو</h3>
+    <ul style="font-size:13px;line-height:2;padding-right:20px;color:var(--text-main)" id="vp-pieces"></ul>
+    <h3 style="font-size:14px;font-weight:bold;color:var(--gold);margin-top:15px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px">اندازه‌های لازم</h3>
+    <ul style="font-size:13px;line-height:2;padding-right:20px;color:var(--text-main)" id="vp-measurements"></ul>
+    <h3 style="font-size:14px;font-weight:bold;color:var(--gold);margin-top:15px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px">مراحل کلی</h3>
+    <ol style="font-size:13px;line-height:2;padding-right:20px;color:var(--text-main)" id="vp-steps"></ol>
+    <h3 style="font-size:14px;font-weight:bold;color:var(--gold);margin-top:15px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px">نکات</h3>
+    <ul style="font-size:13px;line-height:2;padding-right:20px;color:var(--text-main)" id="vp-tips"></ul>
+  </div>
+</div>
+
+<!-- Add/Edit Pattern Modal -->
+<div class="modal-overlay" id="modal-pattern">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-pattern')">✕</button>
+    <h2 class="modal-title" id="pattern-modal-title">ثبت الگو جدید</h2>
+    <input type="hidden" id="pat-id">
+    <div class="image-upload-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>افزودن عکس الگو</span>
+      <input type="file" id="pat-image" accept="image/*" onchange="processPatternImage(this)">
+      <img id="pat-img-preview">
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label>نام الگو *</label><input type="text" id="pat-name" placeholder="مثلا دامن کلوش"></div>
+      <div class="form-group"><label>کد الگو</label><input type="text" id="pat-code" placeholder="SK-01"></div>
+    </div>
+    <div class="form-group">
+      <label>دسته‌بندی</label>
+      <div class="custom-select-wrapper">
+        <div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="pat-cat-trigger">لباس زنانه</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="custom-options">
+          <div class="custom-option" onclick="selectPatCat('لباس زنانه', this)">لباس زنانه</div>
+          <div class="custom-option" onclick="selectPatCat('لباس مردانه', this)">لباس مردانه</div>
+          <div class="custom-option" onclick="selectPatCat('شلوار', this)">شلوار</div>
+          <div class="custom-option" onclick="selectPatCat('واسکت و جلیقه', this)">واسکت و جلیقه</div>
+          <div class="custom-option" onclick="selectPatCat('پیراهن', this)">پیراهن</div>
+          <div class="custom-option" onclick="selectPatCat('لباس کودک', this)">لباس کودک</div>
+          <div class="custom-option" onclick="selectPatCat('لباس مجلسی', this)">لباس مجلسی</div>
+          <div class="custom-option" onclick="selectPatCat('سایر', this)">سایر</div>
+        </div>
+        <input type="hidden" id="pat-cat-val" value="لباس زنانه">
+      </div>
+    </div>
+    <div class="form-group"><label>توضیحات</label><textarea id="pat-desc" rows="2"></textarea></div>
+    <div class="form-group"><label>قطعات الگو</label><textarea id="pat-pieces" rows="2" placeholder="جلو&#10;پشت&#10;آستین"></textarea></div>
+    <div class="form-group"><label>اندازه‌های لازم</label><textarea id="pat-measurements" rows="2" placeholder="دور کمر&#10;قد دامن"></textarea></div>
+    <div class="form-group"><label>مراحل کلی</label><textarea id="pat-steps" rows="2" placeholder="رسم الگو&#10;برش"></textarea></div>
+    <div class="form-group"><label>نکات</label><textarea id="pat-tips" rows="2"></textarea></div>
+    <button class="btn-primary" onclick="savePattern()">ذخیره</button>
+  </div>
+</div>
+
+<!-- Add Cut Modal -->
+<div class="modal-overlay" id="modal-cut">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-cut')">✕</button>
+    <h2 class="modal-title" id="cut-modal-title">ثبت برش جدید</h2>
+    <input type="hidden" id="edit-cut-id" value="">
+    
+    <div class="form-group">
+      <label>نام برش‌کار مسئول *</label>
+      <div class="custom-select-wrapper">
+        <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+          <span class="trigger-text" id="cut-cutter-trigger">انتخاب کنید</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="custom-options" id="opt-cutter-select"></div>
+      </div>
+      <input type="hidden" id="c-cutter-id">
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>نوع کار *</label>
+        <div class="custom-select-wrapper">
+          <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+            <span class="trigger-text" id="cut-type-trigger">دانه‌ای</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="custom-options">
+            <div class="custom-option" onclick="selectCutType('دانه‌ای')">دانه‌ای (کارمزدی)</div>
+            <div class="custom-option" onclick="selectCutType('ماهانه')">ماهانه / هفته‌وار</div>
+          </div>
+          <input type="hidden" id="c-type-val" value="دانه‌ای">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>مدل لباس</label>
+        <input type="text" id="c-model-name" placeholder="مثلا واسکت / جمپر">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>تاریخ برش</label>
+      <div class="grid-3">
+        <div class="custom-select-wrapper">
+          <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+            <span class="trigger-text" id="text-c-day">1</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="custom-options" id="opt-c-day"></div>
+        </div>
+        <div class="custom-select-wrapper">
+          <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+            <span class="trigger-text" id="text-c-month">حمل</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="custom-options" id="opt-c-month"></div>
+        </div>
+        <div class="custom-select-wrapper">
+          <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+            <span class="trigger-text" id="text-c-year">1403</span>
+            <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="custom-options" id="opt-c-year"></div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:13px; color:var(--gold); margin-bottom:10px; border-bottom:1px dashed var(--border); padding-bottom:5px;">مشخصات تکه‌ها</h3>
+    <div id="cut-items-container"></div>
+    <button class="btn-secondary" onclick="addCutItemRow()">+ افزودن تکه جدید</button>
+
+    <div class="calc-box" style="margin-top:15px">
+      <span>مبلغ کل:</span>
+      <div id="c-total-display">0 افغانی</div>
+    </div>
+
+    <div class="grid-2" style="margin-top:15px">
+      <div class="form-group">
+        <label>تاریخ شروع</label>
+        <div class="grid-3">
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-start-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-start-day"></div></div>
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-start-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-start-month"></div></div>
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-start-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-start-year"></div></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>تاریخ ختم</label>
+        <div class="grid-3">
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-end-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-end-day"></div></div>
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-end-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-end-month"></div></div>
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-end-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-end-year"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveCut()">ثبت در دفتر برش</button>
+  </div>
+</div>
+
+<!-- Define Model Modal -->
+<div class="modal-overlay" id="modal-model">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-model')">✕</button>
+    <h2 class="modal-title" id="model-modal-title">تعریف مدل</h2>
+    <input type="hidden" id="m-id">
+    
+    <div class="image-upload-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span>افزودن عکس مدل</span>
+      <input type="file" id="m-image" accept="image/*" onchange="processModelImage(this)">
+      <img id="m-img-preview">
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group"><label>نام مدل</label><input type="text" id="m-name" placeholder="جمپر"></div>
+      <div class="form-group"><label>کد مدل</label><input type="text" id="m-code" placeholder="JMP-01"></div>
+    </div>
+
+    <div class="grid-3">
+      <div class="form-group">
+        <label>سایز پایه</label>
+        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="base-size-txt">M</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-base-size"></div></div>
+      </div>
+      <div class="form-group">
+        <label>از سایز</label>
+        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="start-size-txt">S</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-start-size"></div></div>
+      </div>
+      <div class="form-group">
+        <label>تا سایز</label>
+        <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="end-size-txt">10XL</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-end-size"></div></div>
+      </div>
+    </div>
+
+    <div id="measurements-container"></div>
+    <button class="btn-secondary" onclick="addMeasurementRow('', '', '', '1')">+ افزودن نقطه اندازه‌گیری</button>
+
+    <button class="btn-primary" onclick="calculateSizeTable()" style="background:transparent;border:1px solid var(--gold);color:var(--gold);margin-bottom:10px">مشاهده جدول</button>
+    <button class="btn-primary" onclick="saveModel()">ذخیره مدل</button>
+
+    <div class="table-responsive" id="calc-result-container" style="display:none;overflow-x:auto;margin-top:15px;border-radius:8px;border:1px solid var(--border)">
+      <table class="size-table" id="calc-table">
+        <thead id="calc-table-head"></thead>
+        <tbody id="calc-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Cutter Modal -->
+<div class="modal-overlay" id="modal-add-cutter">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('modal-add-cutter')">✕</button>
+    <h2 class="modal-title">ثبت برش‌کار جدید</h2>
+    <div class="form-group"><label>نام و تخلص *</label><input type="text" id="ac-name" placeholder="نام برش‌کار"></div>
+    <button class="btn-primary" onclick="saveNewCutter()">ثبت شود</button>
+  </div>
+</div>
+
+<nav class="bottom-nav no-print">
+  <a href="index.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
+  <a href="production.html" class="nav-item active"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
+  <a href="students.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان</span></a>
+  <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
+  <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>تنظیمات</span></a>
+</nav>
+
+<script>
+const firebaseConfig = { apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk", authDomain: "tailor-64f7f.firebaseapp.com", databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com", projectId: "tailor-64f7f", storageBucket: "tailor-64f7f.firebasestorage.app", messagingSenderId: "16067911685", appId: "1:16067911685:web:1b76892edf61b6a4923c6c" };
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const userPhone = localStorage.getItem('tailor_user') || 'demo_user';
+
+let savedModels = [];
+let savedCutters = []; 
+let savedCuts = [];
+let defaultPatterns = [];
+let customPatterns = [];
+let allPatterns = [];
+
+let base64PatternImage = null;
+let base64ModelImage = null;
+let currentEditingPatternId = null;
+let currentEditingModelId = null;
+let currentAccountCutterId = null;
+let currentAccountCutterData = null;
+let editingCutId = null;
+
+const allSizes = ['S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL', '9XL', '10XL'];
+const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+let selections = { 'report-type': 'combined' };
+
+function fmt(n){ return Number(n||0).toLocaleString('fa-AF'); }
+function uid(p='id'){ return p+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+function todayStr(){ 
+    const d = new Date();
+    return d.toLocaleDateString('fa-AF-u-nu-latn').replace(/-/g, '/'); 
+}
+
+function showAlert(type, title, msg){
+  const box = document.getElementById('alert-icon-box');
+  const svg = document.getElementById('alert-icon-svg');
+  if(type==='success'){ box.className='custom-alert-icon icon-success'; svg.innerHTML='<polyline points="20 6 9 17 4 12"/>'; }
+  else { box.className='custom-alert-icon icon-error'; svg.innerHTML='<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+  document.getElementById('alert-title').innerText = title;
+  document.getElementById('alert-msg').innerText = msg;
+  document.getElementById('custom-alert').classList.add('active');
+}
+function closeCustomAlert(){ document.getElementById('custom-alert').classList.remove('active'); }
+function openModal(id){ document.getElementById(id).classList.add('active'); }
+function closeModal(id){ document.getElementById(id).classList.remove('active'); }
+
+let confirmCallback = null;
+function showConfirm(title, msg, btnText, callback){
+  document.getElementById('confirm-title').innerText = title;
+  document.getElementById('confirm-msg').innerText = msg;
+  document.getElementById('confirm-yes-btn').innerText = btnText || 'تایید';
+  confirmCallback = callback;
+  openModal('confirm-modal');
+}
+document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+  if(confirmCallback) confirmCallback();
+  closeModal('confirm-modal');
+});
+
+function toggleTheme(){
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+  document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+}
+
+function toggleDropdown(trigger, event) {
+  if(event) event.stopPropagation();
+  document.querySelectorAll('.custom-select-trigger').forEach(t => { if(t !== trigger) t.classList.remove('active'); });
+  document.querySelectorAll('.custom-options').forEach(o => { if(o !== trigger.nextElementSibling) o.classList.remove('open'); });
+  trigger.classList.toggle('active');
+  if(trigger.nextElementSibling) trigger.nextElementSibling.classList.toggle('open');
+}
+window.addEventListener('click', e => {
+  if(!e.target.closest('.custom-select-wrapper')){
+    document.querySelectorAll('.custom-select-trigger').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.custom-options').forEach(o => o.classList.remove('open'));
+  }
+});
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  
+  document.getElementById('tab-content-' + tabName).classList.add('active');
+  document.getElementById('tab-btn-' + tabName).classList.add('active');
+
+  if(tabName === 'archive') loadCuts();
+  if(tabName === 'models') loadModels();
+  if(tabName === 'patterns') loadPatterns();
+  if(tabName === 'account') loadAccountTab();
+}
+
+// ================== DATES & SIZES ==================
+function initDatesAndSizes() {
+  const prefixes = ['c', 'start', 'end', 'att', 'from', 'to', 'man'];
+  
+  prefixes.forEach(p => {
+    let dHtml = '', mHtml = '', yHtml = '';
+    for(let i=1; i<=31; i++) dHtml += `<div class="custom-option" onclick="selectDate('${p}-day', '${i}', this)">${i}</div>`;
+    shamsiMonths.forEach((m) => mHtml += `<div class="custom-option" onclick="selectDate('${p}-month', '${m}', this)">${m}</div>`);
+    for(let y=1400; y<=1410; y++) yHtml += `<div class="custom-option" onclick="selectDate('${p}-year', '${y}', this)">${y}</div>`;
+    
+    const dayOpt = document.getElementById(`opt-${p}-day`);
+    const monthOpt = document.getElementById(`opt-${p}-month`);
+    const yearOpt = document.getElementById(`opt-${p}-year`);
+    
+    if(dayOpt) dayOpt.innerHTML = dHtml;
+    if(monthOpt) monthOpt.innerHTML = mHtml;
+    if(yearOpt) yearOpt.innerHTML = yHtml;
+
+    if(!selections[`${p}-day`]) selections[`${p}-day`] = '1';
+    if(!selections[`${p}-month`]) selections[`${p}-month`] = 'حمل';
+    if(!selections[`${p}-year`]) selections[`${p}-year`] = '1403';
+  });
+
+  // Populate Sizes dynamically
+  const sizeContainers = ['opt-base-size', 'opt-start-size', 'opt-end-size'];
+  sizeContainers.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) {
+          el.innerHTML = allSizes.map(s => `<div class="custom-option" onclick="selectSize('${id.replace('opt-', '')}', '${s}', this)">${s}</div>`).join('');
+      }
+  });
+}
+
+function selectSize(type, val, el) {
+    const textId = type.replace('-size', '-size-txt');
+    document.getElementById(textId).innerText = val;
+    el.closest('.custom-options').classList.remove('open');
+    el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+}
+
+function selectDate(key, val, el) {
+  if(typeof event !== 'undefined' && event) event.stopPropagation();
+  const elText = document.getElementById('text-' + key);
+  if(elText) elText.innerText = val;
+  selections[key] = val;
+  if(el) {
+    const options = el.closest('.custom-options');
+    if(options) options.classList.remove('open');
+    const wrapper = el.closest('.custom-select-wrapper');
+    if(wrapper) {
+        const trigger = wrapper.querySelector('.custom-select-trigger');
+        if(trigger) trigger.classList.remove('active');
+    }
+  }
+}
+
+function getDateStr(prefix) {
+  const d = selections[`${prefix}-day`] || '1';
+  const mStr = selections[`${prefix}-month`] || 'حمل';
+  const y = selections[`${prefix}-year`] || '1403';
+  const mIdx = shamsiMonths.indexOf(mStr) + 1;
+  return `${y}/${String(mIdx).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+}
+
+// ================== CUTTERS ==================
+function loadCuttersFromStaff() {
+  return new Promise((resolve) => {
+    database.ref('users/' + userPhone + '/staff').once('value').then(snapshot => {
+      const data = snapshot.val() || {};
+      savedCutters = Object.values(data).filter(s => s.type === 'cutter' || s.type === 'khalifa');
+      
+      const selectContainer = document.getElementById('opt-cutter-select');
+      const accContainer = document.getElementById('opt-acc-cutter');
+      
+      if(selectContainer) selectContainer.innerHTML = '<div class="custom-option" onclick="openAddCutterModal()" style="color:var(--gold); font-weight:bold;">+ ثبت برش‌کار جدید</div>';
+      if(accContainer) accContainer.innerHTML = '';
+      
+      if(savedCutters.length > 0) {
+        savedCutters.forEach(c => {
+          if(selectContainer) selectContainer.innerHTML += `<div class="custom-option" onclick="selectCutCutter('${c.id}', '${c.name}', this)">${c.name}</div>`;
+          if(accContainer) accContainer.innerHTML += `<div class="custom-option" onclick="selectAccountCutter('${c.id}', '${c.name}', this)">${c.name}</div>`;
+        });
+      }
+      resolve();
+    }).catch(() => resolve());
+  });
+}
+
+function selectCutCutter(id, name, el) {
+  event.stopPropagation();
+  document.getElementById('c-cutter-id').value = id;
+  document.getElementById('cut-cutter-trigger').innerText = name;
+  el.closest('.custom-options').classList.remove('open');
+  el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+}
+
+function selectCutType(type) {
+  document.getElementById('cut-type-trigger').innerText = type;
+  document.getElementById('c-type-val').value = type;
+  event.target.closest('.custom-options').classList.remove('open');
+  event.target.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+}
+
+function openAddCutterModal() {
+  document.getElementById('ac-name').value = '';
+  openModal('modal-add-cutter');
+}
+
+function saveNewCutter() {
+  const name = document.getElementById('ac-name').value.trim();
+  if(!name) return showAlert('error', 'خطا', 'نام برش‌کار را وارد کنید.');
+  
+  const newId = uid('stf');
+  const data = {
+    id: newId,
+    name: name,
+    type: 'cutter',
+    status: 'فعال',
+    salaryType: 'piece',
+    salaryAmount: 0,
+    workingDays: 26,
+    createdAt: Date.now()
+  };
+  
+  database.ref(`users/${userPhone}/staff/${newId}`).set(data).then(() => {
+    showAlert('success', 'موفق', 'برش‌کار جدید ثبت شد.');
+    closeModal('modal-add-cutter');
+    loadCuttersFromStaff();
+  });
+}
+
+// ================== CUT ARCHIVE ==================
+function openCutModal(id = null) {
+  editingCutId = id;
+  if(savedCutters.length === 0) return showAlert('error', 'خطا', 'ابتدا در بخش حساب من، یک برش‌کار ثبت کنید.');
+  
+  document.getElementById('edit-cut-id').value = id || '';
+  document.getElementById('c-cutter-id').value = '';
+  document.getElementById('cut-cutter-trigger').innerText = 'انتخاب کنید';
+  document.getElementById('c-model-name').value = '';
+  document.getElementById('c-total-display').innerText = '0 افغانی';
+  document.getElementById('cut-items-container').innerHTML = '';
+  document.getElementById('cut-modal-title').innerText = id ? 'ویرایش برش' : 'ثبت برش جدید';
+  
+  const today = todayStr().split('/');
+  
+  if(id) {
+      const c = savedCuts.find(x => x.id === id);
+      if(c) {
+          document.getElementById('c-cutter-id').value = c.cutterId;
+          document.getElementById('cut-cutter-trigger').innerText = c.cutterName;
+          document.getElementById('c-model-name').value = c.modelName;
+          document.getElementById('c-type-val').value = c.workType;
+          document.getElementById('cut-type-trigger').innerText = c.workType;
+          
+          const parseD = (str) => {
+              if(!str) return today;
+              const p = str.split('/');
+              return p.length===3 ? p : today;
+          }
+          const cD = parseD(c.date);
+          const sD = parseD(c.startDate);
+          const eD = parseD(c.endDate);
+
+          const sY = document.getElementById('opt-start-year'); if(sY && sY.firstElementChild) selectDate('start-year', sD[0], sY.firstElementChild);
+          const sM = document.getElementById('opt-start-month'); if(sM && sM.firstElementChild) selectDate('start-month', shamsiMonths[parseInt(sD[1])-1] || 'حمل', sM.firstElementChild);
+          const sDd = document.getElementById('opt-start-day'); if(sDd && sDd.firstElementChild) selectDate('start-day', sD[2], sDd.firstElementChild);
+          
+          const eY = document.getElementById('opt-end-year'); if(eY && eY.firstElementChild) selectDate('end-year', eD[0], eY.firstElementChild);
+          const eM = document.getElementById('opt-end-month'); if(eM && eM.firstElementChild) selectDate('end-month', shamsiMonths[parseInt(eD[1])-1] || 'حمل', eM.firstElementChild);
+          const eDd = document.getElementById('opt-end-day'); if(eDd && eDd.firstElementChild) selectDate('end-day', eD[2], eDd.firstElementChild);
+          
+          const cY = document.getElementById('opt-c-year'); if(cY && cY.firstElementChild) selectDate('c-year', cD[0], cY.firstElementChild);
+          const cM = document.getElementById('opt-c-month'); if(cM && cM.firstElementChild) selectDate('c-month', shamsiMonths[parseInt(cD[1])-1] || 'حمل', cM.firstElementChild);
+          const cDd = document.getElementById('opt-c-day'); if(cDd && cDd.firstElementChild) selectDate('c-day', cD[2], cDd.firstElementChild);
+
+          const itemsArray = Array.isArray(c.items) ? c.items : Object.values(c.items || {});
+          itemsArray.forEach(item => addCutItemRow(item));
+          calcCutTotal();
+      }
+  } else {
+      if(today.length === 3) {
+        const sY = document.getElementById('opt-start-year'); if(sY && sY.firstElementChild) selectDate('start-year', today[0], sY.firstElementChild);
+        const sM = document.getElementById('opt-start-month'); if(sM && sM.firstElementChild) selectDate('start-month', shamsiMonths[parseInt(today[1])-1] || 'حمل', sM.firstElementChild);
+        const sDd = document.getElementById('opt-start-day'); if(sDd && sDd.firstElementChild) selectDate('start-day', today[2], sDd.firstElementChild);
+        
+        const eY = document.getElementById('opt-end-year'); if(eY && eY.firstElementChild) selectDate('end-year', today[0], eY.firstElementChild);
+        const eM = document.getElementById('opt-end-month'); if(eM && eM.firstElementChild) selectDate('end-month', shamsiMonths[parseInt(today[1])-1] || 'حمل', eM.firstElementChild);
+        const eDd = document.getElementById('opt-end-day'); if(eDd && eDd.firstElementChild) selectDate('end-day', today[2], eDd.firstElementChild);
+    
+        const cY = document.getElementById('opt-c-year'); if(cY && cY.firstElementChild) selectDate('c-year', today[0], cY.firstElementChild);
+        const cM = document.getElementById('opt-c-month'); if(cM && cM.firstElementChild) selectDate('c-month', shamsiMonths[parseInt(today[1])-1] || 'حمل', cM.firstElementChild);
+        const cDd = document.getElementById('opt-c-day'); if(cDd && cDd.firstElementChild) selectDate('c-day', today[2], cDd.firstElementChild);
+      }
+      addCutItemRow();
+  }
+
+  openModal('modal-cut');
+}
+
+function addCutItemRow(data = null) {
+  const container = document.getElementById('cut-items-container');
+  const div = document.createElement('div');
+  div.className = 'cut-item-row';
+  
+  const type = data ? data.type : '';
+  const color = data ? data.color : '';
+  const size = data ? data.size : '';
+  const len = data ? data.len : '';
+  const wid = data ? data.wid : '';
+  const layers = data ? data.layers : 1;
+  const qty = data ? data.qty : '';
+  const rate = data ? data.rate : '';
+  
+  div.innerHTML = `
+    <button class="cut-item-remove" onclick="this.parentElement.remove(); calcCutTotal()">✕</button>
+    <div class="cut-item-grid">
+      <input type="text" class="i-type" placeholder="نوع (واسکت)" value="${type}">
+      <input type="text" class="i-color" placeholder="رنگ" value="${color}">
+      <input type="text" class="i-size" placeholder="سایز (M/10XL)" value="${size}">
+    </div>
+    <div class="cut-item-grid">
+      <input type="number" class="i-len" placeholder="طول (m)" value="${len}">
+      <input type="number" class="i-wid" placeholder="عرض (cm)" value="${wid}">
+      <input type="number" class="i-layers" placeholder="لایه" min="1" value="${layers}">
+    </div>
+    <div class="cut-item-grid-2">
+      <input type="number" class="i-qty" placeholder="تعداد" oninput="calcCutTotal()" value="${qty}">
+      <input type="number" class="i-rate" placeholder="نرخ" oninput="calcCutTotal()" value="${rate}">
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function calcCutTotal() {
+  let total = 0;
+  document.querySelectorAll('.cut-item-row').forEach(row => {
+    const qty = Number(row.querySelector('.i-qty').value) || 0;
+    const rate = Number(row.querySelector('.i-rate').value) || 0;
+    total += (qty * rate);
+  });
+  document.getElementById('c-total-display').innerText = fmt(total) + ' افغانی';
+}
+
+function saveCut() {
+  const cutterId = document.getElementById('c-cutter-id').value;
+  if(!cutterId) return showAlert('error', 'خطا', 'نام برش‌کار را انتخاب کنید.');
+
+  const items = [];
+  let totalQty = 0;
+  let totalAmount = 0;
+
+  document.querySelectorAll('.cut-item-row').forEach(row => {
+    const type = row.querySelector('.i-type').value.trim();
+    const color = row.querySelector('.i-color').value.trim();
+    const size = row.querySelector('.i-size').value.trim();
+    const len = Number(row.querySelector('.i-len').value) || 0;
+    const wid = Number(row.querySelector('.i-wid').value) || 0;
+    const layers = Number(row.querySelector('.i-layers').value) || 1;
+    const qty = Number(row.querySelector('.i-qty').value) || 0;
+    const rate = Number(row.querySelector('.i-rate').value) || 0;
+
+    if(qty > 0) {
+      items.push({ type, color, size, len, wid, layers, qty, rate });
+      totalQty += qty;
+      totalAmount += (qty * rate);
+    }
+  });
+
+  if(items.length === 0) return showAlert('error', 'خطا', 'حداقل یک تکه با تعداد معتبر وارد کنید.');
+
+  const cutter = savedCutters.find(c => c.id === cutterId);
+  const cutId = editingCutId || uid('cut');
+  const workType = document.getElementById('c-type-val').value;
+
+  const cutData = {
+    id: cutId, cutterId, cutterName: cutter.name,
+    workType: workType,
+    modelName: document.getElementById('c-model-name').value,
+    items: items,
+    totalQty: totalQty,
+    totalAmount: totalAmount,
+    date: getDateStr('c'),
+    startDate: getDateStr('start'),
+    endDate: getDateStr('end'),
+    timestamp: Date.now()
+  };
+
+  database.ref('users/' + userPhone + '/cuts/' + cutId).set(cutData).then(() => {
+    if(workType === 'دانه‌ای' && totalAmount > 0) {
+      const wageId = uid('wage');
+      database.ref(`users/${userPhone}/staff/${cutterId}/wages/${wageId}`).set({
+        id: wageId, amount: totalAmount, date: cutData.date,
+        note: `دستمزد برش ${totalQty} دانه`, timestamp: Date.now()
+      });
+    }
+    closeModal('modal-cut');
+    showAlert('success', 'موفق', editingCutId ? 'برش ویرایش شد.' : 'برش ثبت شد.');
+    editingCutId = null;
+    loadCuts();
+  }).catch(err => showAlert('error', 'خطا', err.message));
+}
+
+function loadCuts() {
+  database.ref('users/' + userPhone + '/cuts').once('value').then(snap => {
+    const data = snap.val() || {};
+    savedCuts = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
+    const listContainer = document.getElementById('cut-list');
+    
+    if(!savedCuts.length) {
+      listContainer.innerHTML = '<div class="empty">آرشیف خالی است.</div>';
+      document.getElementById('sum-cut').innerText = '0';
+      return;
+    }
+
+    let html = '', totalCut = 0;
+    savedCuts.forEach(c => {
+      totalCut += (c.totalQty || 0);
+      
+      let itemsHtml = '';
+      const itemsArray = Array.isArray(c.items) ? c.items : Object.values(c.items || {});
+      
+      if(itemsArray.length > 0) {
+        itemsArray.forEach(item => {
+          itemsHtml += `
+            <div style="border-bottom:1px dashed var(--border); padding:5px 0; margin-bottom:5px; background:rgba(0,0,0,0.1); border-radius:5px; padding:8px;">
+              <div style="color:var(--gold); font-weight:bold; margin-bottom:5px; font-size:13px;">${item.type || 'تکه'}</div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:11px; margin-bottom:5px;">
+                 <span>رنگ: <strong>${item.color || '-'}</strong></span>
+                 <span>سایز: <strong>${item.size || '-'}</strong></span>
+                 <span>طول: <strong>${item.len||0}m</strong></span>
+                 <span>عرض: <strong>${item.wid||0}cm</strong></span>
+                 <span>لایه: <strong>${item.layers||1}</strong></span>
+                 <span>تعداد: <strong style="color:var(--success)">${item.qty} دانه</strong></span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--info); margin-top:5px; border-top:1px dashed var(--border); padding-top:5px;">
+                <span>نرخ: ${fmt(item.rate)}</span>
+                <span>مبلغ: ${fmt(item.rate * item.qty)}</span>
+              </div>
+            </div>
+          `;
+        });
+      } else {
+        itemsHtml = `<div style="font-size:11px; color:var(--text-muted);">جزئیات تکه‌ها ثبت نشده است.</div>`;
+      }
+
+      html += `
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">${c.modelName || 'برش بدون نام'}</div>
+            <div class="card-date">${c.date}</div>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:10px; background:var(--input-bg); padding:8px; border-radius:8px;">
+            <span>برش‌کار: <strong style="color:var(--text-main)">${c.cutterName}</strong></span>
+            <div style="margin-top:5px; display:flex; justify-content:space-between;">
+              <span>تاریخ شروع: <strong>${c.startDate || '---'}</strong></span>
+              <span>تاریخ ختم: <strong>${c.endDate || '---'}</strong></span>
+            </div>
+          </div>
+          ${itemsHtml}
+          <div class="card-actions">
+            <button class="action-btn btn-edit" onclick="openCutModal('${c.id}')">ویرایش</button>
+            <button class="action-btn btn-delete" onclick="deleteCut('${c.id}')">حذف</button>
+          </div>
+        </div>
+      `;
+    });
+    listContainer.innerHTML = html;
+    document.getElementById('sum-cut').innerText = totalCut;
+  });
+}
+
+function deleteCut(id) {
+  showConfirm('حذف برش', 'آیا از حذف این برش مطمئن هستید؟', 'بله، حذف کن', () => {
+    database.ref(`users/${userPhone}/cuts/${id}`).remove().then(() => loadCuts());
+  });
+}
+
+// ================== 3. MODELS & SIZING ==================
+function openModelModal(id = null) {
+  currentEditingModelId = id;
+  document.getElementById('model-modal-title').innerText = id ? 'ویرایش مدل' : 'تعریف مدل';
+  document.getElementById('measurements-container').innerHTML = '';
+  document.getElementById('calc-result-container').style.display = 'none';
+  base64ModelImage = null;
+  document.getElementById('m-img-preview').style.display = 'none';
+
+  if(id) {
+    const m = savedModels.find(x => x.id === id);
+    if(m) {
+      document.getElementById('m-name').value = m.name;
+      document.getElementById('m-code').value = m.code;
+      document.getElementById('base-size-txt').innerText = m.baseSize || 'M';
+      document.getElementById('start-size-txt').innerText = m.startSize || 'S';
+      document.getElementById('end-size-txt').innerText = m.endSize || '10XL';
+      if(m.image) { base64ModelImage = m.image; const img = document.getElementById('m-img-preview'); img.src = m.image; img.style.display = 'block'; }
+      m.measurements.forEach(ms => addMeasurementRow(ms.point, ms.base, ms.inc, ms.step));
+    }
+  } else {
+    document.getElementById('m-name').value = '';
+    document.getElementById('m-code').value = '';
+    document.getElementById('base-size-txt').innerText = 'M';
+    document.getElementById('start-size-txt').innerText = 'S';
+    document.getElementById('end-size-txt').innerText = '10XL';
+    addMeasurementRow('دور سینه', '', '', '1');
+    addMeasurementRow('دور کمر', '', '', '1');
+  }
+  openModal('modal-model');
+}
+
+function addMeasurementRow(point='', base='', inc='', step='1') {
+  const container = document.getElementById('measurements-container');
+  const div = document.createElement('div');
+  div.className = 'size-data-row';
+  let stepOpts = '';
+  const stepLabels = {'1':'هر ۱','2':'هر ۲','3':'هر ۳','4':'هر ۴','5':'هر ۵','0':'فری'};
+  for(let k in stepLabels) stepOpts += `<div class="custom-option" onclick="selectStep('${k}', '${stepLabels[k]}', this)">${stepLabels[k]}</div>`;
+
+  div.innerHTML = `
+    <input type="text" class="m-point" placeholder="نقطه" value="${point}">
+    <input type="number" class="m-base" placeholder="مقدار" value="${base}">
+    <input type="number" class="m-inc" placeholder="تفاوت" value="${inc}">
+    <div class="custom-select-wrapper">
+      <div class="custom-select-trigger" onclick="toggleDropdown(this, event)" style="padding:8px 5px"><span class="trigger-text" style="font-size:11px">${stepLabels[step] || 'هر ۱'}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+      <div class="custom-options">${stepOpts}</div>
+      <input type="hidden" class="m-step-val" value="${step}">
+    </div>
+    <button class="remove-btn" onclick="this.parentElement.remove()" style="background:rgba(255,71,87,.15);color:var(--danger);border:none;border-radius:6px;cursor:pointer;font-size:16px">×</button>
+  `;
+  container.appendChild(div);
+}
+
+function selectStep(val, text, el) {
+  event.stopPropagation();
+  const wrapper = el.closest('.custom-select-wrapper');
+  wrapper.querySelector('.trigger-text').innerText = text;
+  wrapper.querySelector('.m-step-val').value = val;
+  el.closest('.custom-options').classList.remove('open');
+  el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+}
+
+function calculateSizeTable() {
+  const baseSize = document.getElementById('base-size-txt').innerText;
+  const startSize = document.getElementById('start-size-txt').innerText;
+  const endSize = document.getElementById('end-size-txt').innerText;
+  const baseIdx = allSizes.indexOf(baseSize);
+  const startIdx = allSizes.indexOf(startSize);
+  const endIdx = allSizes.indexOf(endSize);
+
+  if(baseIdx === -1 || startIdx === -1 || endIdx === -1 || startIdx > endIdx) return showAlert('error','خطا','بازه سایزبندی نامعتبر است.');
+
+  let headHtml = `<tr><th>نقطه</th>`;
+  for(let i = startIdx; i <= endIdx; i++) headHtml += `<th>${allSizes[i]}</th>`;
+  headHtml += `</tr>`;
+  document.getElementById('calc-table-head').innerHTML = headHtml;
+
+  let bodyHtml = '';
+  const rows = document.querySelectorAll('.size-data-row');
+  rows.forEach(row => {
+    const point = row.querySelector('.m-point').value;
+    const baseVal = parseFloat(row.querySelector('.m-base').value);
+    const inc = parseFloat(row.querySelector('.m-inc').value) || 0;
+    const step = parseFloat(row.querySelector('.m-step-val').value) || 1;
+    if(!point || isNaN(baseVal)) return;
+    
+    bodyHtml += `<tr><td>${point}</td>`;
+    for(let i = startIdx; i <= endIdx; i++) {
+      let val = baseVal;
+      if(step !== 0) {
+        const distance = Math.abs(i - baseIdx);
+        const stepsCount = Math.floor(distance / step);
+        const offset = stepsCount * inc;
+        if(i > baseIdx) val = baseVal + offset;
+        else if(i < baseIdx) val = baseVal - offset;
+      }
+      bodyHtml += `<td>${parseFloat(val.toFixed(1))}</td>`;
+    }
+    bodyHtml += `</tr>`;
+  });
+
+  document.getElementById('calc-table-body').innerHTML = bodyHtml;
+  document.getElementById('calc-result-container').style.display = 'block';
+  document.getElementById('calc-table').classList.add('show');
+}
+
+function saveModel() {
+  const name = document.getElementById('m-name').value.trim();
+  if(!name) return showAlert('error','خطا','نام مدل الزامی است.');
+  const measurements = [];
+  document.querySelectorAll('.size-data-row').forEach(row => {
+    const p = row.querySelector('.m-point').value;
+    const b = parseFloat(row.querySelector('.m-base').value);
+    if(p && !isNaN(b)) measurements.push({ point: p, base: b, inc: parseFloat(row.querySelector('.m-inc').value)||0, step: parseInt(row.querySelector('.m-step-val').value) });
+  });
+
+  const data = {
+    id: currentEditingModelId || uid('mod'), name, code: document.getElementById('m-code').value,
+    baseSize: document.getElementById('base-size-txt').innerText,
+    startSize: document.getElementById('start-size-txt').innerText,
+    endSize: document.getElementById('end-size-txt').innerText,
+    measurements, image: base64ModelImage || null
+  };
+  database.ref('users/' + userPhone + '/models/' + data.id).set(data).then(() => {
+    closeModal('modal-model'); showAlert('success','موفق','مدل ذخیره شد.'); loadModels();
+  });
+}
+
+function loadModels() {
+  database.ref('users/' + userPhone + '/models').once('value').then(snap => {
+    const data = snap.val() || {};
+    savedModels = Object.values(data);
+    const listContainer = document.getElementById('model-list');
+    if(!savedModels.length) {
+      listContainer.innerHTML = '<div class="empty">مدلی ثبت نشده است.</div>';
+      return;
+    }
+    let html = '';
+    savedModels.forEach(m => {
+      html += `
+        <div class="card">
+          <div class="card-header"><div class="card-title">${m.name}</div></div>
+          <div class="card-actions">
+            <button class="action-btn btn-edit" onclick="openModelModal('${m.id}')">ویرایش</button>
+            <button class="action-btn btn-delete" onclick="deleteModel('${m.id}')">حذف</button>
+          </div>
+        </div>`;
+    });
+    listContainer.innerHTML = html;
+  });
+}
+
+function deleteModel(id) {
+  showConfirm('حذف مدل', 'آیا مطمئنید؟', 'بله', () => {
+    database.ref('users/' + userPhone + '/models/' + id).remove().then(() => loadModels());
+  });
+}
+
+function processModelImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas'); const MAX = 800;
+        let w = img.width, h = img.height;
+        if(w > h) { if(w > MAX) { h *= MAX/w; w = MAX; } } else { if(h > MAX) { w *= MAX/h; h = MAX; } }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        base64ModelImage = canvas.toDataURL('image/jpeg', 0.7);
+        document.getElementById('m-img-preview').src = base64ModelImage;
+        document.getElementById('m-img-preview').style.display = 'block';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+// ================== 4. PATTERN LIBRARY ==================
+function loadDefaultPatterns() {
+  fetch('patterns.json').then(r => { if(!r.ok) throw new Error(); return r.json(); }).then(d => {
+    if(d && d.patterns) {
+      defaultPatterns = d.patterns.map(p => {
+        let img = p.image || '';
+        if(img && !img.startsWith('http') && !img.startsWith('images/') && !img.startsWith('data:')) img = 'images/' + img;
+        return { ...p, image: img, isDefault: true };
+      });
+      mergeAndRenderPatterns();
+    }
+  }).catch(() => mergeAndRenderPatterns());
+}
+
+function loadCustomPatterns() {
+  database.ref('users/' + userPhone + '/patterns').once('value').then(snap => {
+    const data = snap.val() || {};
+    customPatterns = Object.values(data).map(p => ({ ...p, isDefault: false }));
+    mergeAndRenderPatterns();
+  });
+}
+
+function loadPatterns() { loadDefaultPatterns(); loadCustomPatterns(); }
+function mergeAndRenderPatterns() { allPatterns = [...defaultPatterns, ...customPatterns]; renderPatterns(); }
+
+function renderPatterns() {
+  const listContainer = document.getElementById('pattern-list');
+  const q = document.getElementById('search-pattern').value.toLowerCase();
+  let filtered = allPatterns.filter(p => (p.title||p.name||'').toLowerCase().includes(q) || (p.category_title||p.category||'').toLowerCase().includes(q));
+  
+  if(!filtered.length) { listContainer.innerHTML = '<div class="empty" style="grid-column:span 2">الگویی یافت نشد.</div>'; return; }
+
+  listContainer.innerHTML = filtered.map(p => {
+    const imgSrc = p.image || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="%2378909c" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>';
+    const badge = p.isDefault ? `<div class="ready-badge">آماده</div>` : '';
+    const actions = p.isDefault 
+      ? `<div class="pattern-actions"><button class="btn-view-pat" style="flex:1;border-left:none" onclick="viewPatternDetails('${p.id}')">مشاهده</button></div>`
+      : `<div class="pattern-actions"><button class="btn-view-pat" onclick="viewPatternDetails('${p.id}')">مشاهده</button><button class="btn-edit-pat" style="color:var(--gold);border-left:1px solid var(--border)" onclick="openPatternModal('${p.id}')">ویرایش</button><button class="btn-del-pat" onclick="deletePattern('${p.id}')">حذف</button></div>`;
+    return `
+      <div class="pattern-card">
+        <div class="pattern-img-box" onclick="viewPatternDetails('${p.id}')">${badge}<img src="${imgSrc}" alt="${p.title||p.name}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2378909c%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22 ry=%222%22></rect><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22></circle><polyline points=%2221 15 16 10 5 21%22></polyline></svg>'"></div>
+        <div class="pattern-info" onclick="viewPatternDetails('${p.id}')">
+          <div class="pattern-name">${p.title||p.name}</div>
+          <div><span class="pattern-cat">${p.category_title||p.category||'عمومی'}</span></div>
+        </div>
+        ${actions}
+      </div>
+    `;
+  }).join('');
+}
+
+function viewPatternDetails(id) {
+  const p = allPatterns.find(x => x.id === id);
+  if(!p) return;
+  document.getElementById('vp-title').innerText = p.title || p.name;
+  document.getElementById('vp-cat').innerText = p.category_title || p.category || 'عمومی';
+  document.getElementById('vp-code').innerText = p.code ? `کد: ${p.code}` : '';
+  if(p.image) { document.getElementById('vp-image').src = p.image; document.getElementById('vp-image').style.display = 'block'; } 
+  else { document.getElementById('vp-image').style.display = 'none'; }
+  document.getElementById('vp-desc').innerText = p.description || p.desc || 'بدون توضیحات.';
+  
+  const fill = (elId, arr) => {
+    const el = document.getElementById(elId);
+    el.innerHTML = (arr && arr.length) ? arr.map(x => `<li>${x}</li>`).join('') : '<li>ثبت نشده</li>';
+  };
+  fill('vp-pieces', p.pieces); fill('vp-measurements', p.measurements); fill('vp-steps', p.steps); fill('vp-tips', p.tips);
+  openModal('view-pattern-modal');
+}
+
+function openPatternModal(id = null) {
+  currentEditingPatternId = id;
+  document.getElementById('pattern-modal-title').innerText = id ? 'ویرایش الگو' : 'ثبت الگو';
+  document.getElementById('pat-img-preview').style.display = 'none';
+  base64PatternImage = null;
+  
+  if(id) {
+    const p = customPatterns.find(x => x.id === id);
+    if(p) {
+      document.getElementById('pat-name').value = p.name || '';
+      document.getElementById('pat-code').value = p.code || '';
+      document.getElementById('pat-desc').value = p.desc || '';
+      document.getElementById('pat-pieces').value = p.pieces ? p.pieces.join('\n') : '';
+      document.getElementById('pat-measurements').value = p.measurements ? p.measurements.join('\n') : '';
+      document.getElementById('pat-steps').value = p.steps ? p.steps.join('\n') : '';
+      document.getElementById('pat-tips').value = p.tips ? p.tips.join('\n') : '';
+      document.getElementById('pat-cat-trigger').innerText = p.category || 'لباس زنانه';
+      document.getElementById('pat-cat-val').value = p.category || 'لباس زنانه';
+      if(p.image) { base64PatternImage = p.image; document.getElementById('pat-img-preview').src = p.image; document.getElementById('pat-img-preview').style.display = 'block'; }
+    }
+  } else {
+    ['pat-name','pat-code','pat-desc','pat-pieces','pat-measurements','pat-steps','pat-tips'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('pat-cat-trigger').innerText = 'لباس زنانه';
+    document.getElementById('pat-cat-val').value = 'لباس زنانه';
+    document.getElementById('pat-image').value = '';
+  }
+  openModal('modal-pattern');
+}
+
+function savePattern() {
+  const name = document.getElementById('pat-name').value.trim();
+  if(!name) return showAlert('error','خطا','نام الگو الزامی است.');
+  const parse = (t) => t.split('\n').map(x => x.trim()).filter(x => x !== '');
+  const data = {
+    id: currentEditingPatternId || uid('pat'), name, title: name, code: document.getElementById('pat-code').value.trim(),
+    category: document.getElementById('pat-cat-val').value, category_title: document.getElementById('pat-cat-val').value,
+    desc: document.getElementById('pat-desc').value.trim(), description: document.getElementById('pat-desc').value.trim(),
+    pieces: parse(document.getElementById('pat-pieces').value), measurements: parse(document.getElementById('pat-measurements').value),
+    steps: parse(document.getElementById('pat-steps').value), tips: parse(document.getElementById('pat-tips').value),
+    image: base64PatternImage || null, timestamp: Date.now()
+  };
+  database.ref('users/' + userPhone + '/patterns/' + data.id).set(data).then(() => {
+    closeModal('modal-pattern'); showAlert('success','موفق','الگو ذخیره شد.'); loadCustomPatterns();
+  });
+}
+
+function deletePattern(id) {
+  showConfirm('حذف الگو', 'آیا مطمئنید؟', 'بله', () => {
+    database.ref('users/' + userPhone + '/patterns/' + id).remove().then(() => loadCustomPatterns());
+  });
+}
+
+function processPatternImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas'); const MAX = 800;
+        let w = img.width, h = img.height;
+        if(w > h) { if(w > MAX) { h *= MAX/w; w = MAX; } } else { if(h > MAX) { w *= MAX/h; h = MAX; } }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        base64PatternImage = canvas.toDataURL('image/jpeg', 0.7);
+        document.getElementById('pat-img-preview').src = base64PatternImage;
+        document.getElementById('pat-img-preview').style.display = 'block';
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function selectPatCat(cat, el) {
+  event.stopPropagation();
+  document.getElementById('pat-cat-trigger').innerText = cat;
+  document.getElementById('pat-cat-val').value = cat;
+  el.closest('.custom-options').classList.remove('open');
+  el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+}
+
+// ================== 5. CUTTER ACCOUNT ==================
+function loadAccountTab() { 
+  loadCuttersFromStaff().then(() => { 
+    if(currentAccountCutterId) renderAccountDetails(currentAccountCutterId); 
+  }); 
+}
+
+function selectAccountCutter(id, name, el) {
+  event.stopPropagation();
+  currentAccountCutterId = id;
+  document.getElementById('acc-cutter-trigger').innerText = name;
+  el.closest('.custom-options').classList.remove('open');
+  el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+  renderAccountDetails(id);
+}
+
+function renderAccountDetails(cutterId) {
+  database.ref('users/' + userPhone + '/staff/' + cutterId).once('value').then(snap => {
+    const c = snap.val(); if(!c) return;
+    currentAccountCutterData = c;
+    
+    // Financial calculations
+    let wages = 0, pays = 0, given = 0, repaid = 0;
+    if(c.wages) Object.values(c.wages).forEach(w => wages += Number(w.amount)||0);
+    if(c.payments) Object.values(c.payments).forEach(p => pays += Number(p.amount)||0);
+    if(c.loans) Object.values(c.loans).forEach(l => l.type === 'given' ? given += Number(l.amount)||0 : repaid += Number(l.amount)||0);
+    
+    const loansOut = given - repaid;
+    
+    // Dynamic Attendance calculations
+    let presentDays = 0;
+    if(c.attendance) {
+      Object.values(c.attendance).forEach(a => { if(a.status === 'present') presentDays++; });
+    }
+    const dailyRate = (c.salaryType === 'monthly' || c.salaryType === 'weekly') && c.workingDays > 0 ? (c.salaryAmount / c.workingDays) : 0;
+    const autoCalculatedWage = Math.round(presentDays * dailyRate);
+    
+    const totalEarned = wages + (c.salaryType === 'piece' ? 0 : autoCalculatedWage);
+    const net = totalEarned - pays - loansOut;
+
+    // Date Dropdowns for Attendance (Generate)
+    const selD = selections['att-day'] || '1';
+    const selM = selections['att-month'] || 'حمل';
+    const selY = selections['att-year'] || '1403';
+
+    let dHtml = '', mHtml = '', yHtml = '';
+    for(let i=1; i<=31; i++) dHtml += `<div class="custom-option" onclick="selectDate('att-day', '${i}', this)">${i}</div>`;
+    shamsiMonths.forEach((m) => mHtml += `<div class="custom-option" onclick="selectDate('att-month', '${m}', this)">${m}</div>`);
+    for(let y=1400; y<=1410; y++) yHtml += `<div class="custom-option" onclick="selectDate('att-year', '${y}', this)">${y}</div>`;
+
+    // Date Dropdowns for Manual Entry (Generate)
+    const manD = selections['man-day'] || '1';
+    const manM = selections['man-month'] || 'حمل';
+    const manY = selections['man-year'] || '1403';
+    
+    let manDhtml = '', manMhtml = '', manYhtml = '';
+    for(let i=1; i<=31; i++) manDhtml += `<div class="custom-option" onclick="selectDate('man-day', '${i}', this)">${i}</div>`;
+    shamsiMonths.forEach((m) => manMhtml += `<div class="custom-option" onclick="selectDate('man-month', '${m}', this)">${m}</div>`);
+    for(let y=1400; y<=1410; y++) manYhtml += `<div class="custom-option" onclick="selectDate('man-year', '${y}', this)">${y}</div>`;
+
+    let html = `
+      <div class="acc-grid">
+        <div class="acc-card owe">
+          <div class="title">طلب باقی‌مانده</div>
+          <div class="value" id="acc-net-value">${net > 0 ? fmt(net) : 0}</div>
+        </div>
+        <div class="acc-card loan">
+          <div class="title">قرض</div>
+          <div class="value" id="acc-loan-value">${loansOut > 0 ? fmt(loansOut) : 0}</div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">تنظیمات معاش</div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>نوع معاش</label>
+            <div class="custom-select-wrapper">
+              <div class="custom-select-trigger" onclick="toggleDropdown(this, event)">
+                <span class="trigger-text">${c.salaryType === 'piece' ? 'دانه‌ای' : c.salaryType === 'weekly' ? 'هفته‌وار' : 'ماهانه'}</span>
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="custom-options">
+                <div class="custom-option" onclick="updateSalaryType('${cutterId}', 'piece', this)">دانه‌ای</div>
+                <div class="custom-option" onclick="updateSalaryType('${cutterId}', 'weekly', this)">هفته‌وار</div>
+                <div class="custom-option" onclick="updateSalaryType('${cutterId}', 'monthly', this)">ماهانه</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>مبلغ معاش</label>
+            <input type="number" value="${c.salaryAmount || 0}" placeholder="مثلا 10000" onchange="updateSalaryAmount('${cutterId}', this.value)">
+          </div>
+        </div>
+        ${c.salaryType !== 'piece' ? `
+        <div class="form-group">
+            <label>تعداد روزهای کاری در ماه</label>
+            <input type="number" value="${c.workingDays || 26}" placeholder="مثلا 26" onchange="updateWorkingDays('${cutterId}', this.value)">
+        </div>
+        ` : ''}
+      </div>
+
+      ${c.salaryType !== 'piece' ? `
+      <div class="card">
+        <div class="card-title">ثبت حاضری و تولید روزها</div>
+        
+        <div class="grid-3" style="margin-bottom:10px">
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-att-day">${selD}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-att-day">${dHtml}</div></div>
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-att-month">${selM}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-att-month">${mHtml}</div></div>
+          <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-att-year">${selY}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-att-year">${yHtml}</div></div>
+        </div>
+        <button class="btn-primary" style="margin-top:0; margin-bottom:10px; background:var(--success); color:#fff;" onclick="generate30Days('${cutterId}')">تولید لیست ۳۰ روز (شروع از تاریخ بالا)</button>
+        
+        <div id="att-stats-box" style="background:rgba(0,0,0,.2);padding:10px;border-radius:10px;font-size:12px;margin-bottom:10px;text-align:center">
+          روزهای حاضر: <strong style="color:var(--success)">${presentDays}</strong> | 
+          دستمزد روزانه: <strong style="color:var(--gold)">${fmt(dailyRate)}</strong> |
+          معاش محاسبه شده: <strong style="color:var(--info)">${fmt(autoCalculatedWage)}</strong>
+        </div>
+
+        <!-- ثبت دستی یک روز -->
+        <div class="card" style="margin-top: 10px; border-color: var(--info); background: rgba(52,152,219,.05);">
+            <div class="card-title" style="color: var(--info); font-size: 13px; border-bottom-color: rgba(52,152,219,.3);">ثبت دستی یک روز خاص</div>
+            <div class="grid-3" style="margin-bottom: 10px;">
+                <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-man-day">${manD}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-man-day">${manDhtml}</div></div>
+                <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-man-month">${manM}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-man-month">${manMhtml}</div></div>
+                <div class="custom-select-wrapper"><div class="custom-select-trigger" onclick="toggleDropdown(this, event)"><span class="trigger-text" id="text-man-year">${manY}</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div><div class="custom-options" id="opt-man-year">${manYhtml}</div></div>
+            </div>
+            <div class="grid-3">
+                <button class="btn-secondary" onclick="saveSingleDay('${cutterId}', 'present')" style="border-color:var(--success); color:var(--success)">حاضر</button>
+                <button class="btn-secondary" onclick="saveSingleDay('${cutterId}', 'leave')" style="border-color:var(--warning); color:var(--warning)">رخصتی</button>
+                <button class="btn-secondary" onclick="saveSingleDay('${cutterId}', 'absent')" style="border-color:var(--danger); color:var(--danger)">غایب</button>
+            </div>
+        </div>
+
+        <div class="attendance-list" id="attendance-list-container">
+          <!-- لیست توسط جاوااسکریپت ساخته میشه -->
+        </div>
+      </div>
+      ` : ''}
+
+      <div style="font-size:13px; color:var(--gold); font-weight:bold; margin:15px 0 10px;">سابقه حساب</div>
+    `;
+    
+    let trans = [];
+    if(c.wages) Object.values(c.wages).forEach(w => trans.push({...w, type:'wage'}));
+    if(c.payments) Object.values(c.payments).forEach(p => trans.push({...p, type:'pay'}));
+    if(c.loans) Object.values(c.loans).forEach(l => trans.push({...l, type:'loan'}));
+    trans.sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
+
+    if(!trans.length) html += '<div class="empty">تراکنشی ثبت نشده است.</div>';
+    else {
+      trans.forEach(t => {
+        let title = '', amt = 0, cls = '';
+        if(t.type === 'wage'){ title = 'دستمزد برش'; amt = t.amount; cls = 'pos'; }
+        if(t.type === 'pay'){ title = 'پرداخت نقدی'; amt = t.amount; cls = 'neg'; }
+        if(t.type === 'loan'){ title = t.loanType === 'given' ? 'قرض داده شده' : 'قرض پس داده'; amt = t.amount; cls = t.loanType === 'given' ? 'neg' : 'pos'; }
+        html += `
+          <div class="transaction-item">
+            <div class="t-info">
+              <div class="t-title">${title}</div>
+              <div class="t-sub">${t.date || ''} ${t.note ? '- ' + t.note : ''}</div>
+            </div>
+            <div class="t-amt ${cls}">${cls === 'neg' ? '-' : '+'}${fmt(amt)}</div>
+          </div>
+        `;
+      });
+    }
+    
+    document.getElementById('account-details').innerHTML = html;
+
+    renderAttendanceList(cutterId);
+  });
+}
+
+// -----------------------------------------------------------
+// منطق لیست اسکرولی (تیک زدن و حذف)
+// -----------------------------------------------------------
+function renderAttendanceList(cutterId) {
+  const c = currentAccountCutterData;
+  if(!c || c.salaryType === 'piece') return;
+
+  const container = document.getElementById('attendance-list-container');
+  if(!container) return;
+
+  if(!c.attendance || Object.keys(c.attendance).length === 0) {
+    container.innerHTML = '<div class="empty" style="padding:10px; font-size:11px;">هیچ روزی ثبت نشده است. از دکمه بالا استفاده کنید.</div>';
+    return;
+  }
+
+  const sortedKeys = Object.keys(c.attendance).sort((a,b) => a.localeCompare(b)); 
+  let html = '';
+
+  sortedKeys.forEach(key => {
+    const att = c.attendance[key];
+    const dateStr = att.date || key.replace(/-/g, '/');
+    const isPresent = att.status === 'present';
+    const isAbsent = att.status === 'absent';
+    const isLeave = att.status === 'leave';
+    
+    html += `
+      <div class="att-row">
+        <span class="att-date">${dateStr}</span>
+        <div style="display:flex; gap:4px; align-items:center;">
+            <div class="status-toggle-group">
+                <button class="status-btn btn-present ${isPresent ? 'active' : ''}" onclick="updateAttendance('${cutterId}', '${key}', 'present', this)">حاضر</button>
+                <button class="status-btn btn-leave ${isLeave ? 'active' : ''}" onclick="updateAttendance('${cutterId}', '${key}', 'leave', this)">رخصتی</button>
+                <button class="status-btn btn-absent ${isAbsent ? 'active' : ''}" onclick="updateAttendance('${cutterId}', '${key}', 'absent', this)">غایب</button>
+            </div>
+            <button onclick="deleteAttendance('${cutterId}', '${key}')" style="background:rgba(255,71,87,.1); border:none; color:var(--danger); cursor:pointer; font-size:16px; padding:0 5px;">✕</button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// تابع برای تولید لیست ۳۰ روز
+function generate30Days(cutterId) {
+  const startD = Number(selections['att-day'] || 1);
+  const startM = shamsiMonths.indexOf(selections['att-month']) + 1 || 1;
+  const startY = Number(selections['att-year'] || 1403);
+
+  let currentY = startY, currentM = startM, currentD = startD;
+  const monthDays = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 30]; 
+  const updates = {};
+  const timestamp = Date.now();
+
+  for (let i = 0; i < 30; i++) {
+    const dateStr = `${currentY}/${String(currentM).padStart(2, '0')}/${String(currentD).padStart(2, '0')}`;
+    const key = dateStr.replace(/\//g, '-');
+    
+    updates[`users/${userPhone}/staff/${cutterId}/attendance/${key}`] = {
+      status: 'present',
+      date: dateStr,
+      timestamp: timestamp + i
+    };
+
+    currentD++;
+    if (currentD > monthDays[currentM - 1]) {
+      currentD = 1; currentM++;
+      if (currentM > 12) { currentM = 1; currentY++; }
+    }
+  }
+
+  database.ref().update(updates).then(() => {
+    showAlert('success', 'آماده شد', 'لیست ۳۰ روز ساخته شد. میتوانید تغییرات را ثبت کنید.');
+    database.ref(`users/${userPhone}/staff/${cutterId}`).once('value').then(snap => {
+      currentAccountCutterData = snap.val();
+      renderAttendanceList(cutterId);
+      refreshCutterFinancials(cutterId);
+    });
+  }).catch(err => showAlert('error', 'خطا', err.message));
+}
+
+// تابع برای ثبت دستی یک روز خاص
+function saveSingleDay(cutterId, status) {
+  const dateStr = getDateStr('man');
+  const key = dateStr.replace(/\//g, '-');
+  
+  database.ref(`users/${userPhone}/staff/${cutterId}/attendance/${key}`).set({
+    status: status, date: dateStr, timestamp: Date.now()
+  }).then(() => {
+    showAlert('success', 'ثبت شد', `وضعیت روز ${dateStr} ثبت شد.`);
+    database.ref(`users/${userPhone}/staff/${cutterId}`).once('value').then(snap => {
+      currentAccountCutterData = snap.val();
+      renderAttendanceList(cutterId); // Update ONLY the list
+      refreshCutterFinancials(cutterId); // Update the stats box
+    });
+  });
+}
+
+// تابع برای ویرایش تک روز از لیست (تیک زدن)
+function updateAttendance(cutterId, dateKey, status, btnEl) {
+  const dateStr = dateKey.replace(/-/g, '/');
+  database.ref(`users/${userPhone}/staff/${cutterId}/attendance/${dateKey}`).set({
+    status: status, date: dateStr, timestamp: Date.now()
+  }).then(() => {
+    const group = btnEl.closest('.status-toggle-group');
+    if(group) {
+      group.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+    }
+    btnEl.classList.add('active');
+    
+    refreshCutterFinancials(cutterId);
+  }).catch(err => showAlert('error', 'خطا', err.message));
+}
+
+// تابع برای حذف یک روز حاضری
+function deleteAttendance(cutterId, dateKey) {
+  showConfirm('حذف حاضری', 'آیا از حذف این روز مطمئن هستید؟', 'بله، حذف کن', () => {
+    database.ref(`users/${userPhone}/staff/${cutterId}/attendance/${dateKey}`).remove().then(() => {
+      database.ref(`users/${userPhone}/staff/${cutterId}`).once('value').then(snap => {
+        currentAccountCutterData = snap.val();
+        renderAccountDetails(cutterId); // Refresh full account details
+      });
+    });
+  });
+}
+
+// تابع برای رفرش کردن اطلاعات مالی و آمار بالای صفحه به صورت لحظه‌ای
+function refreshCutterFinancials(cutterId) {
+  database.ref(`users/${userPhone}/staff/${cutterId}`).once('value').then(snap => {
+    const c = snap.val();
+    currentAccountCutterData = c;
+    
+    let wages = 0, pays = 0, given = 0, repaid = 0;
+    if(c.wages) Object.values(c.wages).forEach(w => wages += Number(w.amount)||0);
+    if(c.payments) Object.values(c.payments).forEach(p => pays += Number(p.amount)||0);
+    if(c.loans) Object.values(c.loans).forEach(l => l.type === 'given' ? given += Number(l.amount)||0 : repaid += Number(l.amount)||0);
+    const loansOut = given - repaid;
+
+    let presentDays = 0;
+    if(c.attendance) Object.values(c.attendance).forEach(a => { if(a.status === 'present') presentDays++; });
+    const dailyRate = (c.salaryType === 'monthly' || c.salaryType === 'weekly') && c.workingDays > 0 ? (c.salaryAmount / c.workingDays) : 0;
+    const autoCalculatedWage = Math.round(presentDays * dailyRate);
+
+    const totalEarned = wages + (c.salaryType === 'piece' ? 0 : autoCalculatedWage);
+    const net = totalEarned - pays - loansOut;
+
+    const netEl = document.getElementById('acc-net-value');
+    if(netEl) netEl.innerText = net > 0 ? fmt(net) : 0;
+    
+    const loanEl = document.getElementById('acc-loan-value');
+    if(loanEl) loanEl.innerText = loansOut > 0 ? fmt(loansOut) : 0;
+
+    const statBox = document.getElementById('att-stats-box');
+    if(statBox) {
+      statBox.innerHTML = `
+        روزهای حاضر: <strong style="color:var(--success)">${presentDays}</strong> | 
+        دستمزد روزانه: <strong style="color:var(--gold)">${fmt(dailyRate)}</strong> |
+        معاش محاسبه شده: <strong style="color:var(--info)">${fmt(autoCalculatedWage)}</strong>
+      `;
+    }
+  });
+}
+
+function updateSalaryType(cutterId, type, el) {
+  database.ref(`users/${userPhone}/staff/${cutterId}/salaryType`).set(type).then(() => {
+    el.closest('.custom-options').classList.remove('open');
+    el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+    renderAccountDetails(cutterId);
+  });
+}
+
+function updateSalaryAmount(cutterId, val) {
+  database.ref(`users/${userPhone}/staff/${cutterId}/salaryAmount`).set(Number(val)).then(() => {
+    renderAccountDetails(cutterId);
+  });
+}
+
+function updateWorkingDays(cutterId, val) {
+  database.ref(`users/${userPhone}/staff/${cutterId}/workingDays`).set(Number(val)).then(() => {
+    renderAccountDetails(cutterId);
+  });
+}
+
+// ================== 6. REPORT & PRINT ==================
+function selectReportType(type, label, el) {
+  event.stopPropagation();
+  document.getElementById('text-report-type').innerText = label;
+  document.getElementById('report-type-val').value = type;
+  selections['report-type'] = type;
+  el.closest('.custom-options').classList.remove('open');
+  el.closest('.custom-select-wrapper').querySelector('.custom-select-trigger').classList.remove('active');
+}
+
+function generateReport() {
+  const fromDate = getDateStr('from');
+  const toDate = getDateStr('to');
+  const reportType = document.getElementById('report-type-val').value;
+
+  document.getElementById('print-date-range').innerText = `از تاریخ: ${fromDate} تا تاریخ: ${toDate}`;
+  document.getElementById('print-date-now').innerText = `تاریخ چاپ: ${todayStr()}`;
+
+  const container = document.getElementById('report-output-container');
+  
+  if(reportType === 'attendance' || reportType === 'combined') {
+    if(!currentAccountCutterId) {
+      if (reportType === 'attendance') {
+        container.innerHTML = '<div class="empty">لطفا ابتدا یک برش‌کار را از تب «حساب من» انتخاب کنید.</div>';
+        return;
+      }
+    } else {
+        const c = currentAccountCutterData;
+        let present = 0, absent = 0, leave = 0;
+        let rowsHtml = '';
+        let rowCount = 1;
+    
+        if(c.attendance) {
+          const sorted = Object.keys(c.attendance).sort((a,b) => a.localeCompare(b));
+          sorted.forEach(key => {
+            const att = c.attendance[key];
+            const dStr = att.date || key.replace(/-/g, '/');
+            if(dStr >= fromDate && dStr <= toDate) {
+              if(att.status === 'present') present++;
+              else if(att.status === 'absent') absent++;
+              else if(att.status === 'leave') leave++;
+              
+              let stText = att.status === 'present' ? 'حاضر' : att.status === 'absent' ? 'غایب' : 'رخصتی';
+              let stColor = att.status === 'present' ? 'var(--success)' : att.status === 'absent' ? 'var(--danger)' : 'var(--warning)';
+              
+              rowsHtml += `
+                <tr>
+                  <td>${rowCount++}</td>
+                  <td>${dStr}</td>
+                  <td style="color:${stColor}; font-weight:bold;">${stText}</td>
+                </tr>
+              `;
+            }
+          });
+        }
+    
+        let html = `
+          <div style="margin-bottom:20px; border:1px solid var(--border); border-radius:10px; padding:10px; background:rgba(0,0,0,0.1);">
+            <h3 style="color:var(--gold); margin-bottom:10px; font-size:14px;">گزارش حاضری برش‌کار (${c.name})</h3>
+            <table class="report-table show" id="att-report-table">
+              <thead>
+                <tr>
+                  <th>ردیف</th>
+                  <th>تاریخ</th>
+                  <th>وضعیت</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml || '<tr><td colspan="3">هیچ حاضری در این بازه ثبت نشده است.</td></tr>'}
+              </tbody>
+            </table>
+            <div class="report-summary-box show" style="margin-top:10px;">
+              <strong>خلاصه وضعیت:</strong><br>
+              روزهای حاضر: ${present} روز<br>
+              روزهای غایب: ${absent} روز<br>
+              روزهای رخصتی: ${leave} روز<br>
+              معاش ماهانه: ${fmt(c.salaryAmount)} افغانی
+            </div>
+          </div>
+        `;
+        if(reportType === 'attendance') {
+            container.innerHTML = html;
+            return;
+        } else {
+            container.innerHTML = html; // If combined, this will be prepended
+        }
+    }
+  }
+
+  if(reportType === 'cuts' || reportType === 'combined') {
+    const filtered = savedCuts.filter(c => c.date >= fromDate && c.date <= toDate);
+    if(!filtered.length) {
+      if(reportType === 'cuts') container.innerHTML = '<div class="empty">هیچ برشی در این بازه ثبت نشده است.</div>';
+      return;
+    }
+    
+    let totalQty = 0, totalMoney = 0;
+    let rowsHtml = '';
+    let rowCount = 1;
+
+    filtered.forEach(c => {
+      const itemsArray = Array.isArray(c.items) ? c.items : Object.values(c.items || {});
+      itemsArray.forEach(item => {
+        const itemTotal = (item.qty || 0) * (item.rate || 0);
+        totalQty += (item.qty || 0);
+        totalMoney += itemTotal;
+        rowsHtml += `
+          <tr>
+            <td>${rowCount++}</td>
+            <td>${c.date}</td>
+            <td>${c.cutterName}</td>
+            <td>${item.type || '-'}</td>
+            <td>${item.color || '-'}</td>
+            <td>${item.size || '-'}</td>
+            <td>${item.layers || 1}</td>
+            <td>${item.qty}</td>
+            <td>${fmt(item.rate)}</td>
+            <td>${fmt(itemTotal)}</td>
+          </tr>
+        `;
+      });
+    });
+
+    let html = `
+      <div style="border:1px solid var(--border); border-radius:10px; padding:10px; background:rgba(0,0,0,0.1);">
+        <h3 style="color:var(--gold); margin-bottom:10px; font-size:14px;">گزارش برش‌کاری</h3>
+        <table class="report-table show" id="cuts-report-table">
+          <thead>
+            <tr>
+              <th>ردیف</th>
+              <th>تاریخ</th>
+              <th>برش‌کار</th>
+              <th>نوع</th>
+              <th>رنگ</th>
+              <th>سایز</th>
+              <th>لایه</th>
+              <th>تعداد</th>
+              <th>نرخ</th>
+              <th>مبلغ کل</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="7" style="text-align:left">جمع کل:</th>
+              <th>${totalQty}</th>
+              <th>-</th>
+              <th>${fmt(totalMoney)}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+
+    if(reportType === 'combined') {
+        container.innerHTML += html;
+    } else {
+        container.innerHTML = html;
+    }
+  }
+}
+
+function exportReportToExcel() {
+  let table = document.getElementById('cuts-report-table');
+  if(!table) table = document.getElementById('att-report-table');
+  if(!table) table = document.querySelector('#report-output-container table');
+
+  if(!table) return showAlert('error', 'خطا', 'ابتدا یک گزارش تهیه کنید.');
+  
+  const wb = XLSX.utils.table_to_book(table, {sheet: "Sheet1"});
+  XLSX.writeFile(wb, 'Tailor_Report.xlsx');
+}
+
+// ================== START ==================
+document.addEventListener('DOMContentLoaded', () => {
+  if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
+  initDatesAndSizes();
+  loadCuttersFromStaff().then(() => {
+    loadModels();
+    loadCuts();
+  });
+});
+</script>
+</body>
+</html>

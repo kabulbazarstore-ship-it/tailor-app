@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tailor | تنظیمات پروفایل</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        :root {
+            --bg-body: radial-gradient(circle at top, #0a261d 0%, #050b09 100%);
+            --bg-panel: linear-gradient(180deg, #0a1c16 0%, #040b09 100%);
+            --text-main: #ffffff;
+            --text-muted: #78909c;
+            --gold: #d4af37;
+            --gold-light: #f3d58b;
+            --border: rgba(212, 175, 55, 0.3);
+            --danger: #ff4757;
+            --success: #2ed573;
+            --input-bg: rgba(0, 0, 0, 0.4);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            --dropdown-bg: #0a1c16;
+        }
+
+        body.light-mode {
+            --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
+            --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
+            --text-main: #1c2b26;
+            --text-muted: #4a5a54;
+            --border: rgba(212, 175, 55, 0.6);
+            --input-bg: #fdfcf9;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --dropdown-bg: #f4ecd8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; transition: background 0.3s, color 0.3s; overflow-x: hidden; }
+        .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; display: flex; flex-direction: column; }
+
+        /* هدر */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { background: none; border: none; color: var(--gold); font-size: 24px; cursor: pointer; text-decoration: none; }
+        .header-title { color: var(--gold); font-weight: bold; font-size: 18px; }
+        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* آواتار (عکس پروفایل) */
+        .avatar-section { text-align: center; margin-bottom: 25px; position: relative; }
+        .avatar-wrapper { width: 110px; height: 110px; border-radius: 50%; margin: 0 auto; position: relative; border: 3px solid var(--bg-panel); box-shadow: 0 0 20px rgba(212, 175, 55, 0.4); cursor: pointer; }
+        .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--gold); }
+        .avatar-text { width: 100%; height: 100%; border-radius: 50%; background: var(--gold); color: #000; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; }
+        
+        .camera-btn { position: absolute; bottom: 0; right: 0; width: 34px; height: 34px; background: var(--success); border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 3px solid var(--bg-body); cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .camera-btn:hover { transform: scale(1.1); }
+        .camera-btn svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; }
+        input[type="file"] { display: none; }
+
+        /* تب‌ها (Segmented Control) */
+        .tabs-container { display: flex; background: var(--input-bg); border: 1px solid var(--border); border-radius: 14px; padding: 5px; margin-bottom: 25px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; color: var(--text-muted); border-radius: 10px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .tab-btn.active { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
+        .tab-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* فرم‌ها */
+        .card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 12px; color: var(--gold); margin-bottom: 8px; font-weight: bold; }
+        .input-with-icon { position: relative; width: 100%; }
+        .input-with-icon svg { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; fill: none; stroke: var(--text-muted); stroke-width: 2; transition: 0.3s; }
+        .input-with-icon input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 45px 14px 15px; color: var(--text-main); font-size: 13px; outline: none; transition: 0.3s; }
+        .input-with-icon input:focus { border-color: var(--gold); box-shadow: 0 0 10px rgba(212, 175, 55, 0.1); }
+        .input-with-icon input:focus + svg { stroke: var(--gold); }
+        .input-with-icon input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* منوی کشویی سفارشی */
+        .custom-dropdown { position: relative; width: 100%; user-select: none; }
+        .dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 15px; color: var(--text-main); font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
+        .dropdown-trigger.active { border-color: var(--gold); }
+        .dropdown-trigger svg { width: 14px; height: 14px; stroke: var(--gold); stroke-width: 2; fill: none; transition: 0.3s; }
+        .dropdown-trigger.active svg { transform: rotate(180deg); }
+        .dropdown-options { position: absolute; top: 110%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 12px; box-shadow: var(--shadow); z-index: 100; display: none; flex-direction: column; max-height: 200px; overflow-y: auto; }
+        .dropdown-options.active { display: flex; }
+        .dropdown-option { padding: 12px 15px; font-size: 13px; cursor: pointer; color: var(--text-main); border-bottom: 1px solid var(--border); transition: 0.2s; }
+        .dropdown-option:last-child { border-bottom: none; }
+        .dropdown-option:hover { background: rgba(212, 175, 55, 0.15); color: var(--gold); padding-right: 20px; }
+
+        /* دکمه‌ها */
+        .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); margin-top: 10px; }
+        .btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+        
+        /* مودال پیام */
+        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
+        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.8); transition: 0.3s; }
+        .custom-alert-overlay.active .custom-alert-box { transform: scale(1); }
+        .custom-alert-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; }
+        .icon-success { background: rgba(46, 213, 115, 0.1); border: 2px solid var(--success); color: var(--success); }
+        .icon-error { background: rgba(255, 71, 87, 0.1); border: 2px solid var(--danger); color: var(--danger); }
+        .custom-alert-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 3; }
+        .custom-alert-title { color: var(--gold); font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; line-height: 1.5; }
+        .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- مودال پیام -->
+    <div class="custom-alert-overlay" id="custom-alert">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+            <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+            <p class="custom-alert-msg" id="alert-msg">پیام</p>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="top-bar">
+            <a href="index.html" class="back-btn">➔</a>
+            <div class="header-title">پروفایل و تنظیمات</div>
+            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"></svg></button>
+        </div>
+
+        <!-- بخش عکس پروفایل -->
+        <div class="avatar-section">
+            <div class="avatar-wrapper" onclick="document.getElementById('avatar-input').click()">
+                <img id="avatar-img" class="avatar-img" style="display: none;">
+                <div id="avatar-text" class="avatar-text">خ</div>
+                <div class="camera-btn">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+            </div>
+            <input type="file" id="avatar-input" accept="image/*" onchange="processAvatar(this)">
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 15px;">برای تغییر عکس، روی آن کلیک کنید</p>
+        </div>
+
+        <!-- تب‌ها -->
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="openTab('tab-info', this)">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                اطلاعات شخصی
+            </button>
+            <button class="tab-btn" onclick="openTab('tab-security', this)">
+                <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                تغییر رمز عبور
+            </button>
+        </div>
+
+        <!-- تب اطلاعات شخصی -->
+        <div id="tab-info" class="tab-content active">
+            <div class="card">
+                <form onsubmit="event.preventDefault(); saveProfile();">
+                    <div class="form-group">
+                        <label>شماره تماس (غیرقابل تغییر)</label>
+                        <div class="input-with-icon">
+                            <input type="text" id="p-phone" disabled>
+                            <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>نام خیاطی</label>
+                        <div class="input-with-icon">
+                            <input type="text" id="p-tailor" required placeholder="نام خیاطی شما">
+                            <svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2 12 5 8 2 3.62 3.46a2 2 0 0 0-1.34 2.23l1.03 7.36a2 2 0 0 0 2 1.73H18.7a2 2 0 0 0 2-1.73l1.03-7.36a2 2 0 0 0-1.35-2.23z"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>نام و تخلص (مالک)</label>
+                        <div class="input-with-icon">
+                            <input type="text" id="p-owner" required placeholder="نام و تخلص شما">
+                            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>نقش شما در کارگاه</label>
+                        <div class="custom-dropdown" id="dd-role">
+                            <div class="dropdown-trigger" onclick="toggleDropdown('dd-role')">
+                                <span id="val-role">صاحب کار (مدیر)</span>
+                                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                            </div>
+                            <div class="dropdown-options">
+                                <div class="dropdown-option" onclick="selectRole('صاحب کار (مدیر)', 'صاحب کار')">صاحب کار (مدیر)</div>
+                                <div class="dropdown-option" onclick="selectRole('خلیفه (مسئول کارگاه)', 'خلیفه')">خلیفه (مسئول کارگاه)</div>
+                                <div class="dropdown-option" onclick="selectRole('خیاط', 'خیاط')">خیاط</div>
+                                <div class="dropdown-option" onclick="selectRole('شاگرد', 'شاگرد')">شاگرد</div>
+                            </div>
+                            <input type="hidden" id="p-role-val">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>آدرس دقیق</label>
+                        <div class="input-with-icon">
+                            <input type="text" id="p-address" placeholder="مثلا: کابل، سرک...">
+                            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        ذخیره تغییرات
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- تب امنیت -->
+        <div id="tab-security" class="tab-content">
+            <div class="card">
+                <form onsubmit="event.preventDefault(); changePassword();">
+                    <div class="form-group">
+                        <label>رمز عبور فعلی</label>
+                        <div class="input-with-icon">
+                            <input type="password" id="old-pass" required placeholder="رمز فعلی خود را وارد کنید">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>رمز عبور جدید</label>
+                        <div class="input-with-icon">
+                            <input type="password" id="new-pass" required placeholder="حداقل ۶ کاراکتر">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>تایید رمز عبور جدید</label>
+                        <div class="input-with-icon">
+                            <input type="password" id="confirm-pass" required placeholder="رمز جدید را تکرار کنید">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        تغییر رمز عبور
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
+            authDomain: "tailor-64f7f.firebaseapp.com",
+            databaseURL: "https://tailor-64f7f-default-rtdb.firebaseio.com",
+            projectId: "tailor-64f7f",
+            storageBucket: "tailor-64f7f.firebasestorage.app",
+            messagingSenderId: "16067911685",
+            appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const userPhone = localStorage.getItem('tailor_user');
+
+        let base64Avatar = null;
+
+        // ================= نمایش پیام =================
+        function showAlert(type, title, msg) {
+            const overlay = document.getElementById('custom-alert');
+            const iconBox = document.getElementById('alert-icon-box');
+            const iconSvg = document.getElementById('alert-icon-svg');
+            if(type === 'success') { iconBox.className = 'custom-alert-icon icon-success'; iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>'; } 
+            else { iconBox.className = 'custom-alert-icon icon-error'; iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            overlay.classList.add('active');
+        }
+        function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
+
+        // ================= تم تاریک/روشن =================
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+        }
+
+        // ================= سیستم تب‌ها =================
+        function openTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // ================= منوی کشویی =================
+        function toggleDropdown(id) {
+            document.querySelectorAll('.dropdown-options').forEach(el => {
+                if(el.parentElement.id !== id) {
+                    el.classList.remove('active');
+                    el.previousElementSibling.classList.remove('active');
+                }
+            });
+            const d = document.getElementById(id);
+            d.querySelector('.dropdown-options').classList.toggle('active');
+            d.querySelector('.dropdown-trigger').classList.toggle('active');
+        }
+
+        function selectRole(label, value) {
+            if(event) event.stopPropagation();
+            document.getElementById('val-role').innerText = label;
+            document.getElementById('p-role-val').value = value;
+            document.getElementById('dd-role').querySelector('.dropdown-options').classList.remove('active');
+            document.getElementById('dd-role').querySelector('.dropdown-trigger').classList.remove('active');
+        }
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        // ================= پردازش عکس پروفایل (تغییر سایز خودکار) =================
+        function processAvatar(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 300; 
+                        let w = img.width, h = img.height;
+                        if(w > h) { if(w > MAX) { h *= MAX/w; w = MAX; } } 
+                        else { if(h > MAX) { w *= MAX/h; h = MAX; } }
+                        
+                        canvas.width = w; 
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        base64Avatar = canvas.toDataURL('image/jpeg', 0.7);
+                        showAvatar(base64Avatar);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function showAvatar(base64) {
+            const imgEl = document.getElementById('avatar-img');
+            const textEl = document.getElementById('avatar-text');
+            if(base64) {
+                imgEl.src = base64;
+                imgEl.style.display = 'block';
+                textEl.style.display = 'none';
+            } else {
+                imgEl.style.display = 'none';
+                textEl.style.display = 'flex';
+            }
+        }
+
+        // ================= بارگذاری اطلاعات =================
+        function loadProfile() {
+            if(!userPhone) return;
+            database.ref('users/' + userPhone).once('value').then(snapshot => {
+                const data = snapshot.val();
+                if(data) {
+                    document.getElementById('p-phone').value = userPhone;
+                    document.getElementById('p-tailor').value = data.tailorName || '';
+                    document.getElementById('p-owner').value = data.ownerName || '';
+                    document.getElementById('p-address').value = data.address || '';
+                    
+                    const roleVal = data.role || 'صاحب کار';
+                    const roleLabels = {
+                        'صاحب کار': 'صاحب کار (مدیر)',
+                        'خلیفه': 'خلیفه (مسئول کارگاه)',
+                        'خیاط': 'خیاط',
+                        'شاگرد': 'شاگرد'
+                    };
+                    document.getElementById('val-role').innerText = roleLabels[roleVal] || roleVal;
+                    document.getElementById('p-role-val').value = roleVal;
+                    
+                    base64Avatar = data.profileImage || null;
+                    if(base64Avatar) {
+                        showAvatar(base64Avatar);
+                    } else {
+                        document.getElementById('avatar-text').innerText = (data.tailorName || 'خیاط')[0];
+                        showAvatar(null);
+                    }
+                }
+            });
+        }
+
+        // ================= ذخیره تغییرات =================
+        function saveProfile() {
+            const tailorName = document.getElementById('p-tailor').value.trim();
+            const ownerName = document.getElementById('p-owner').value.trim();
+            const role = document.getElementById('p-role-val').value;
+            const address = document.getElementById('p-address').value.trim();
+
+            if(!tailorName || !ownerName) return showAlert('error', 'خطا', 'نام خیاطی و نام مالک الزامی است.');
+
+            const updateData = {
+                tailorName: tailorName,
+                ownerName: ownerName,
+                role: role,
+                address: address,
+                profileImage: base64Avatar 
+            };
+
+            database.ref('users/' + userPhone).update(updateData).then(() => {
+                localStorage.setItem('tailor_tailor_name', tailorName);
+                showAlert('success', 'موفق', 'اطلاعات پروفایل با موفقیت ذخیره شد.');
+                loadProfile(); 
+            }).catch(err => showAlert('error', 'خطا', err.message));
+        }
+
+        // ================= تغییر رمز عبور =================
+        function changePassword() {
+            const oldPass = document.getElementById('old-pass').value;
+            const newPass = document.getElementById('new-pass').value;
+            const confirmPass = document.getElementById('confirm-pass').value;
+
+            if(newPass !== confirmPass) return showAlert('error', 'خطا', 'رمز عبور جدید با تاییدیه مطابقت ندارد.');
+            if(newPass.length < 6) return showAlert('error', 'خطا', 'رمز عبور جدید باید حداقل ۶ کاراکتر باشد.');
+
+            database.ref('users/' + userPhone + '/password').once('value').then(snap => {
+                const currentPass = snap.val();
+                if(currentPass && currentPass !== oldPass) {
+                    return showAlert('error', 'خطا', 'رمز عبور فعلی اشتباه است.');
+                }
+                
+                database.ref('users/' + userPhone + '/password').set(newPass).then(() => {
+                    showAlert('success', 'تغییر رمز', 'رمز عبور شما با موفقیت تغییر کرد.');
+                    document.getElementById('old-pass').value = '';
+                    document.getElementById('new-pass').value = '';
+                    document.getElementById('confirm-pass').value = '';
+                });
+            });
+        }
+
+        // ================= شروع =================
+        window.onload = () => {
+            if(localStorage.getItem('tailor_theme') === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            }
+            loadProfile();
+        };
+    </script>
+</body>
+</html>
