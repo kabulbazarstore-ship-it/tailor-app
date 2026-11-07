@@ -6,17 +6,10 @@
     <title>Tailor | خیاط‌یار</title>
     <link rel="manifest" href="manifest.json">
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Tailor">
-    <link rel="apple-touch-icon" href="assets/logo.png">
-
-    <!-- Firebase Core & Auth & Database -->
+    <!-- Firebase Core, Auth, Database -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
         :root {
@@ -29,129 +22,75 @@
             --border: rgba(212, 175, 55, 0.3);
             --danger: #ff4757;
             --success: #2ed573;
-            --warning: #f39c12;
             --input-bg: rgba(0, 0, 0, 0.4);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-            --sidebar-bg: #07130f;
         }
 
-        body.light-mode {
-            --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
-            --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
-            --text-main: #1c2b26;
-            --text-muted: #4a5a54;
-            --border: rgba(212, 175, 55, 0.6);
-            --input-bg: rgba(255, 255, 255, 0.6);
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            --sidebar-bg: #f4ecd8;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; }
+        .app-container { width: 100%; max-width: 420px; padding: 15px; position: relative; min-height: 100vh; display: flex; flex-direction: column; }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
-        .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; z-index: 1; }
-
-        /* لودینگ اولیه (Splash) */
-        #splash-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
-        .glow-logo { width: 110px; height: 110px; border-radius: 30px; border: 2px solid var(--gold); object-fit: cover; animation: pulseGlow 2s infinite alternate; background: #000; }
-        @keyframes pulseGlow { from { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); } to { box-shadow: 0 0 40px rgba(212, 175, 55, 0.8); } }
-        .splash-title { color: var(--gold); font-size: 26px; margin-top: 20px; font-weight: bold; letter-spacing: 2px; }
+        /* لودینگ اولیه */
+        #splash-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s; }
+        .glow-logo { width: 100px; height: 100px; border-radius: 25px; border: 2px solid var(--gold); background: #000; }
+        .splash-title { color: var(--gold); font-size: 24px; margin-top: 15px; font-weight: bold; }
         .splash-name { color: var(--text-main); font-size: 16px; margin-top: 10px; font-weight: bold; }
-        .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(212, 175, 55, 0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 25px; }
+        .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(212, 175, 55, 0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* فرم‌ها */
-        .view-section { display: none; animation: fadeIn 0.3s ease-out; }
+        /* صفحات */
+        .view-section { display: none; }
         .view-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; padding: 25px 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
+        .card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; padding: 25px 20px; margin-bottom: 20px; }
         .header-title h1 { color: var(--gold); font-size: 22px; margin-bottom: 5px; text-align: center; }
-        .form-group { margin-bottom: 15px; position: relative; }
+        .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 12px; color: var(--gold); margin-bottom: 6px; }
-        .input-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; color: var(--text-main); font-size: 13px; outline: none; }
-        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
-        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
-        .btn-link { background: none; border: none; color: var(--gold); font-size: 13px; cursor: pointer; display: block; width: 100%; text-align: center; margin-top: 15px; }
+        .input-box input { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text-main); font-size: 13px; outline: none; }
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; }
+        .btn-link { background: none; border: none; color: var(--gold); font-size: 13px; cursor: pointer; width: 100%; text-align: center; }
 
-        /* داشبورد */
-        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .menu-btn { background: none; border: none; color: var(--gold); cursor: pointer; }
-        .menu-btn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; }
-        .brand-name { color: var(--gold); font-weight: bold; font-size: 18px; }
-        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
-        
-        .dash-header h2 { font-size: 18px; color: var(--gold); margin-bottom: 4px; }
-        .dash-header p { font-size: 11px; color: var(--text-muted); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
-        .stat-info .title { font-size: 10px; color: var(--text-muted); }
-        .stat-info .value { font-size: 16px; font-weight: bold; color: var(--text-main); }
-        
-        .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .menu-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px 5px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-decoration: none; color: var(--text-main); box-shadow: var(--shadow); }
-        .icon-box { width: 45px; height: 45px; border-radius: 12px; display: flex; justify-content: center; align-items: center; }
-        .icon-box svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
-        .menu-item span { font-size: 11px; font-weight: bold; text-align: center; }
-        
-        .bg-orders { background: #f39c12; } .bg-students { background: #2ed573; } .bg-production { background: #9b59b6; }
-        .bg-finance { background: #3498db; } .bg-samples { background: #e84393; } .bg-cutting { background: #3498db; }
-        .bg-loans { background: #e84393; } .bg-machine { background: #7f8c8d; } .bg-office { background: #27ae60; }
+        /* قفل صفحه */
+        #lock-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9998; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+        .lock-input { width: 100%; max-width: 300px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); text-align: center; margin-bottom: 10px; }
 
-        /* سیستم پیام‌رسان */
-        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        /* پیام‌رسان */
+        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
         .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
-        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.8); transition: 0.3s; }
-        .custom-alert-overlay.active .custom-alert-box { transform: scale(1); }
-        .custom-alert-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; }
-        .icon-success { background: rgba(46, 213, 115, 0.1); border: 2px solid var(--success); color: var(--success); }
-        .icon-error { background: rgba(255, 71, 87, 0.1); border: 2px solid var(--danger); color: var(--danger); }
-        .custom-alert-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 3; }
-        .custom-alert-title { color: var(--gold); font-size: 18px; font-weight: bold; margin-bottom: 8px; }
-        .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; line-height: 1.5; }
-        .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
+        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 85%; max-width: 320px; text-align: center; }
+        .custom-alert-title { color: var(--gold); font-size: 18px; margin-bottom: 10px; }
+        .custom-alert-msg { font-size: 13px; margin-bottom: 15px; }
+        .custom-alert-btn { background: var(--gold); color: #000; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <!-- صفحه لودینگ -->
+    <!-- لودینگ -->
     <div id="splash-screen">
-        <img src="assets/logo.png" alt="Tailor" class="glow-logo" onerror="this.style.display='none'">
+        <div class="glow-logo"></div>
         <h1 class="splash-title">Tailor</h1>
         <h2 class="splash-name" id="splash-user-name"></h2>
         <div class="loader-spinner"></div>
     </div>
 
-    <!-- سیستم پیام‌رسان -->
+    <!-- پیام‌رسان -->
     <div class="custom-alert-overlay" id="custom-alert">
         <div class="custom-alert-box">
-            <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
             <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
             <p class="custom-alert-msg" id="alert-msg">پیام</p>
-            <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+            <button class="custom-alert-btn" onclick="document.getElementById('custom-alert').classList.remove('active')">تایید</button>
         </div>
     </div>
 
     <div class="app-container">
         
-        <!-- دکمه تم -->
-        <div class="top-bar" id="main-top-bar" style="display: none;">
-            <div class="header-left">
-                <div class="brand-name">Tailor</div>
-            </div>
-            <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
-        </div>
-
         <!-- صفحه ورود -->
         <div id="view-login" class="view-section active">
             <div class="card">
-                <div class="header-title"><h1>ورود به Tailor</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:5px;">حساب خود را وارد کنید</p></div>
-                <form onsubmit="event.preventDefault(); loginUser();">
-                    <div class="form-group"><label>ایمیل</label><div class="input-box"><input type="email" id="login-email" placeholder="example@mail.com" required></div></div>
-                    <div class="form-group"><label>رمز عبور</label><div class="input-box"><input type="password" id="login-pass" placeholder="رمز عبور" required></div></div>
-                    <button type="submit" class="btn btn-primary" id="btn-login">ورود به برنامه</button>
-                    <button type="button" class="btn-link" onclick="switchView('register')">حساب ندارید؟ ثبت‌نام کنید</button>
-                </form>
+                <div class="header-title"><h1>ورود به برنامه</h1></div>
+                <div class="form-group"><label>ایمیل</label><input type="email" id="login-email" placeholder="example@mail.com"></div>
+                <div class="form-group"><label>رمز عبور</label><input type="password" id="login-pass" placeholder="رمز عبور"></div>
+                <button class="btn btn-primary" onclick="loginUser()">ورود</button>
+                <button class="btn-link" onclick="switchView('register')">حساب ندارید؟ ثبت‌نام کنید</button>
             </div>
         </div>
 
@@ -159,62 +98,32 @@
         <div id="view-register" class="view-section">
             <div class="card">
                 <div class="header-title"><h1>ایجاد حساب جدید</h1></div>
-                <form onsubmit="event.preventDefault(); registerUser();">
-                    <div class="form-group"><label>نام خیاطی</label><div class="input-box"><input type="text" id="reg-tailor" required placeholder="مثلا خیاطی احمدی"></div></div>
-                    <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="reg-phone" required placeholder="07XXXXXXXX"></div></div>
-                    <div class="form-group"><label>ایمیل</label><div class="input-box"><input type="email" id="reg-email" required placeholder="example@mail.com"></div></div>
-                    <div class="form-group"><label>رمز عبور (حداقل ۶ کاراکتر)</label><div class="input-box"><input type="password" id="reg-pass" required minlength="6" placeholder="رمز عبور"></div></div>
-                    <button type="submit" class="btn btn-primary" id="btn-register">ثبت‌نام و شروع ۳۰ روز رایگان</button>
-                    <button type="button" class="btn-link" onclick="switchView('login')">قبلاً حساب دارید؟ ورود</button>
-                </form>
+                <div class="form-group"><label>نام خیاطی</label><input type="text" id="reg-tailor" placeholder="مثلا خیاطی احمدی"></div>
+                <div class="form-group"><label>شماره تماس</label><input type="tel" id="reg-phone" placeholder="07XXXXXXXX"></div>
+                <div class="form-group"><label>ایمیل</label><input type="email" id="reg-email" placeholder="example@mail.com"></div>
+                <div class="form-group"><label>رمز عبور (حداقل ۶ کاراکتر)</label><input type="password" id="reg-pass" placeholder="رمز عبور"></div>
+                <button class="btn btn-primary" onclick="registerUser()">ثبت‌نام و شروع ۳۰ روز رایگان</button>
+                <button class="btn-link" onclick="switchView('login')">قبلاً حساب دارید؟ ورود</button>
             </div>
         </div>
 
-        <!-- صفحه داشبورد -->
+        <!-- داشبورد -->
         <div id="view-dashboard" class="view-section">
-            <div class="dash-header">
-                <div class="greeting">
-                    <h2 id="dash-greeting">سلام</h2>
-                    <p id="dash-date">در حال بارگذاری تاریخ...</p>
-                </div>
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-card"><div class="stat-info"><div class="title">کل تولیدات</div><div class="value" id="stat-total-prod">0</div></div></div>
-                <div class="stat-card"><div class="stat-info"><div class="title">مبلغ تولیدات</div><div class="value" id="stat-total-value">0</div></div></div>
-                <div class="stat-card"><div class="stat-info"><div class="title">مجموع قرض‌ها</div><div class="value" id="stat-total-debt">0</div></div></div>
-                <div class="stat-card"><div class="stat-info"><div class="title">موجودی دفتر</div><div class="value" id="stat-book-balance">0</div></div></div>
-            </div>
-
-            <div class="menu-grid">
-                <a href="owner.html" class="menu-item"><div class="icon-box bg-orders"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span>سفارشات</span></a>
-                <a href="production.html" class="menu-item"><div class="icon-box bg-production"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><span>تولید</span></a>
-                <a href="students.html" class="menu-item"><div class="icon-box bg-students"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><span>شاگردان</span></a>
-                <a href="cutting.html" class="menu-item"><div class="icon-box bg-cutting"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg></div><span>برش کار</span></a>
-                <a href="samples.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
-                <a href="loans.html" class="menu-item"><div class="icon-box bg-loans"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="10" x2="12" y2="16"/></svg></div><span>قرض</span></a>
-                <a href="accounting.html" class="menu-item"><div class="icon-box bg-finance"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span>حساب و کتاب</span></a>
-                <a href="office.html" class="menu-item"><div class="icon-box bg-office"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span>حساب دفتر</span></a>
-                <a href="machine-guide.html" class="menu-item"><div class="icon-box bg-machine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><span>راهنمای چرخ</span></a>
-            </div>
+            <h2 style="color:var(--gold); text-align:center; margin-top:50px;">خوش آمدید به داشبورد!</h2>
+            <p style="text-align:center; color:var(--text-muted); margin-top:10px;" id="dash-message"></p>
         </div>
+
     </div>
 
-    <!-- صفحه قفل (اشتراک تمام شده) -->
-    <div id="lock-screen" style="position:fixed; inset:0; background:var(--bg-body); z-index:9998; display:none; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;">
-        <img src="assets/logo.png" style="width:100px; margin-bottom:20px; border-radius:20px; border:2px solid var(--gold);">
-        <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک شما به پایان رسیده است</h2>
-        <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.6;">دوره آزمایشی ۳۰ روزه شما تمام شده است. برای ادامه استفاده، لطفاً هزینه اشتراک را پرداخت کنید.</p>
-        
-        <div style="background:var(--bg-panel); border:1px solid var(--gold); padding:15px; border-radius:15px; width:100%; max-width:350px;">
-            <a href="payment.html" class="btn btn-primary" style="text-decoration:none; margin-bottom:15px;">پرداخت و تمدید اشتراک</a>
-            
-            <p style="font-size:12px; color:var(--text-main); margin-bottom:10px;">اگر قبلاً پرداخت کرده‌اید، کد فعال‌سازی را وارد کنید:</p>
-            <input type="text" id="lock-code-input" placeholder="کد فعال‌سازی" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); text-align:center; margin-bottom:10px; outline:none;">
-            <button onclick="activateAccount()" class="btn btn-primary" style="background:var(--success); color:#fff;">فعال‌سازی حساب</button>
+    <!-- صفحه قفل -->
+    <div id="lock-screen">
+        <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک تمام شده است</h2>
+        <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">دوره ۳۰ روزه به پایان رسیده. لطفاً پرداخت کنید.</p>
+        <a href="payment.html" class="btn btn-primary" style="text-decoration:none; width:100%; max-width:300px; text-align:center;">پرداخت اشتراک</a>
+        <div style="margin-top:20px; width:100%; max-width:300px;">
+            <input type="text" id="lock-code-input" class="lock-input" placeholder="کد فعال‌سازی">
+            <button class="btn btn-primary" onclick="activateAccount()">فعال‌سازی</button>
         </div>
-        
-        <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</a>
     </div>
 
     <script>
@@ -229,268 +138,160 @@
             appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
         };
         
-        let database = null;
-        let auth = null;
-        try { 
-            firebase.initializeApp(firebaseConfig); 
-            database = firebase.database(); 
-            auth = firebase.auth();
-            // فعال‌سازی ماندگاری برای جلوگیری از پرسیدن مجدد رمز
-            auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-        } catch (e) { console.log("Firebase Error:", e); }
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        
+        // فعال‌سازی ذخیره‌سازی محلی برای ورود خودکار
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        let currentUserPhone = null;
-        let currentUserData = null;
+        let currentPhone = null;
 
-        // ================= سیستم پیام =================
-        function showAlert(type, title, msg) {
-            const overlay = document.getElementById('custom-alert');
-            const iconBox = document.getElementById('alert-icon-box');
-            const iconSvg = document.getElementById('alert-icon-svg');
-            if(type === 'success') { iconBox.className = 'custom-alert-icon icon-success'; iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>'; } 
-            else { iconBox.className = 'custom-alert-icon icon-error'; iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
+        function showAlert(title, msg) {
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-msg').innerText = msg;
-            overlay.classList.add('active');
-        }
-        function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
-
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            const isLight = document.body.classList.contains('light-mode');
-            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+            document.getElementById('custom-alert').classList.add('active');
         }
 
-        function switchView(viewId) {
+        function switchView(view) {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-' + viewId).classList.add('active');
+            document.getElementById('view-' + view).classList.add('active');
         }
 
-        // ================= عملیات ثبت‌نام =================
+        // ================= ثبت‌نام =================
         function registerUser() {
-            const tailorName = document.getElementById('reg-tailor').value;
+            const name = document.getElementById('reg-tailor').value;
             const phone = document.getElementById('reg-phone').value;
             const email = document.getElementById('reg-email').value;
             const pass = document.getElementById('reg-pass').value;
-            const btn = document.getElementById('btn-register');
 
-            btn.innerText = 'در حال ثبت‌نام...';
-            btn.disabled = true;
+            if (!name || !phone || !email || !pass) return showAlert('خطا', 'لطفاً همه فیلدها را پر کنید');
 
-            // بررسی اینکه شماره تکراری نباشد
-            database.ref('users/' + phone).once('value').then(snap => {
-                if(snap.exists()) {
-                    showAlert('error', 'خطا', 'این شماره تماس قبلاً ثبت شده است.');
-                    btn.innerText = 'ثبت‌نام و شروع ۳۰ روز رایگان';
-                    btn.disabled = false;
-                    return;
-                }
+            db.ref('users/' + phone).once('value').then(snap => {
+                if (snap.exists()) return showAlert('خطا', 'این شماره قبلاً ثبت شده است');
 
-                // ساخت کاربر در Firebase Auth
                 auth.createUserWithEmailAndPassword(email, pass)
-                    .then((userCredential) => {
-                        const uid = userCredential.user.uid;
-                        
-                        const profileData = {
+                    .then((userCred) => {
+                        const uid = userCred.user.uid;
+                        const trialEnd = Date.now() + (30 * 24 * 60 * 60 * 1000); // ۳۰ روز
+
+                        // ذخیره اطلاعات
+                        const data = {
                             uid: uid,
-                            tailorName: tailorName,
+                            tailorName: name,
                             phone: phone,
                             email: email,
-                            registeredAt: Date.now()
+                            subscription: {
+                                status: 'trial',
+                                endDate: trialEnd
+                            }
                         };
 
-                        // ذخیره در users_auth برای شناسایی امن
-                        database.ref('users_auth/' + uid).set(profileData).then(() => {
-                            // ذخیره در users/phone برای دسترسی بقیه صفحات
-                            const legacyData = {
-                                tailorName: tailorName,
-                                ownerName: '---',
-                                role: 'صاحب کار',
-                                phone: phone,
-                                registeredAt: Date.now()
-                            };
-                            return database.ref('users/' + phone).update(legacyData);
-                        }).then(() => {
-                            // ساخت دوره آزمایشی ۳۰ روزه
-                            const trialEndDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                            return database.ref('users/' + phone + '/subscription').set({
-                                status: 'trial',
-                                startDate: Date.now(),
-                                endDate: trialEndDate
-                            });
-                        }).then(() => {
-                            localStorage.setItem('tailor_user', phone);
-                            showAlert('success', 'خوش آمدید', 'حساب شما ساخته شد. ۳۰ روز استفاده رایگان فعال شد.');
-                            setTimeout(() => { window.location.reload(); }, 1500);
+                        Promise.all([
+                            db.ref('users_auth/' + uid).set({ phone: phone, tailorName: name }),
+                            db.ref('users/' + phone).set(data)
+                        ]).then(() => {
+                            window.location.reload();
                         });
                     })
-                    .catch((error) => {
-                        btn.innerText = 'ثبت‌نام و شروع ۳۰ روز رایگان';
-                        btn.disabled = false;
-                        if(error.code === 'auth/email-already-in-use') {
-                            showAlert('error', 'خطا', 'این ایمیل قبلاً ثبت شده است.');
-                        } else if(error.code === 'auth/weak-password') {
-                            showAlert('error', 'خطا', 'رمز عبور باید حداقل ۶ کاراکتر باشد.');
-                        } else if(error.code === 'auth/configuration-not-found') {
-                            showAlert('خطا', 'خطا در سیستم', 'لطفاً در پنل Firebase، گزینه Email/Password را فعال کنید.');
+                    .catch(err => {
+                        if (err.code === 'auth/configuration-not-found') {
+                            showAlert('خطا در تنظیمات', 'در پنل Firebase گزینه Email/Password را فعال کنید.');
+                        } else if (err.code === 'auth/email-already-in-use') {
+                            showAlert('خطا', 'این ایمیل قبلاً ثبت شده است.');
+                        } else if (err.code === 'auth/weak-password') {
+                            showAlert('خطا', 'رمز عبور حداقل ۶ کاراکتر باشد.');
                         } else {
-                            showAlert('error', 'خطا', error.message);
+                            showAlert('خطا', err.message);
                         }
                     });
             });
         }
 
-        // ================= عملیات ورود =================
+        // ================= ورود =================
         function loginUser() {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
-            const btn = document.getElementById('btn-login');
-
-            btn.innerText = 'در حال ورود...';
-            btn.disabled = true;
 
             auth.signInWithEmailAndPassword(email, pass)
-                .then(() => {
-                    // onAuthStateChanged خودش مدیریت می‌کند
-                })
-                .catch((error) => {
-                    btn.innerText = 'ورود به برنامه';
-                    btn.disabled = false;
-                    if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        showAlert('error', 'خطا', 'ایمیل یا رمز عبور اشتباه است.');
-                    } else if(error.code === 'auth/configuration-not-found') {
-                        showAlert('خطا', 'خطا در سیستم', 'لطفاً در پنل Firebase، گزینه Email/Password را فعال کنید.');
+                .catch(err => {
+                    if (err.code === 'auth/configuration-not-found') {
+                        showAlert('خطا در تنظیمات', 'در پنل Firebase گزینه Email/Password را فعال کنید.');
                     } else {
-                        showAlert('error', 'خطا', error.message);
+                        showAlert('خطا', 'ایمیل یا رمز عبور اشتباه است.');
                     }
                 });
         }
 
-        // ================= فعال‌سازی با کد (صفحه قفل) =================
+        // ================= فعال‌سازی اشتراک =================
         function activateAccount() {
             const code = document.getElementById('lock-code-input').value.trim();
-            if(!code) return alert('لطفاً کد را وارد کنید');
+            if (!code) return alert('کد را وارد کنید');
 
-            database.ref('activation_codes/' + code).once('value').then(snapshot => {
-                const codeData = snapshot.val();
-                
-                if (!codeData) return alert('کد وارد شده نامعتبر است!');
-                if (codeData.isUsed) return alert('این کد قبلاً استفاده شده است!');
-                if (codeData.phone !== currentUserPhone) return alert('این کد مخصوص شماره شما نیست!');
+            db.ref('activation_codes/' + code).once('value').then(snap => {
+                const data = snap.val();
+                if (!data) return alert('کد نامعتبر است');
+                if (data.isUsed) return alert('کد قبلاً استفاده شده');
+                if (data.phone !== currentPhone) return alert('کد مخصوص شما نیست');
 
-                // تمدید ۳۰ روزه
                 const newEndDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                database.ref('users/' + currentUserPhone + '/subscription').update({
+                db.ref('users/' + currentPhone + '/subscription').update({
                     status: 'active',
                     endDate: newEndDate
                 }).then(() => {
-                    database.ref('activation_codes/' + code).update({ isUsed: true });
-                    alert('حساب شما با موفقیت برای ۳۰ روز دیگر فعال شد!');
+                    db.ref('activation_codes/' + code).update({ isUsed: true });
+                    alert('حساب شما فعال شد');
                     window.location.reload();
                 });
             });
         }
 
-        // ================= بررسی وضعیت اشتراک =================
-        function checkSubscription(phone) {
-            database.ref('users/' + phone + '/subscription').once('value').then(snapshot => {
-                const sub = snapshot.val();
-                if(!sub) return; // اگر نبود، چیزی نشان نده
-
-                if (Date.now() > sub.endDate) {
-                    // زمان تمام شده
-                    document.querySelector('.app-container').style.display = 'none';
-                    document.getElementById('main-top-bar').style.display = 'none';
-                    document.getElementById('lock-screen').style.display = 'flex';
-                }
-            });
-        }
-
-        // ================= لودینگ و بررسی وضعیت لاگین =================
+        // ================= بررسی وضعیت لاگین (Auto Login) =================
         window.onload = () => {
-            if(localStorage.getItem('tailor_theme') === 'light') {
-                document.body.classList.add('light-mode');
-                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-            }
-
-            if(auth) {
-                auth.onAuthStateChanged((user) => {
-                    // حداقل ۵۰۰ میلی‌ثانیه لودینگ نشان بده تا حس خوبی بدهد
-                    setTimeout(() => {
-                        document.getElementById('splash-screen').style.opacity = '0';
-                        
-                        setTimeout(() => {
-                            document.getElementById('splash-screen').style.display = 'none';
-                            
-                            if (user) {
-                                // کاربر لاگین است، اطلاعاتش را بگیر
-                                database.ref('users_auth/' + user.uid).once('value').then(snap => {
-                                    if(snap.exists() && snap.val().phone) {
-                                        currentUserPhone = snap.val().phone;
-                                        currentUserData = snap.val();
-                                        localStorage.setItem('tailor_user', currentUserPhone);
-                                        
-                                        // نمایش نام کاربر در لودینگ
-                                        document.getElementById('splash-user-name').innerText = currentUserData.tailorName || 'خیاط عزیز';
-                                        
-                                        // بررسی اشتراک
-                                        database.ref('users/' + currentUserPhone + '/subscription').once('value').then(subSnap => {
-                                            const sub = subSnap.val();
-                                            if (sub && Date.now() > sub.endDate) {
-                                                // منقضی شده
-                                                document.querySelector('.app-container').style.display = 'none';
-                                                document.getElementById('main-top-bar').style.display = 'none';
-                                                document.getElementById('lock-screen').style.display = 'flex';
-                                            } else {
-                                                // فعال است
-                                                document.querySelector('.app-container').style.display = 'flex';
-                                                document.getElementById('main-top-bar').style.display = 'flex';
-                                                document.getElementById('dash-greeting').innerText = 'سلام، ' + currentUserData.tailorName;
-                                                switchView('dashboard');
-                                                
-                                                // لود کردن آمار داشبورد
-                                                loadDashboardStats();
-                                            }
-                                        });
-                                    } else {
-                                        switchView('login');
-                                    }
-                                });
-                            } else {
-                                // کاربر لاگین نیست، صفحه ورود را نشان بده
-                                document.getElementById('main-top-bar').style.display = 'none';
-                                switchView('login');
-                            }
-                        }, 300);
-                    }, 500);
-                });
-            } else {
-                // اگر Firebase لود نشد
+            auth.onAuthStateChanged((user) => {
+                // ۱. نیم ثانیه صبر می‌کنیم تا نام کاربر در لودینگ نمایش داده شود
                 setTimeout(() => {
-                    document.getElementById('splash-screen').style.display = 'none';
-                    document.getElementById('main-top-bar').style.display = 'flex';
-                    switchView('login');
-                }, 1000);
-            }
+                    document.getElementById('splash-screen').style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        document.getElementById('splash-screen').style.display = 'none';
+                        
+                        if (user) {
+                            // کاربر لاگین است
+                            db.ref('users_auth/' + user.uid).once('value').then(snap => {
+                                if (snap.exists()) {
+                                    currentPhone = snap.val().phone;
+                                    const name = snap.val().tailorName;
+                                    
+                                    // نمایش نام در صفحه لودینگ
+                                    document.getElementById('splash-user-name').innerText = name;
+                                    
+                                    // بررسی اشتراک
+                                    db.ref('users/' + currentPhone + '/subscription').once('value').then(subSnap => {
+                                        const sub = subSnap.val();
+                                        if (sub && Date.now() > sub.endDate) {
+                                            // زمان تمام شده
+                                            document.querySelector('.app-container').style.display = 'none';
+                                            document.getElementById('lock-screen').style.display = 'flex';
+                                        } else {
+                                            // زمان باقی مانده
+                                            document.querySelector('.app-container').style.display = 'flex';
+                                            switchView('dashboard');
+                                            document.getElementById('dash-message').innerText = 'سلام ' + name + ' عزیز، سیستم شما فعال است.';
+                                        }
+                                    });
+                                } else {
+                                    switchView('login');
+                                }
+                            });
+                        } else {
+                            // کاربر لاگین نیست
+                            switchView('login');
+                        }
+                    }, 300);
+                }, 700); // زمان نیم ثانیه‌ای لودینگ
+            });
         };
-
-        // تابع ساده برای لود کردن آمار (اختیاری)
-        function loadDashboardStats() {
-            // اینجا می‌توانی کدهای مربوط به خواندن آمار تولید، قرض و... را بگذاری
-            // فعلاً برای جلوگیری از خطا، صفر می‌گذاریم
-            document.getElementById('stat-total-prod').innerText = '0';
-            document.getElementById('stat-total-value').innerText = '0 افغانی';
-            document.getElementById('stat-total-debt').innerText = '0 افغانی';
-            document.getElementById('stat-book-balance').innerText = '0 افغانی';
-        }
     </script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg')).catch(err => console.log('SW fail'));
-    });
-  }
-</script>
 </body>
 </html>
