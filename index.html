@@ -6,24 +6,18 @@
     <title>Tailor | خیاط‌یار</title>
     <link rel="manifest" href="manifest.json">
     
-    <!-- ⭐ اعمال تم قبل از رندر (جلوگیری از فلش) -->
-    <script>
-        (function() {
-            try {
-                document.documentElement.setAttribute(
-                    'data-theme', 
-                    localStorage.getItem('tailor-theme') || 'dark'
-                );
-            } catch(e) {}
-        })();
-    </script>
-    
+    <!-- تنظیمات اختصاصی برای آیفون (iOS) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tailor">
+    <link rel="apple-touch-icon" href="assets/logo.png">
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- کتابخانه ساخت بارکد آفلاین -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
-        /* ================== تم تاریک (پیش‌فرض) ================== */
         :root {
             --bg-body: radial-gradient(circle at top, #0a261d 0%, #050b09 100%);
             --bg-panel: linear-gradient(180deg, #0a1c16 0%, #040b09 100%);
@@ -34,285 +28,409 @@
             --border: rgba(212, 175, 55, 0.3);
             --danger: #ff4757;
             --success: #2ed573;
+            --warning: #f39c12;
             --input-bg: rgba(0, 0, 0, 0.4);
-            --overlay-bg: rgba(0,0,0,0.8);
-            --shadow: 0 10px 30px rgba(0,0,0,0.5);
-            --theme-btn-bg: #0a1c16;
-            --theme-btn-text: #f3d58b;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            --sidebar-bg: #07130f;
         }
+
+        body.light-mode {
+            --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
+            --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
+            --text-main: #1c2b26;
+            --text-muted: #4a5a54;
+            --border: rgba(212, 175, 55, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.6);
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --sidebar-bg: #f4ecd8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; overflow-x: hidden; transition: background 0.3s, color 0.3s; }
+        .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; z-index: 1; }
+
+        /* لودینگ */
+        #splash-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        .glow-logo { width: 130px; height: 130px; border-radius: 30px; border: 2px solid var(--gold); object-fit: cover; animation: pulseGlow 2s infinite alternate, floatLogo 3s ease-in-out infinite; background: #000; }
+        @keyframes pulseGlow { from { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); } to { box-shadow: 0 0 40px rgba(212, 175, 55, 0.8); } }
+        @keyframes floatLogo { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
+        .splash-title { color: var(--gold); font-size: 26px; margin-top: 20px; font-weight: bold; letter-spacing: 2px; }
+        .loader-spinner { width: 35px; height: 35px; border: 3px solid rgba(212, 175, 55, 0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin-top: 25px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* نوار هشدار دوره آزمایشی */
+        .trial-banner { background: rgba(243, 156, 18, 0.15); border: 1px solid var(--warning); color: var(--warning); padding: 12px; border-radius: 12px; font-size: 12px; text-align: center; margin-bottom: 15px; display: none; line-height: 1.6; font-weight: bold; }
+        .trial-banner a { color: #fff; background: var(--warning); padding: 4px 10px; border-radius: 6px; text-decoration: none; margin-right: 5px; font-size: 11px; display: inline-block; margin-top: 5px; }
+
+        /* هدر */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; z-index: 100; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { background: none; border: none; color: var(--gold); cursor: pointer; display: flex; align-items: center; }
+        .menu-btn svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; }
+        .brand-name { color: var(--gold); font-weight: bold; font-size: 18px; letter-spacing: 1px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        .theme-toggle { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--border); color: var(--gold); width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* منوی کناری */
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(3px); z-index: 1000; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .sidebar-overlay.active { opacity: 1; pointer-events: all; }
+        .sidebar { position: fixed; top: 0; right: -320px; width: 300px; height: 100vh; background: var(--sidebar-bg); border-left: 1px solid var(--border); z-index: 1001; transition: right 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar.active { right: 0; }
         
-        /* ================== تم روشن ================== */
-        [data-theme="light"] {
-            --bg-body: radial-gradient(circle at top, #faf3e0 0%, #eadfc5 100%);
-            --bg-panel: linear-gradient(180deg, #ffffff 0%, #faf3e0 100%);
-            --text-main: #1a1a1a;
-            --text-muted: #5a5a5a;
-            --gold: #a67c00;
-            --gold-light: #d4af37;
-            --border: rgba(166, 124, 0, 0.4);
-            --danger: #c62828;
-            --success: #2e7d32;
-            --input-bg: rgba(255, 255, 255, 0.9);
-            --overlay-bg: rgba(0,0,0,0.5);
-            --shadow: 0 10px 30px rgba(0,0,0,0.1);
-            --theme-btn-bg: #ffffff;
-            --theme-btn-text: #a67c00;
-        }
+        .sidebar-profile { padding: 25px 20px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%); border-bottom: 1px solid var(--border); text-align: center; position: relative; cursor: pointer; }
+        .sidebar-profile:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, transparent 100%); }
+        .sidebar-avatar { width: 70px; height: 70px; border-radius: 50%; background: var(--gold); color: #000; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; margin: 0 auto 10px; border: 3px solid var(--bg-panel); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); transition: 0.3s; object-fit: cover; }
+        .sidebar-profile:hover .sidebar-avatar { transform: scale(1.05); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); }
+        .sidebar-user h3 { font-size: 16px; color: var(--gold); margin-bottom: 3px; }
+        .sidebar-user p { font-size: 12px; color: var(--text-muted); }
+        .sidebar-go-profile { margin-top: 8px; font-size: 11px; color: var(--gold); display: inline-flex; align-items: center; gap: 3px; }
+        .sidebar-tagline { margin-top: 15px; font-size: 11px; color: var(--text-muted); line-height: 1.5; border-top: 1px dashed var(--border); padding-top: 15px; }
+        .sidebar-tagline strong { color: var(--gold); font-size: 13px; display: block; margin-top: 5px; }
+
+        .sidebar-menu { display: flex; flex-direction: column; gap: 5px; padding: 15px; }
+        .sb-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; color: var(--text-main); text-decoration: none; font-size: 13px; cursor: pointer; transition: 0.2s; background: transparent; border: none; text-align: right; }
+        .sb-item:hover { background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+        .sb-item svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .sidebar-section-title { font-size: 11px; color: var(--text-muted); margin: 15px 0 5px 0; padding-right: 12px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
         
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Tahoma, Arial, sans-serif; }
-        body {
-            background: var(--bg-body);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            overflow-x: hidden;
-            transition: background 0.3s, color 0.3s;
-        }
-        .app-container {
-            width: 100%;
-            max-width: 420px;
-            padding: 15px;
-            position: relative;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* ⭐ دکمه تغییر تم (در همه صفحات) */
-        #theme-toggle {
-            position: fixed;
-            top: 15px;
-            left: 15px;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            background: var(--theme-btn-bg);
-            border: 1px solid var(--border);
-            color: var(--theme-btn-text);
-            cursor: pointer;
-            z-index: 9999;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow);
-            transition: transform 0.2s;
-        }
-        #theme-toggle:active { transform: scale(0.9); }
-        
-        /* ================== اسپلش ================== */
-        #splash-screen {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-body);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.25s ease;
-        }
-        .glow-logo {
-            width: 110px;
-            height: 110px;
-            border-radius: 28px;
-            border: 2px solid var(--gold);
-            background: rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 55px;
-            box-shadow: 0 0 30px rgba(212, 175, 55, 0.5), inset 0 0 20px rgba(212, 175, 55, 0.2);
-            animation: pulse-logo 1.5s ease-in-out infinite;
-        }
-        @keyframes pulse-logo {
-            0%, 100% { box-shadow: 0 0 20px rgba(212,175,55,0.4); transform: scale(1); }
-            50%      { box-shadow: 0 0 45px rgba(212,175,55,0.7); transform: scale(1.03); }
-        }
-        .splash-title {
-            color: var(--gold);
-            font-size: 28px;
-            margin-top: 20px;
-            font-weight: bold;
-            letter-spacing: 2px;
-        }
-        .splash-name {
-            color: var(--text-main);
-            font-size: 16px;
-            margin-top: 12px;
-            font-weight: bold;
-            min-height: 22px;
-        }
-        .loader-spinner {
-            width: 36px;
-            height: 36px;
-            border: 3px solid rgba(212, 175, 55, 0.2);
-            border-top-color: var(--gold);
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-            margin-top: 25px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* ================== صفحات ================== */
-        .view-section { display: none; }
+        .other-users-list { display: flex; flex-direction: column; gap: 8px; padding: 0 15px 15px; }
+        .user-item-mini { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 10px; font-size: 12px; }
+        .user-item-mini .avatar-mini { width: 30px; height: 30px; border-radius: 50%; background: var(--gold-light); color: #000; display: flex; justify-content: center; align-items: center; font-weight: bold; }
+        .user-item-mini .info-mini { display: flex; flex-direction: column; }
+        .user-item-mini .info-mini strong { color: var(--text-main); }
+        .user-item-mini .info-mini span { color: var(--text-muted); font-size: 10px; }
+
+        /* فرم‌ها و کارت‌ها */
+        .view-section { display: none; animation: fadeIn 0.3s ease-out; }
         .view-section.active { display: block; }
-        .card {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 25px 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 20px; padding: 25px 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
         .header-title h1 { color: var(--gold); font-size: 22px; margin-bottom: 5px; text-align: center; }
-        .form-group { margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; font-size: 12px; color: var(--gold); margin-bottom: 6px; }
-        .form-group input {
-            width: 100%;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
-            color: var(--text-main);
-            font-size: 13px;
-            outline: none;
-            transition: border 0.2s;
-        }
-        .form-group input:focus { border-color: var(--gold); }
-        .btn {
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            border: none;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; }
-        .btn-link { background: none; border: none; color: var(--gold); font-size: 13px; cursor: pointer; width: 100%; text-align: center; padding: 8px; }
+        .input-box { position: relative; width: 100%; }
+        .input-box input, .input-box select { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 15px; color: var(--text-main); font-size: 13px; outline: none; }
+        .row { display: flex; gap: 10px; }
+        .row .form-group { flex: 1; }
+        .btn { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3); }
+        .btn-link { background: none; border: none; color: var(--gold); font-size: 13px; cursor: pointer; display: block; width: 100%; text-align: center; margin-top: 15px; }
+
+        /* داشبورد */
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .dash-header h2 { font-size: 18px; color: var(--gold); margin-bottom: 4px; }
+        .dash-header p { font-size: 11px; color: var(--text-muted); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 100%; background: var(--gold); }
+        .stat-card:nth-child(2)::before { background: var(--success); }
+        .stat-card:nth-child(3)::before { background: var(--danger); }
+        .stat-card:nth-child(4)::before { background: #3498db; }
+        .stat-info .title { font-size: 11px; color: var(--text-muted); }
+        .stat-info .value { font-size: 18px; font-weight: bold; color: var(--text-main); display: flex; align-items: baseline; gap: 4px; }
+        .stat-info .value span { font-size: 10px; color: var(--gold); }
+        .stat-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; justify-content: center; align-items: center; background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+        .stat-card:nth-child(2) .stat-icon { background: rgba(46, 213, 115, 0.1); color: var(--success); }
+        .stat-card:nth-child(3) .stat-icon { background: rgba(255, 71, 87, 0.1); color: var(--danger); }
+        .stat-card:nth-child(4) .stat-icon { background: rgba(52, 152, 219, 0.1); color: #3498db; }
+        .stat-icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+
+        /* آخرین تولیدات */
+        .recent-list { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px; margin-bottom: 20px; box-shadow: var(--shadow); }
+        .recent-header { font-size: 14px; color: var(--gold); font-weight: bold; margin-bottom: 10px; border-bottom: 1px dashed var(--border); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,0.1); }
+        .recent-item:last-child { border-bottom: none; }
+        .recent-item .info { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+        .recent-item .info strong { color: var(--text-main); font-size: 13px; }
+        .recent-item .info span { color: var(--text-muted); font-size: 11px; }
+        .recent-item .qty { font-weight: bold; color: var(--gold); font-size: 14px; white-space: nowrap; padding-left: 10px; }
+
+        /* دسترسی سریع (۹ دکمه) */
+        .quick-access-title { font-size: 15px; color: var(--text-main); margin-bottom: 15px; cursor: pointer; user-select: none; font-weight: bold; }
+        .menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .menu-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; padding: 15px 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: var(--text-main); box-shadow: var(--shadow); transition: 0.2s; }
+        .menu-item:active { transform: scale(0.95); }
+        .icon-box { width: 45px; height: 45px; border-radius: 12px; display: flex; justify-content: center; align-items: center; }
+        .icon-box svg { width: 22px; height: 22px; fill: none; stroke: #fff; stroke-width: 2; }
+        .menu-item span { font-size: 11px; font-weight: bold; text-align: center; }
         
-        /* ================== قفل ================== */
-        #lock-screen {
-            position: fixed;
-            inset: 0;
-            background: var(--bg-body);
-            z-index: 9998;
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-        }
-        .lock-input {
-            width: 100%;
-            max-width: 300px;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--input-bg);
-            color: var(--text-main);
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        
-        /* ================== پیام‌رسان ================== */
-        .custom-alert-overlay {
-            position: fixed; inset: 0;
-            background: var(--overlay-bg);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 10000;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s;
-        }
+        .bg-orders { background: #f39c12; } 
+        .bg-students { background: #2ed573; } 
+        .bg-production { background: #9b59b6; }
+        .bg-finance { background: #3498db; } 
+        .bg-samples { background: #e84393; } 
+        .bg-cutting { background: #3498db; }
+        .bg-loans { background: #e84393; } 
+        .bg-machine { background: #7f8c8d; } 
+        .bg-office { background: #27ae60; }
+
+        /* منوی پایین */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-panel); border-top: 1px solid var(--border); display: none; justify-content: space-around; padding: 10px 0 15px; z-index: 1000; }
+        .bottom-nav.active { display: flex; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); cursor: pointer; width: 20%; transition: 0.2s; text-decoration: none; }
+        .nav-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .nav-item span { font-size: 10px; }
+        .nav-item.active { color: var(--gold); }
+
+        /* مودال‌ها */
+        .custom-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 10000; opacity: 0; pointer-events: none; transition: 0.3s; }
         .custom-alert-overlay.active { opacity: 1; pointer-events: auto; }
-        .custom-alert-box {
-            background: var(--bg-panel);
-            border: 1px solid var(--gold);
-            border-radius: 20px;
-            padding: 20px;
-            width: 85%; max-width: 320px;
-            text-align: center;
-            box-shadow: var(--shadow);
-        }
-        .custom-alert-title { color: var(--gold); font-size: 18px; margin-bottom: 10px; }
-        .custom-alert-msg { font-size: 13px; margin-bottom: 15px; color: var(--text-main); }
-        .custom-alert-btn { background: var(--gold); color: #000; border: none; padding: 10px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .custom-alert-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px 20px; width: 85%; max-width: 320px; text-align: center; transform: scale(0.8); transition: 0.3s; }
+        .custom-alert-overlay.active .custom-alert-box { transform: scale(1); }
+        .custom-alert-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; }
+        .icon-success { background: rgba(46, 213, 115, 0.1); border: 2px solid var(--success); color: var(--success); }
+        .icon-error { background: rgba(255, 71, 87, 0.1); border: 2px solid var(--danger); color: var(--danger); }
+        .custom-alert-icon svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 3; }
+        .custom-alert-title { color: var(--gold); font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+        .custom-alert-msg { font-size: 13px; color: var(--text-main); margin-bottom: 20px; line-height: 1.5; }
+        .custom-alert-btn { background: linear-gradient(90deg, var(--gold-light), var(--gold)); color: #000; font-weight: bold; font-size: 14px; border: none; border-radius: 10px; padding: 10px 20px; width: 100%; cursor: pointer; }
+
+        /* مودال ثبت‌نام/تنظیمات (Setup) */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 2000; padding: 15px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 20px; width: 100%; max-width: 400px; box-shadow: var(--shadow); position: relative; max-height: 95vh; overflow-y: auto; }
+        .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: var(--gold); text-align: center; }
+        
+        .img-upload-box { width: 100px; height: 100px; border: 2px dashed var(--border); border-radius: 50%; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative; overflow: hidden; background: rgba(0,0,0,0.2); }
+        .img-upload-box input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .img-upload-box svg { width: 30px; height: 30px; stroke: var(--gold); fill: none; stroke-width: 2; }
+        #profile-preview { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+        
+        .custom-dropdown { position: relative; width: 100%; user-select: none; }
+        .dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: var(--text-main); font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .dropdown-trigger.active { border-color: var(--gold); }
+        .dropdown-trigger svg { width: 12px; height: 12px; stroke: var(--gold); stroke-width: 2; fill: none; transition: .3s; }
+        .dropdown-trigger.active svg { transform: rotate(180deg); }
+        .dropdown-options { position: absolute; top: 110%; left: 0; right: 0; background: var(--dropdown-bg); border: 1px solid var(--gold); border-radius: 8px; box-shadow: var(--shadow); z-index: 100; display: none; flex-direction: column; max-height: 150px; overflow-y: auto; }
+        .dropdown-options.active { display: flex; }
+        .dropdown-option { padding: 10px; font-size: 11px; cursor: pointer; color: var(--text-main); border-bottom: 1px solid var(--border); transition: .2s; }
+        .dropdown-option:hover { background: rgba(212,175,55,.15); color: var(--gold); }
+        
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+
+        /* مودال اشتراک‌گذاری */
+        .share-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; }
+        .share-box { background: var(--bg-panel); border: 1px solid var(--gold); border-radius: 20px; padding: 25px; text-align: center; width: 85%; max-width: 320px; }
     </style>
 </head>
 <body>
 
-    <!-- ⭐ دکمه تغییر تم -->
-    <button id="theme-toggle" onclick="toggleTheme()" aria-label="تغییر تم">☀️</button>
+    <!-- سیستم پیام‌رسانی -->
+    <div class="custom-alert-overlay" id="custom-alert">
+        <div class="custom-alert-box">
+            <div class="custom-alert-icon" id="alert-icon-box"><svg id="alert-icon-svg" viewBox="0 0 24 24"></svg></div>
+            <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
+            <p class="custom-alert-msg" id="alert-msg">پیام</p>
+            <button class="custom-alert-btn" onclick="closeCustomAlert()">تایید</button>
+        </div>
+    </div>
 
-    <!-- ⭐ اسپلش -->
     <div id="splash-screen">
-        <div class="glow-logo">✂️</div>
+        <img src="assets/logo.png" alt="Tailor" class="glow-logo" onerror="this.style.display='none'">
         <h1 class="splash-title">Tailor</h1>
-        <h2 class="splash-name" id="splash-user-name">خیاط‌یار</h2>
         <div class="loader-spinner"></div>
     </div>
 
-    <!-- پیام‌رسان -->
-    <div class="custom-alert-overlay" id="custom-alert">
-        <div class="custom-alert-box">
-            <h3 class="custom-alert-title" id="alert-title">عنوان</h3>
-            <p class="custom-alert-msg" id="alert-msg">پیام</p>
-            <button class="custom-alert-btn" onclick="document.getElementById('custom-alert').classList.remove('active')">تایید</button>
+    <!-- منوی کناری -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-profile" onclick="goToProfile()">
+            <img id="sidebar-avatar-img" class="sidebar-avatar" style="display:none;">
+            <div class="sidebar-avatar" id="user-avatar-text">خ</div>
+            <div class="sidebar-user">
+                <h3 id="user-name-display">نام کاربر</h3>
+                <p id="user-phone-display">07XXXXXXXX</p>
+                <span class="sidebar-go-profile">رفتن به پروفایل ❮</span>
+            </div>
+            <div class="sidebar-tagline">
+                ساخته شده با در نظر گرفتن صاحبان خیاطی
+                <strong id="user-name-display-bottom">خیاط شما</strong>
+            </div>
+        </div>
+
+        <div class="sidebar-menu">
+            <a href="students.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان و خلیفه‌ها</span></a>
+            <a href="office.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span>حساب و کتاب</span></a>
+            <a href="machine-guide.html" class="sb-item"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg><span>راهنمای چرخ خیاطی</span></a>
+            
+            <a href="backup.html" class="sb-item">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>تیم پشتیبان و سفارش</span>
+            </a>
+            
+            <a href="payment.html" class="sb-item">
+                <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                <span>پرداخت و تمدید اشتراک</span>
+            </a>
+
+            <a href="#" class="sb-item" onclick="openShareModal(event)">
+                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span>اشتراک‌گذاری برنامه</span>
+            </a>
+
+            <a href="more.html" class="sb-item">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                <span>بیشتر</span>
+            </a>
+            
+            <button class="sb-item" style="margin-top: 15px; color: var(--danger);" onclick="logout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>خروج</span></button>
+        </div>
+
+        <div class="sidebar-section-title">خیاطی‌های همراه ما</div>
+        <div class="other-users-list" id="other-users-container">
+            <p style="font-size:11px; color:var(--text-muted); text-align:center;">در حال بارگذاری...</p>
         </div>
     </div>
 
-    <div class="app-container">
+    <!-- بدنه اصلی -->
+    <div class="app-container" id="main-app-container">
         
-        <!-- ورود -->
+        <div class="top-bar" id="main-top-bar" style="display: none;">
+            <div class="header-left">
+                <button class="menu-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                <div class="brand-name">Tailor</div>
+            </div>
+            <div class="header-actions">
+                <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><svg id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+            </div>
+        </div>
+
+        <!-- صفحه ورود -->
         <div id="view-login" class="view-section active">
             <div class="card">
-                <div class="header-title"><h1>ورود به برنامه</h1></div>
-                <div class="form-group"><label>ایمیل</label><input type="email" id="login-email" placeholder="example@mail.com" autocomplete="email"></div>
-                <div class="form-group"><label>رمز عبور</label><input type="password" id="login-pass" placeholder="رمز عبور" autocomplete="current-password"></div>
-                <button class="btn btn-primary" onclick="loginUser()">ورود</button>
-                <button class="btn-link" onclick="switchView('register')">حساب ندارید؟ ثبت‌نام کنید</button>
+                <div class="header-title"><h1>Tailor</h1><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:5px;">مدیریت حرفه‌ای خیاطی</p></div>
+                <form onsubmit="event.preventDefault(); loginUser();">
+                    <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="login-phone" placeholder="07XXXXXXXX" required></div></div>
+                    <div class="form-group"><label>رمز عبور</label><div class="input-box"><input type="password" id="login-pass" placeholder="رمز عبور" required></div></div>
+                    <button type="submit" class="btn btn-primary">ورود به برنامه</button>
+                    <button type="button" class="btn-link" onclick="switchView('register')">حساب ندارید؟ ثبت‌نام کنید</button>
+                </form>
             </div>
         </div>
 
-        <!-- ثبت‌نام -->
+        <!-- صفحه ثبت‌نام (کد قدیمی با منوهای سفارشی جایگزین نشده چون در setup-modal هست) -->
         <div id="view-register" class="view-section">
-            <div class="card">
-                <div class="header-title"><h1>ایجاد حساب جدید</h1></div>
-                <div class="form-group"><label>نام خیاطی</label><input type="text" id="reg-tailor" placeholder="مثلا خیاطی احمدی"></div>
-                <div class="form-group"><label>شماره تماس</label><input type="tel" id="reg-phone" placeholder="07XXXXXXXX"></div>
-                <div class="form-group"><label>ایمیل</label><input type="email" id="reg-email" placeholder="example@mail.com" autocomplete="email"></div>
-                <div class="form-group"><label>رمز عبور (حداقل ۶ کاراکتر)</label><input type="password" id="reg-pass" placeholder="رمز عبور" autocomplete="new-password"></div>
-                <button class="btn btn-primary" onclick="registerUser()">ثبت‌نام و شروع ۳۰ روز رایگان</button>
-                <button class="btn-link" onclick="switchView('login')">قبلاً حساب دارید؟ ورود</button>
+            <div class="card" style="padding: 20px 15px;">
+                <div class="header-title"><h1>ایجاد حساب</h1></div>
+                <form onsubmit="event.preventDefault(); registerUser();">
+                    <div class="form-group"><label>شماره تماس</label><div class="input-box"><input type="tel" id="reg-phone" required></div></div>
+                    <div class="form-group"><label>رمز عبور</label><div class="input-box"><input type="password" id="reg-pass" required></div></div>
+                    <button type="submit" class="btn btn-primary">ثبت‌نام و ادامه</button>
+                    <button type="button" class="btn-link" onclick="switchView('login')">قبلاً حساب دارید؟ ورود</button>
+                </form>
             </div>
         </div>
 
-        <!-- داشبورد -->
+        <!-- صفحه داشبورد -->
         <div id="view-dashboard" class="view-section">
-            <h2 style="color:var(--gold); text-align:center; margin-top:50px;">خوش آمدید به داشبورد!</h2>
-            <p style="text-align:center; color:var(--text-muted); margin-top:10px;" id="dash-message"></p>
-        </div>
+            
+            <!-- بنر دوره آزمایشی -->
+            <div class="trial-banner" id="trial-banner"></div>
 
+            <div class="dash-header">
+                <div class="greeting">
+                    <h2>سلام، خلیفه</h2>
+                    <p id="dash-date">در حال بارگذاری تاریخ...</p>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-info"><div class="title">کل تولیدات (تعداد)</div><div class="value" id="stat-total-prod">0</div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20.38 3.46L16 2 12 5 8 2 3.62 3.46a2 2 0 0 0-1.34 2.23l1.03 7.36a2 2 0 0 0 2 1.73H18.7a2 2 0 0 0 2-1.73l1.03-7.36a2 2 0 0 0-1.35-2.23z"/><path d="M12 13v9"/><path d="M8 22h8"/></svg></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">مبلغ کل تولیدات</div><div class="value" id="stat-total-value">0 <span>افغانی</span></div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">مجموع قرض‌ها</div><div class="value" id="stat-total-debt">0 <span>افغانی</span></div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div></div>
+                <div class="stat-card"><div class="stat-info"><div class="title">موجودی دفتر</div><div class="value" id="stat-book-balance">0 <span>افغانی</span></div></div><div class="stat-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div></div>
+            </div>
+
+            <div class="recent-list">
+                <div class="recent-header"><span>آخرین تولیدات ثبت شده</span><a href="production.html" style="color:var(--gold); font-size:11px; text-decoration:none;">مشاهده همه</a></div>
+                <div id="recent-production-container"><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:10px;">در حال بارگذاری...</p></div>
+            </div>
+
+            <!-- دسترسی سریع (۹ دکمه رنگی) -->
+            <h3 class="quick-access-title" id="secret-trigger" onclick="handleSecretTap()">دسترسی سریع</h3>
+            
+            <div class="menu-grid">
+                <a href="owner.html" class="menu-item"><div class="icon-box bg-orders"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span>سفارشات</span></a>
+                <a href="loans.html" class="menu-item"><div class="icon-box bg-loans"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="10" x2="12" y2="16"/></svg></div><span>قرض شاگردان</span></a>
+                <a href="production.html" class="menu-item"><div class="icon-box bg-production"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><span>ثبت تولید</span></a>
+                
+                <a href="cutting.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
+                <a href="cutting.html" class="menu-item"><div class="icon-box bg-cutting"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg></div><span>برش کار</span></a>
+                <a href="students.html" class="menu-item"><div class="icon-box bg-students"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><span>شاگردان</span></a>
+                
+                <a href="accounting.html" class="menu-item"><div class="icon-box bg-finance"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span>حساب و کتاب</span></a>
+                <a href="machine-guide.html" class="menu-item"><div class="icon-box bg-machine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><span>راهنمای چرخ</span></a>
+                <a href="office.html" class="menu-item"><div class="icon-box bg-office"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span>حساب دفتر</span></a>
+            </div>
+        </div>
+    </div> 
+
+    <!-- مودال تنظیمات اولیه (Setup) -->
+    <div class="modal-overlay" id="setup-modal">
+        <div class="modal-box">
+            <h2 class="modal-title">تکمیل اطلاعات کاربری</h2>
+            <p style="text-align:center; font-size:11px; color:var(--text-muted); margin-bottom:15px;">لطفاً برای شخصی‌سازی برنامه، اطلاعات خود را وارد کنید.</p>
+            
+            <div class="img-upload-box">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <input type="file" id="profile-file" accept="image/*" onchange="processProfileImage(this)">
+                <img id="profile-preview">
+            </div>
+
+            <div class="form-group"><label>نام و تخلص</label><div class="input-box"><input type="text" id="setup-name" placeholder="مثلا احمد رحیمی"></div></div>
+            <div class="form-group"><label>سمت شما</label>
+                <div class="custom-dropdown" id="dd-role">
+                    <div class="dropdown-trigger" onclick="toggleDropdown('dd-role')"><span id="val-role">صاحب کار (مالک)</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div>
+                    <div class="dropdown-options">
+                        <div class="dropdown-option" onclick="selectOption('dd-role','صاحب کار (مالک)')">صاحب کار (مالک)</div>
+                        <div class="dropdown-option" onclick="selectOption('dd-role','خلیفه / استادکار')">خلیفه / استادکار</div>
+                        <div class="dropdown-option" onclick="selectOption('dd-role','برش کار')">برش کار</div>
+                        <div class="dropdown-option" onclick="selectOption('dd-role','شاگرد')">شاگرد</div>
+                        <div class="dropdown-option" onclick="selectOption('dd-role','حسابدار')">حسابدار</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>تاریخ شروع کار (شمسی)</label>
+                <div class="grid-3">
+                    <div class="custom-dropdown" id="dd-day"><div class="dropdown-trigger" onclick="toggleDropdown('dd-day')"><span id="val-day">1</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-day"></div></div>
+                    <div class="custom-dropdown" id="dd-month"><div class="dropdown-trigger" onclick="toggleDropdown('dd-month')"><span id="val-month">حمل</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-month"></div></div>
+                    <div class="custom-dropdown" id="dd-year"><div class="dropdown-trigger" onclick="toggleDropdown('dd-year')"><span id="val-year">1403</span><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none"><polyline points="6 9 12 15 18 9"/></svg></div><div class="dropdown-options" id="opt-year"></div></div>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="saveSetup()">ذخیره و ورود به برنامه</button>
+        </div>
     </div>
 
-    <!-- قفل -->
-    <div id="lock-screen">
-        <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک تمام شده است</h2>
-        <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">دوره ۳۰ روزه به پایان رسیده. لطفاً پرداخت کنید.</p>
-        <a href="payment.html" class="btn btn-primary" style="text-decoration:none; width:100%; max-width:300px; text-align:center; display:block;">پرداخت اشتراک</a>
-        <div style="margin-top:20px; width:100%; max-width:300px;">
-            <input type="text" id="lock-code-input" class="lock-input" placeholder="کد فعال‌سازی">
-            <button class="btn btn-primary" onclick="activateAccount()">فعال‌سازی</button>
+    <!-- مودال اشتراک‌گذاری -->
+    <div class="share-modal" id="share-modal">
+        <div class="share-box">
+            <h3 style="color: var(--gold); margin-bottom: 15px;">اشتراک‌گذاری برنامه</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">با اسکن این بارکد، دوستان شما می‌توانند برنامه را نصب کنند.</p>
+            
+            <div id="qrcode-container" style="background: #fff; padding: 10px; border-radius: 10px; display: inline-block; margin-bottom: 15px; border: 2px solid var(--gold);">
+                <!-- بارکد اینجا ساخته می‌شود -->
+            </div>
+
+            <input type="text" id="share-link-input" readonly style="width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; text-align: center; margin-bottom: 15px;">
+            <button onclick="copyShareLink()" style="width: 100%; padding: 12px; border-radius: 10px; background: var(--gold); color: #000; font-weight: bold; border: none; cursor: pointer; margin-bottom: 10px;">کپی کردن لینک</button>
+            <button onclick="document.getElementById('share-modal').style.display='none'" style="width: 100%; padding: 12px; border-radius: 10px; background: transparent; color: var(--danger); font-weight: bold; border: 1px solid var(--danger); cursor: pointer;">بستن</button>
         </div>
     </div>
+
+    <!-- منوی پایین -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <a href="index.html" class="nav-item active"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>خانه</span></a>
+        <a href="production.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>تولید</span></a>
+        <a href="students.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان</span></a>
+        <a href="report.html" class="nav-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>گزارش</span></a>
+        <a href="more.html" class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>بیشتر</span></a>
+    </nav>
 
     <script>
-        // ============ Firebase ============
         const firebaseConfig = {
             apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
             authDomain: "tailor-64f7f.firebaseapp.com",
@@ -322,201 +440,481 @@
             messagingSenderId: "16067911685",
             appId: "1:16067911685:web:1b76892edf61b6a4923c6c"
         };
-        
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.database();
-        
-        // ⭐ ورود ماندگار (حتی بعد از بستن مرورگر)
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
-        
-        // ============ State ============
-        let currentPhone = null;
-        let appInitialized = false;
-        const SPLASH_MIN_MS = 500;          // ⭐ نیم ثانیه
-        const splashStart = Date.now();
-        
-        // ============ تم ============
-        function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            try { localStorage.setItem('tailor-theme', theme); } catch(e) {}
-            const btn = document.getElementById('theme-toggle');
-            if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
-        }
-        
-        function toggleTheme() {
-            const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-            applyTheme(cur === 'dark' ? 'light' : 'dark');
-        }
-        
-        // ============ Helpers ============
-        function showAlert(title, msg) {
+        let database = null;
+        try { firebase.initializeApp(firebaseConfig); database = firebase.database(); } catch (e) { console.log("Firebase Error:", e); }
+
+        let userPhone = localStorage.getItem('tailor_user');
+        let base64Profile = null;
+        const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+        const selections = {
+            'dd-role': 'صاحب کار (مالک)',
+            'dd-day': '1',
+            'dd-month': 'حمل',
+            'dd-year': '1403'
+        };
+
+        function showAlert(type, title, msg) {
+            const overlay = document.getElementById('custom-alert');
+            const iconBox = document.getElementById('alert-icon-box');
+            const iconSvg = document.getElementById('alert-icon-svg');
+            if(type === 'success') { iconBox.className = 'custom-alert-icon icon-success'; iconSvg.innerHTML = '<polyline points="20 6 9 17 4 12"/>'; } 
+            else { iconBox.className = 'custom-alert-icon icon-error'; iconSvg.innerHTML = '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'; }
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-msg').innerText = msg;
-            document.getElementById('custom-alert').classList.add('active');
+            overlay.classList.add('active');
         }
-        
-        function switchView(view) {
+        function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
+        function goToProfile() { window.location.href = 'profile.html'; }
+
+        function switchView(viewId) {
             document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-            const t = document.getElementById('view-' + view);
-            if (t) t.classList.add('active');
+            document.getElementById('view-' + viewId).classList.add('active');
+            if (viewId === 'dashboard') {
+                updateDate();
+                loadDashboardData(); 
+            }
         }
-        
-        function hideSplash(after) {
-            const elapsed = Date.now() - splashStart;
-            const remaining = Math.max(0, SPLASH_MIN_MS - elapsed);
-            setTimeout(function() {
-                const s = document.getElementById('splash-screen');
-                s.style.opacity = '0';
-                setTimeout(function() {
-                    s.style.display = 'none';
-                    if (after) after();
-                }, 250);
-            }, remaining);
+
+        function logout() { localStorage.clear(); window.location.reload(); }
+
+        // ================= سیستم منوهای کشویی سفارشی =================
+        function toggleDropdown(id) {
+            document.querySelectorAll('.dropdown-options').forEach(el => { if(el.parentElement.id !== id) el.classList.remove('active'); });
+            const d = document.getElementById(id);
+            d.querySelector('.dropdown-options').classList.toggle('active');
+            d.querySelector('.dropdown-trigger').classList.toggle('active');
         }
-        
-        // ============ ورود ============
-        function loginUser() {
-            const email = document.getElementById('login-email').value.trim();
-            const pass = document.getElementById('login-pass').value;
-            if (!email || !pass) return showAlert('خطا', 'ایمیل و رمز عبور را وارد کنید');
+
+        function selectOption(id, val) {
+            if(event) event.stopPropagation();
+            document.getElementById('val-' + id.replace('dd-', '')).innerText = val;
+            selections[id] = val;
+            document.getElementById(id).querySelector('.dropdown-options').classList.remove('active');
+            document.getElementById(id).querySelector('.dropdown-trigger').classList.remove('active');
+        }
+
+        window.addEventListener('click', e => {
+            if (!e.target.closest('.custom-dropdown')) {
+                document.querySelectorAll('.dropdown-options').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.dropdown-trigger').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        // ================= تاریخ کشویی =================
+        function initDates() {
+            let dHtml = '', mHtml = '', yHtml = '';
+            for(let i=1; i<=31; i++) dHtml += `<div class="dropdown-option" onclick="selectOption('dd-day', '${i}')">${i}</div>`;
+            shamsiMonths.forEach((m, i) => mHtml += `<div class="dropdown-option" onclick="selectOption('dd-month', '${m}')">${m}</div>`);
+            for(let y=1400; y<=1410; y++) yHtml += `<div class="dropdown-option" onclick="selectOption('dd-year', '${y}')">${y}</div>`;
+            document.getElementById('opt-day').innerHTML = dHtml;
+            document.getElementById('opt-month').innerHTML = mHtml;
+            document.getElementById('opt-year').innerHTML = yHtml;
+        }
+
+        // ================= عکس پروفایل =================
+        function processProfileImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 300;
+                        let w = img.width, h = img.height;
+                        if(w > h) { if(w > MAX) { h *= MAX/w; w = MAX; } } else { if(h > MAX) { w *= MAX/h; h = MAX; } }
+                        canvas.width = w; canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+                        base64Profile = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('profile-preview').src = base64Profile;
+                        document.getElementById('profile-preview').style.display = 'block';
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // ================= ذخیره تنظیمات اولیه =================
+        function saveSetup() {
+            const name = document.getElementById('setup-name').value.trim();
+            if(!name) return showAlert('error', 'خطا', 'لطفاً نام خود را وارد کنید');
+
+            const startDate = `${selections['dd-year']}/${shamsiMonths.indexOf(selections['dd-month'])+1}/${selections['dd-day']}`;
+
+            const data = {
+                tailorName: name,
+                role: selections['dd-role'],
+                startDate: startDate,
+                profileImage: base64Profile,
+                registeredAt: Date.now()
+            };
+
+            database.ref('users/' + userPhone).update(data).then(() => {
+                document.getElementById('setup-modal').classList.remove('active');
+                loadUserData(userPhone);
+                checkSubscription(userPhone);
+                switchView('dashboard');
+                document.getElementById('main-top-bar').style.display = 'flex';
+                document.getElementById('bottom-nav').classList.add('active');
+                showAlert('success', 'موفق', 'اطلاعات شما با موفقیت ذخیره شد.');
+            });
+        }
+
+        // ================= ثبت‌نام و ورود =================
+        function registerUser() {
+            const phone = document.getElementById('reg-phone').value;
+            const pass = document.getElementById('reg-pass').value;
+            if(!phone || !pass) return showAlert('error', 'خطا', 'شماره و رمز الزامی است!');
             
-            auth.signInWithEmailAndPassword(email, pass)
-                .catch(function(err) {
-                    if (err.code === 'auth/configuration-not-found') {
-                        showAlert('خطا در تنظیمات', 'در پنل Firebase گزینه Email/Password را فعال کنید.');
-                    } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-                        showAlert('خطا', 'ایمیل یا رمز عبور اشتباه است.');
+            if(database) {
+                database.ref('users/' + phone).once('value').then(snap => {
+                    if(snap.exists()) return showAlert('error', 'خطا', 'این شماره قبلاً ثبت‌نام کرده است.');
+                    
+                    localStorage.setItem('tailor_user', phone);
+                    userPhone = phone;
+                    
+                    // نمایش مودال تکمیل اطلاعات
+                    document.getElementById('setup-modal').classList.add('active');
+                    document.getElementById('main-top-bar').style.display = 'none';
+                });
+            }
+        }
+
+        function loginUser() {
+            const phone = document.getElementById('login-phone').value;
+            if(!phone) return showAlert('error', 'خطا', 'شماره تماس را وارد کنید!');
+            
+            if(database) {
+                database.ref('users/' + phone).once('value').then((snapshot) => {
+                    if (snapshot.exists()) {
+                        localStorage.setItem('tailor_user', phone);
+                        userPhone = phone;
+                        
+                        const data = snapshot.val();
+                        if(!data.tailorName) {
+                            // اگر اسم ندارد، مودال تنظیمات باز شود
+                            document.getElementById('setup-modal').classList.add('active');
+                        } else {
+                            loadUserData(phone);
+                            checkSubscription(phone);
+                            switchView('dashboard');
+                            document.getElementById('main-top-bar').style.display = 'flex';
+                            document.getElementById('bottom-nav').classList.add('active');
+                            showAlert('success', 'خوش آمدید', 'ورود موفقیت‌آمیز بود.');
+                        }
                     } else {
-                        showAlert('خطا', err.message || 'ورود ناموفق بود');
+                        showAlert('error', 'کاربر یافت نشد', 'لطفاً ابتدا ثبت‌نام کنید.');
                     }
                 });
+            }
         }
-        
-        // ============ ثبت‌نام (با ورود خودکار) ============
-        function registerUser() {
-            const name = document.getElementById('reg-tailor').value.trim();
-            const phone = document.getElementById('reg-phone').value.trim();
-            const email = document.getElementById('reg-email').value.trim();
-            const pass = document.getElementById('reg-pass').value;
+
+        function loadUserData(phone) {
+            document.getElementById('user-phone-display').innerText = phone;
             
-            if (!name || !phone || !email || !pass) return showAlert('خطا', 'لطفاً همه فیلدها را پر کنید');
-            if (pass.length < 6) return showAlert('خطا', 'رمز عبور حداقل ۶ کاراکتر باشد');
-            
-            db.ref('users/' + phone).once('value').then(function(snap) {
-                if (snap.exists()) return showAlert('خطا', 'این شماره قبلاً ثبت شده است');
+            database.ref('users/' + phone).once('value').then(snap => {
+                const data = snap.val() || {};
+                const name = data.tailorName || 'خیاط';
+                document.getElementById('user-name-display').innerText = name;
+                document.getElementById('user-name-display-bottom').innerText = name;
                 
-                auth.createUserWithEmailAndPassword(email, pass)
-                    .then(function(userCred) {
-                        const uid = userCred.user.uid;
-                        const trialEnd = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                        const data = {
-                            uid: uid, tailorName: name, phone: phone, email: email,
-                            subscription: { status: 'trial', endDate: trialEnd }
-                        };
-                        return Promise.all([
-                            db.ref('users_auth/' + uid).set({ phone: phone, tailorName: name }),
-                            db.ref('users/' + phone).set(data)
-                        ]).then(function() { return { name: name, phone: phone }; });
-                    })
-                    .then(function(result) {
-                        // ⭐ ورود خودکار - بدون reload، بدون نیاز به رمز مجدد
-                        currentPhone = result.phone;
-                        appInitialized = true;
-                        document.querySelector('.app-container').style.display = 'flex';
-                        document.getElementById('lock-screen').style.display = 'none';
-                        switchView('dashboard');
-                        document.getElementById('dash-message').innerText =
-                            'سلام ' + result.name + ' عزیز، ۳۰ روز رایگان شما فعال شد.';
-                    })
-                    .catch(function(err) {
-                        if (err.code === 'auth/configuration-not-found') {
-                            showAlert('خطا در تنظیمات', 'در پنل Firebase گزینه Email/Password را فعال کنید.');
-                        } else if (err.code === 'auth/email-already-in-use') {
-                            showAlert('خطا', 'این ایمیل قبلاً ثبت شده است.');
-                        } else if (err.code === 'auth/weak-password') {
-                            showAlert('خطا', 'رمز عبور حداقل ۶ کاراکتر باشد.');
-                        } else {
-                            showAlert('خطا', err.message || 'ثبت‌نام ناموفق بود');
-                        }
-                    });
-            }).catch(function(err) {
-                showAlert('خطا', 'خطا در ارتباط با سرور: ' + (err.message || ''));
-            });
-        }
-        
-        // ============ فعال‌سازی ============
-        function activateAccount() {
-            const code = document.getElementById('lock-code-input').value.trim();
-            if (!code) return showAlert('خطا', 'کد را وارد کنید');
-            if (!currentPhone) return showAlert('خطا', 'ابتدا وارد حساب شوید');
-            
-            db.ref('activation_codes/' + code).once('value').then(function(snap) {
-                const data = snap.val();
-                if (!data) return showAlert('خطا', 'کد نامعتبر است');
-                if (data.isUsed) return showAlert('خطا', 'کد قبلاً استفاده شده');
-                if (data.phone !== currentPhone) return showAlert('خطا', 'کد مخصوص شما نیست');
+                const avatarText = document.getElementById('user-avatar-text');
+                const avatarImg = document.getElementById('sidebar-avatar-img');
                 
-                const newEnd = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                return db.ref('users/' + currentPhone + '/subscription')
-                    .update({ status: 'active', endDate: newEnd })
-                    .then(function() { return db.ref('activation_codes/' + code).update({ isUsed: true }); })
-                    .then(function() {
-                        showAlert('موفق', 'حساب شما فعال شد');
-                        setTimeout(function() { window.location.reload(); }, 1500);
-                    });
-            });
-        }
-        
-        // ============ شروع ============
-        window.addEventListener('load', function() {
-            // اعمال تم ذخیره‌شده
-            applyTheme(document.documentElement.getAttribute('data-theme') || 'dark');
-            
-            auth.onAuthStateChanged(function(user) {
-                if (appInitialized) return;
-                appInitialized = true;
-                
-                if (user) {
-                    db.ref('users_auth/' + user.uid).once('value').then(function(snap) {
-                        if (snap.exists()) {
-                            currentPhone = snap.val().phone;
-                            const name = snap.val().tailorName || 'کاربر';
-                            document.getElementById('splash-user-name').innerText = name;
-                            
-                            db.ref('users/' + currentPhone + '/subscription').once('value').then(function(subSnap) {
-                                const sub = subSnap.val();
-                                hideSplash(function() {
-                                    if (sub && Date.now() > sub.endDate) {
-                                        document.querySelector('.app-container').style.display = 'none';
-                                        document.getElementById('lock-screen').style.display = 'flex';
-                                    } else {
-                                        document.querySelector('.app-container').style.display = 'flex';
-                                        switchView('dashboard');
-                                        document.getElementById('dash-message').innerText =
-                                            'سلام ' + name + ' عزیز، سیستم شما فعال است.';
-                                    }
-                                });
-                            }).catch(function() {
-                                hideSplash(function() { switchView('login'); });
-                            });
-                        } else {
-                            // کاربر احراز شده ولی داده‌اش نیست (نادر)
-                            auth.signOut().then(function() {
-                                hideSplash(function() {
-                                    switchView('login');
-                                    showAlert('توجه', 'اطلاعات حساب کامل نیست. لطفاً دوباره ثبت‌نام کنید.');
-                                });
-                            });
-                        }
-                    }).catch(function() {
-                        hideSplash(function() { switchView('login'); });
-                    });
+                if(data.profileImage) {
+                    avatarImg.src = data.profileImage;
+                    avatarImg.style.display = 'block';
+                    avatarText.style.display = 'none';
                 } else {
-                    hideSplash(function() { switchView('login'); });
+                    avatarText.innerText = name[0];
+                    avatarText.style.display = 'flex';
+                    avatarImg.style.display = 'none';
                 }
             });
-        });
+            loadOtherUsers();
+        }
+
+        function loadOtherUsers() {
+            const container = document.getElementById('other-users-container');
+            database.ref('users').once('value').then(snapshot => {
+                const users = snapshot.val();
+                if(!users) {
+                    container.innerHTML = '<p style="font-size:11px; color:var(--text-muted); text-align:center;">هیچ کاربری یافت نشد.</p>';
+                    return;
+                }
+                const myPhone = localStorage.getItem('tailor_user');
+                let html = '';
+                let count = 0;
+                Object.keys(users).forEach(phone => {
+                    if(phone !== myPhone && users[phone].tailorName && count < 5) { 
+                        const u = users[phone];
+                        html += `
+                            <div class="user-item-mini">
+                                <div class="avatar-mini">${u.tailorName[0]}</div>
+                                <div class="info-mini">
+                                    <strong>${u.tailorName}</strong>
+                                    <span>${u.role || 'خیاط'}</span>
+                                </div>
+                            </div>
+                        `;
+                        count++;
+                    }
+                });
+                if(html === '') html = '<p style="font-size:11px; color:var(--text-muted); text-align:center;">هنوز کسی عضو نشده است.</p>';
+                container.innerHTML = html;
+            });
+        }
+
+        // ================= سیستم مدیریت اشتراک =================
+        function checkSubscription(phone) {
+            if(!database) return;
+            database.ref('users/' + phone + '/subscription').once('value').then(snapshot => {
+                let sub = snapshot.val();
+                const now = Date.now();
+                
+                if (!sub) {
+                    sub = { status: 'trial', startDate: now, endDate: now + (30 * 24 * 60 * 60 * 1000) };
+                    database.ref('users/' + phone + '/subscription').set(sub);
+                    showTrialBanner(30);
+                    return;
+                }
+
+                const daysLeft = Math.ceil((sub.endDate - now) / (1000 * 60 * 60 * 24));
+
+                if (now > sub.endDate || sub.status === 'locked') {
+                    showLockScreen(phone);
+                    return;
+                }
+
+                if (sub.status === 'trial') {
+                    showTrialBanner(daysLeft);
+                }
+            });
+        }
+
+        function showTrialBanner(daysLeft) {
+            const banner = document.getElementById('trial-banner');
+            if(banner) {
+                banner.style.display = 'block';
+                banner.innerHTML = `
+                    <span>شما در دوره آزمایشی هستید. ${daysLeft} روز باقی مانده است.</span><br>
+                    <a href="payment.html">پرداخت و فعال‌سازی همیشگی</a>
+                `;
+            }
+        }
+
+        function showLockScreen(phone) {
+            document.querySelector('.app-container').style.display = 'none';
+            document.getElementById('bottom-nav').style.display = 'none';
+            
+            const lockHTML = `
+                <div style="position:fixed; inset:0; background:var(--bg-body); z-index:99999; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;">
+                    <img src="assets/logo.png" style="width:100px; margin-bottom:20px; border-radius:20px; border:2px solid var(--gold);">
+                    <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک شما به پایان رسیده است</h2>
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.6;">برای ادامه استفاده، لطفاً هزینه اشتراک را پرداخت کنید و کد فعال‌سازی را وارد نمایید.</p>
+                    
+                    <div style="background:var(--bg-panel); border:1px solid var(--gold); padding:15px; border-radius:15px; width:100%; max-width:350px;">
+                        <p style="font-size:12px; color:var(--text-main); margin-bottom:10px;">شماره حساب / حواله:</p>
+                        <p style="font-weight:bold; color:var(--gold); margin-bottom:15px;">حساب پی: 0744002790</p>
+                        
+                        <input type="text" id="lock-code-input" placeholder="کد فعال‌سازی را وارد کنید" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); text-align:center; margin-bottom:10px;">
+                        <button onclick="activateAccount('${phone}')" style="width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(90deg, var(--gold-light), var(--gold)); color:#000; font-weight:bold; cursor:pointer;">فعال‌سازی حساب</button>
+                    </div>
+                    
+                    <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</a>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', lockHTML);
+        }
+
+        function activateAccount(phone) {
+            const code = document.getElementById('lock-code-input').value.trim();
+            if(!code) return alert('لطفاً کد را وارد کنید');
+
+            database.ref('activation_codes/' + code).once('value').then(snapshot => {
+                const codeData = snapshot.val();
+                
+                if (!codeData) return alert('کد وارد شده نامعتبر است!');
+                if (codeData.isUsed) return alert('این کد قبلاً استفاده شده است!');
+                if (codeData.phone !== phone) return alert('این کد مخصوص شماره شما نیست!');
+
+                const newEndDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
+                database.ref('users/' + phone + '/subscription').update({
+                    status: 'active',
+                    endDate: newEndDate,
+                    warningsCount: 0
+                }).then(() => {
+                    database.ref('activation_codes/' + code).update({ isUsed: true });
+                    alert('حساب شما با موفقیت فعال شد!');
+                    window.location.reload();
+                });
+            });
+        }
+
+        // ================= بارکد و اشتراک‌گذاری =================
+        function openShareModal(e) {
+            if(e) e.preventDefault();
+            toggleSidebar();
+            
+            const appUrl = window.location.origin + window.location.pathname;
+            document.getElementById('share-link-input').value = appUrl;
+            
+            const qrContainer = document.getElementById('qrcode-container');
+            qrContainer.innerHTML = '';
+            
+            new QRCode(qrContainer, {
+                text: appUrl,
+                width: 160,
+                height: 160,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            
+            document.getElementById('share-modal').style.display = 'flex';
+        }
+
+        function copyShareLink() {
+            const input = document.getElementById('share-link-input');
+            input.select();
+            input.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            alert("لینک کپی شد!");
+        }
+
+        let secretTapCount = 0;
+        let secretTapTimer;
+        function handleSecretTap() {
+            secretTapCount++;
+            clearTimeout(secretTapTimer);
+            if (secretTapCount >= 7) {
+                window.location.href = 'admin.html';
+                secretTapCount = 0;
+            } else {
+                secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 2000);
+            }
+        }
+
+        // ================= آمار داشبورد =================
+        function updateDate() {
+            const d = new Date();
+            const shamsi = d2j(g2d(d.getFullYear(), d.getMonth() + 1, d.getDate()));
+            const monthsFa = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+            const daysFa = ["یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه", "شنبه"];
+            document.getElementById('dash-date').innerText = `${daysFa[d.getDay()]}، ${shamsi.jd} ${monthsFa[shamsi.jm - 1]} ${shamsi.jy}`;
+        }
+
+        function loadDashboardData() {
+            const userPhone = localStorage.getItem('tailor_user');
+            if(!userPhone || !database) return;
+
+            database.ref('users/' + userPhone + '/production').once('value').then(snapshot => {
+                const data = snapshot.val();
+                let totalProdQty = 0;
+                let totalProdValue = 0;
+                let recentHtml = '';
+
+                if(data) {
+                    const batches = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
+                    batches.forEach(b => {
+                        if(b.items) {
+                            b.items.forEach(item => {
+                                totalProdQty += (Number(item.qty) || 0);
+                                totalProdValue += ((Number(item.qty) || 0) * (Number(item.price) || 0));
+                            });
+                        }
+                    });
+                    batches.slice(0, 5).forEach(b => {
+                        let itemsText = b.items ? b.items.map(i => `${i.color} ${i.size}`).join(', ') : '';
+                        recentHtml += `
+                            <div class="recent-item">
+                                <div class="info">
+                                    <strong>${b.modelName || b.type || 'تولید جدید'}</strong>
+                                    <span>${b.date} | ${itemsText}</span>
+                                </div>
+                                <div class="qty">${b.totalQty || 0} عدد</div>
+                            </div>`;
+                    });
+                }
+
+                document.getElementById('stat-total-prod').innerText = totalProdQty.toLocaleString();
+                document.getElementById('stat-total-value').innerHTML = `${totalProdValue.toLocaleString()} <span>افغانی</span>`;
+                if(recentHtml === '') recentHtml = '<p style="text-align:center; color:var(--text-muted); font-size:12px;">هیچ تولیدی ثبت نشده است.</p>';
+                document.getElementById('recent-production-container').innerHTML = recentHtml;
+            });
+
+            database.ref('users/' + userPhone + '/ledger').once('value').then(snapshot => {
+                const data = snapshot.val();
+                let totalDebt = 0;
+                if(data) {
+                    Object.values(data).forEach(t => {
+                        if(t.type === 'loan' || t.type === 'advance') totalDebt += (Number(t.amount) || 0);
+                        if(t.type === 'repay' || t.type === 'deduction') totalDebt -= (Number(t.amount) || 0);
+                    });
+                }
+                document.getElementById('stat-total-debt').innerHTML = `${Math.max(0, totalDebt).toLocaleString()} <span>افغانی</span>`;
+            });
+
+            database.ref('users/' + userPhone + '/office').once('value').then(snapshot => {
+                const data = snapshot.val();
+                let bookBalance = 0;
+                if(data) {
+                    Object.values(data).forEach(t => {
+                        if(t.type === 'taken') bookBalance -= (Number(t.amount) || 0);
+                        if(t.type === 'given' || t.type === 'settled') bookBalance += (Number(t.amount) || 0);
+                    });
+                }
+                document.getElementById('stat-book-balance').innerHTML = `${bookBalance.toLocaleString()} <span>افغانی</span>`;
+            });
+        }
+
+        function div(a,b){return ~~(a/b)} function mod(a,b){return a-~~(a/b)*b}
+        function jalCal(jy,withoutLeap){var breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178],bl=breaks.length,gy=jy+621,leapJ=-14,jp=breaks[0],jm,jump,leap,leapG,march,n,i;for(i=1;i<bl;i+=1){jm=breaks[i];jump=jm-jp;if(jy<jm)break;leapJ=leapJ+div(jump,33)*8+div(mod(jump,33),4);jp=jm}n=jy-jp;leapJ=leapJ+div(n,33)*8+div(mod(n,33)+3,4);if(mod(jump,33)===4&&jump-n===4)leapJ+=1;leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150;march=20+leapJ-leapG;if(!withoutLeap){if(jump-n<6)n=n-jump+div(jump+4,33)*33;leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4}return{leap:leap,gy:gy,march:march}}
+        function g2d(gy,gm,gd){var d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*mod(gm+9,12)+2,5)+gd-34840408;d=d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;return d}
+        function d2g(jdn){var j,i,gd,gm,gy;j=4*jdn+139361631;j=j+div(div(4*jdn+183187720,146097)*3,4)*4-3908;i=div(mod(j,1461),4)*5+308;gd=div(mod(i,153),5)+1;gm=mod(div(i,153),12)+1;gy=div(j,1461)-100100+div(8-gm,6);return{gy:gy,gm:gm,gd:gd}}
+        function d2j(jdn){var gy=d2g(jdn).gy,jy=gy-621,r=jalCal(jy,false),jdn1f=g2d(gy,3,r.march),jd,jm,k;k=jdn-jdn1f;if(k>=0){if(k<=185){jm=1+div(k,31);jd=mod(k,31)+1;return{jy:jy,jm:jm,jd:jd}}else k-=186}else{jy-=1;k+=179;if(r.leap===1)k+=1}jm=7+div(k,30);jd=mod(k,30)+1;return{jy:jy,jm:jm,jd:jd}}
+
+        window.onload = () => {
+            if(localStorage.getItem('tailor_theme') === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            }
+            initDates();
+
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.display = 'none';
+                    document.getElementById('main-top-bar').style.display = 'flex';
+                    
+                    if (localStorage.getItem('tailor_user')) {
+                        loadUserData(localStorage.getItem('tailor_user'));
+                        checkSubscription(localStorage.getItem('tailor_user'));
+                        switchView('dashboard');
+                        document.getElementById('bottom-nav').classList.add('active');
+                    } else {
+                        switchView('login');
+                    }
+                }, 500);
+            }, 2000);
+        };
     </script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg')).catch(err => console.log('SW fail'));
+    });
+  }
+</script>
 </body>
 </html>
