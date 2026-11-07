@@ -12,9 +12,15 @@
     <meta name="apple-mobile-web-app-title" content="Tailor">
     <link rel="apple-touch-icon" href="assets/logo.png">
 
+    <!-- ⭐ جلوگیری از پرش تم (اعمال تم قبل از رندر شدن صفحه) -->
+    <script>
+        if (localStorage.getItem('tailor_theme') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    </script>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- کتابخانه ساخت بارکد آفلاین -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <style>
@@ -30,17 +36,20 @@
             --success: #2ed573;
             --warning: #f39c12;
             --input-bg: rgba(0, 0, 0, 0.4);
+            --dropdown-bg: #0a1c16;
             --shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
             --sidebar-bg: #07130f;
         }
 
-        body.light-mode {
+        /* ⭐ تم روشن */
+        [data-theme="light"] {
             --bg-body: radial-gradient(circle at top, #e6dec9 0%, #d4cbb5 100%);
             --bg-panel: linear-gradient(180deg, #f4ecd8 0%, #ebe1cc 100%);
             --text-main: #1c2b26;
             --text-muted: #4a5a54;
             --border: rgba(212, 175, 55, 0.6);
             --input-bg: rgba(255, 255, 255, 0.6);
+            --dropdown-bg: #f4ecd8;
             --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             --sidebar-bg: #f4ecd8;
         }
@@ -50,7 +59,7 @@
         .app-container { width: 100%; max-width: 420px; padding: 15px; padding-bottom: 80px; position: relative; min-height: 100vh; display: flex; flex-direction: column; z-index: 1; }
 
         /* لودینگ */
-        #splash-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+        #splash-screen { position: fixed; inset: 0; background: var(--bg-body); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.3s ease; }
         .glow-logo { width: 130px; height: 130px; border-radius: 30px; border: 2px solid var(--gold); object-fit: cover; animation: pulseGlow 2s infinite alternate, floatLogo 3s ease-in-out infinite; background: #000; }
         @keyframes pulseGlow { from { box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); } to { box-shadow: 0 0 40px rgba(212, 175, 55, 0.8); } }
         @keyframes floatLogo { 0% { transform: translateY(0px); } 50% { transform: translateY(-15px); } 100% { transform: translateY(0px); } }
@@ -79,9 +88,7 @@
         .sidebar.active { right: 0; }
         
         .sidebar-profile { padding: 25px 20px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%); border-bottom: 1px solid var(--border); text-align: center; position: relative; cursor: pointer; }
-        .sidebar-profile:hover { background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, transparent 100%); }
         .sidebar-avatar { width: 70px; height: 70px; border-radius: 50%; background: var(--gold); color: #000; display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: bold; margin: 0 auto 10px; border: 3px solid var(--bg-panel); box-shadow: 0 0 15px rgba(212, 175, 55, 0.4); transition: 0.3s; object-fit: cover; }
-        .sidebar-profile:hover .sidebar-avatar { transform: scale(1.05); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); }
         .sidebar-user h3 { font-size: 16px; color: var(--gold); margin-bottom: 3px; }
         .sidebar-user p { font-size: 12px; color: var(--text-muted); }
         .sidebar-go-profile { margin-top: 8px; font-size: 11px; color: var(--gold); display: inline-flex; align-items: center; gap: 3px; }
@@ -253,27 +260,10 @@
             <a href="students.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>شاگردان و خلیفه‌ها</span></a>
             <a href="office.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span>حساب و کتاب</span></a>
             <a href="machine-guide.html" class="sb-item"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg><span>راهنمای چرخ خیاطی</span></a>
-            
-            <a href="backup.html" class="sb-item">
-                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <span>تیم پشتیبان و سفارش</span>
-            </a>
-            
-            <a href="payment.html" class="sb-item">
-                <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                <span>پرداخت و تمدید اشتراک</span>
-            </a>
-
-            <a href="#" class="sb-item" onclick="openShareModal(event)">
-                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                <span>اشتراک‌گذاری برنامه</span>
-            </a>
-
-            <a href="more.html" class="sb-item">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                <span>بیشتر</span>
-            </a>
-            
+            <a href="backup.html" class="sb-item"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>تیم پشتیبان و سفارش</span></a>
+            <a href="payment.html" class="sb-item"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg><span>پرداخت و تمدید اشتراک</span></a>
+            <a href="#" class="sb-item" onclick="openShareModal(event)"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>اشتراک‌گذاری برنامه</span></a>
+            <a href="more.html" class="sb-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span>بیشتر</span></a>
             <button class="sb-item" style="margin-top: 15px; color: var(--danger);" onclick="logout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>خروج</span></button>
         </div>
 
@@ -309,7 +299,7 @@
             </div>
         </div>
 
-        <!-- صفحه ثبت‌نام (کد قدیمی با منوهای سفارشی جایگزین نشده چون در setup-modal هست) -->
+        <!-- صفحه ثبت‌نام -->
         <div id="view-register" class="view-section">
             <div class="card" style="padding: 20px 15px;">
                 <div class="header-title"><h1>ایجاد حساب</h1></div>
@@ -324,10 +314,7 @@
 
         <!-- صفحه داشبورد -->
         <div id="view-dashboard" class="view-section">
-            
-            <!-- بنر دوره آزمایشی -->
             <div class="trial-banner" id="trial-banner"></div>
-
             <div class="dash-header">
                 <div class="greeting">
                     <h2>سلام، خلیفه</h2>
@@ -347,19 +334,16 @@
                 <div id="recent-production-container"><p style="text-align:center; color:var(--text-muted); font-size:12px; margin-top:10px;">در حال بارگذاری...</p></div>
             </div>
 
-            <!-- دسترسی سریع (۹ دکمه رنگی) -->
             <h3 class="quick-access-title" id="secret-trigger" onclick="handleSecretTap()">دسترسی سریع</h3>
             
             <div class="menu-grid">
                 <a href="owner.html" class="menu-item"><div class="icon-box bg-orders"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><span>سفارشات</span></a>
                 <a href="loans.html" class="menu-item"><div class="icon-box bg-loans"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="12" y1="10" x2="12" y2="16"/></svg></div><span>قرض شاگردان</span></a>
                 <a href="production.html" class="menu-item"><div class="icon-box bg-production"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><span>ثبت تولید</span></a>
-                
-                <a href="cutting.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
+                <a href="samples.html" class="menu-item"><div class="icon-box bg-samples"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></div><span>سمپل / مدل</span></a>
                 <a href="cutting.html" class="menu-item"><div class="icon-box bg-cutting"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/></svg></div><span>برش کار</span></a>
                 <a href="students.html" class="menu-item"><div class="icon-box bg-students"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><span>شاگردان</span></a>
-                
-                <a href="accounting.html" class="menu-item"><div class="icon-box bg-finance"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span>حساب و کتاب</span></a>
+                <a href="finance.html" class="menu-item"><div class="icon-box bg-finance"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><span>حساب و کتاب</span></a>
                 <a href="machine-guide.html" class="menu-item"><div class="icon-box bg-machine"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div><span>راهنمای چرخ</span></a>
                 <a href="office.html" class="menu-item"><div class="icon-box bg-office"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><span>حساب دفتر</span></a>
             </div>
@@ -411,9 +395,7 @@
             <h3 style="color: var(--gold); margin-bottom: 15px;">اشتراک‌گذاری برنامه</h3>
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">با اسکن این بارکد، دوستان شما می‌توانند برنامه را نصب کنند.</p>
             
-            <div id="qrcode-container" style="background: #fff; padding: 10px; border-radius: 10px; display: inline-block; margin-bottom: 15px; border: 2px solid var(--gold);">
-                <!-- بارکد اینجا ساخته می‌شود -->
-            </div>
+            <div id="qrcode-container" style="background: #fff; padding: 10px; border-radius: 10px; display: inline-block; margin-bottom: 15px; border: 2px solid var(--gold);"></div>
 
             <input type="text" id="share-link-input" readonly style="width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); border-radius: 10px; text-align: center; margin-bottom: 15px;">
             <button onclick="copyShareLink()" style="width: 100%; padding: 12px; border-radius: 10px; background: var(--gold); color: #000; font-weight: bold; border: none; cursor: pointer; margin-bottom: 10px;">کپی کردن لینک</button>
@@ -431,6 +413,7 @@
     </nav>
 
     <script>
+        // ================= تنظیمات فایربیس =================
         const firebaseConfig = {
             apiKey: "AIzaSyDeuBpobxA5NNZZZ0ieu2-WLn-jJgxxdkk",
             authDomain: "tailor-64f7f.firebaseapp.com",
@@ -446,12 +429,27 @@
         let userPhone = localStorage.getItem('tailor_user');
         let base64Profile = null;
         const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
-        const selections = {
-            'dd-role': 'صاحب کار (مالک)',
-            'dd-day': '1',
-            'dd-month': 'حمل',
-            'dd-year': '1403'
-        };
+        const selections = { 'dd-role': 'صاحب کار (مالک)', 'dd-day': '1', 'dd-month': 'حمل', 'dd-year': '1403' };
+
+        // ⭐ سیستم مدیریت تم اصلاح شده (بدون پرش)
+        function applyThemeToUI(isLight) {
+            document.getElementById('theme-icon').innerHTML = isLight 
+                ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' 
+                : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+        }
+
+        function toggleTheme() {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            if(isLight) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('tailor_theme', 'dark');
+                applyThemeToUI(false);
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('tailor_theme', 'light');
+                applyThemeToUI(true);
+            }
+        }
 
         function showAlert(type, title, msg) {
             const overlay = document.getElementById('custom-alert');
@@ -465,13 +463,6 @@
         }
         function closeCustomAlert() { document.getElementById('custom-alert').classList.remove('active'); }
 
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            const isLight = document.body.classList.contains('light-mode');
-            document.getElementById('theme-icon').innerHTML = isLight ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
-            localStorage.setItem('tailor_theme', isLight ? 'light' : 'dark');
-        }
-
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); document.getElementById('sidebar-overlay').classList.toggle('active'); }
         function goToProfile() { window.location.href = 'profile.html'; }
 
@@ -484,7 +475,7 @@
             }
         }
 
-        function logout() { localStorage.clear(); window.location.reload(); }
+        function logout() { localStorage.removeItem('tailor_user'); window.location.reload(); }
 
         // ================= سیستم منوهای کشویی سفارشی =================
         function toggleDropdown(id) {
@@ -550,14 +541,7 @@
             if(!name) return showAlert('error', 'خطا', 'لطفاً نام خود را وارد کنید');
 
             const startDate = `${selections['dd-year']}/${shamsiMonths.indexOf(selections['dd-month'])+1}/${selections['dd-day']}`;
-
-            const data = {
-                tailorName: name,
-                role: selections['dd-role'],
-                startDate: startDate,
-                profileImage: base64Profile,
-                registeredAt: Date.now()
-            };
+            const data = { tailorName: name, role: selections['dd-role'], startDate: startDate, profileImage: base64Profile, registeredAt: Date.now() };
 
             database.ref('users/' + userPhone).update(data).then(() => {
                 document.getElementById('setup-modal').classList.remove('active');
@@ -579,11 +563,8 @@
             if(database) {
                 database.ref('users/' + phone).once('value').then(snap => {
                     if(snap.exists()) return showAlert('error', 'خطا', 'این شماره قبلاً ثبت‌نام کرده است.');
-                    
                     localStorage.setItem('tailor_user', phone);
                     userPhone = phone;
-                    
-                    // نمایش مودال تکمیل اطلاعات
                     document.getElementById('setup-modal').classList.add('active');
                     document.getElementById('main-top-bar').style.display = 'none';
                 });
@@ -599,10 +580,8 @@
                     if (snapshot.exists()) {
                         localStorage.setItem('tailor_user', phone);
                         userPhone = phone;
-                        
                         const data = snapshot.val();
                         if(!data.tailorName) {
-                            // اگر اسم ندارد، مودال تنظیمات باز شود
                             document.getElementById('setup-modal').classList.add('active');
                         } else {
                             loadUserData(phone);
@@ -621,7 +600,6 @@
 
         function loadUserData(phone) {
             document.getElementById('user-phone-display').innerText = phone;
-            
             database.ref('users/' + phone).once('value').then(snap => {
                 const data = snap.val() || {};
                 const name = data.tailorName || 'خیاط';
@@ -648,25 +626,13 @@
             const container = document.getElementById('other-users-container');
             database.ref('users').once('value').then(snapshot => {
                 const users = snapshot.val();
-                if(!users) {
-                    container.innerHTML = '<p style="font-size:11px; color:var(--text-muted); text-align:center;">هیچ کاربری یافت نشد.</p>';
-                    return;
-                }
+                if(!users) { container.innerHTML = '<p style="font-size:11px; color:var(--text-muted); text-align:center;">هیچ کاربری یافت نشد.</p>'; return; }
                 const myPhone = localStorage.getItem('tailor_user');
-                let html = '';
-                let count = 0;
+                let html = '', count = 0;
                 Object.keys(users).forEach(phone => {
                     if(phone !== myPhone && users[phone].tailorName && count < 5) { 
                         const u = users[phone];
-                        html += `
-                            <div class="user-item-mini">
-                                <div class="avatar-mini">${u.tailorName[0]}</div>
-                                <div class="info-mini">
-                                    <strong>${u.tailorName}</strong>
-                                    <span>${u.role || 'خیاط'}</span>
-                                </div>
-                            </div>
-                        `;
+                        html += `<div class="user-item-mini"><div class="avatar-mini">${u.tailorName[0]}</div><div class="info-mini"><strong>${u.tailorName}</strong><span>${u.role || 'خیاط'}</span></div></div>`;
                         count++;
                     }
                 });
@@ -691,14 +657,8 @@
 
                 const daysLeft = Math.ceil((sub.endDate - now) / (1000 * 60 * 60 * 24));
 
-                if (now > sub.endDate || sub.status === 'locked') {
-                    showLockScreen(phone);
-                    return;
-                }
-
-                if (sub.status === 'trial') {
-                    showTrialBanner(daysLeft);
-                }
+                if (now > sub.endDate || sub.status === 'locked') { showLockScreen(phone); return; }
+                if (sub.status === 'trial') { showTrialBanner(daysLeft); }
             });
         }
 
@@ -706,54 +666,39 @@
             const banner = document.getElementById('trial-banner');
             if(banner) {
                 banner.style.display = 'block';
-                banner.innerHTML = `
-                    <span>شما در دوره آزمایشی هستید. ${daysLeft} روز باقی مانده است.</span><br>
-                    <a href="payment.html">پرداخت و فعال‌سازی همیشگی</a>
-                `;
+                banner.innerHTML = `<span>شما در دوره آزمایشی هستید. ${daysLeft} روز باقی مانده است.</span><br><a href="payment.html">پرداخت و فعال‌سازی همیشگی</a>`;
             }
         }
 
         function showLockScreen(phone) {
             document.querySelector('.app-container').style.display = 'none';
             document.getElementById('bottom-nav').style.display = 'none';
-            
             const lockHTML = `
                 <div style="position:fixed; inset:0; background:var(--bg-body); z-index:99999; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:20px; text-align:center;">
                     <img src="assets/logo.png" style="width:100px; margin-bottom:20px; border-radius:20px; border:2px solid var(--gold);">
                     <h2 style="color:var(--danger); margin-bottom:10px;">اشتراک شما به پایان رسیده است</h2>
                     <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.6;">برای ادامه استفاده، لطفاً هزینه اشتراک را پرداخت کنید و کد فعال‌سازی را وارد نمایید.</p>
-                    
                     <div style="background:var(--bg-panel); border:1px solid var(--gold); padding:15px; border-radius:15px; width:100%; max-width:350px;">
                         <p style="font-size:12px; color:var(--text-main); margin-bottom:10px;">شماره حساب / حواله:</p>
                         <p style="font-weight:bold; color:var(--gold); margin-bottom:15px;">حساب پی: 0744002790</p>
-                        
                         <input type="text" id="lock-code-input" placeholder="کد فعال‌سازی را وارد کنید" style="width:100%; padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); text-align:center; margin-bottom:10px;">
                         <button onclick="activateAccount('${phone}')" style="width:100%; padding:12px; border-radius:10px; border:none; background:linear-gradient(90deg, var(--gold-light), var(--gold)); color:#000; font-weight:bold; cursor:pointer;">فعال‌سازی حساب</button>
                     </div>
-                    
                     <a href="https://wa.me/93744002790" target="_blank" style="margin-top:20px; color:var(--text-main); font-size:12px; text-decoration:underline;">پشتیبانی و ارسال رسید</a>
-                </div>
-            `;
+                </div>`;
             document.body.insertAdjacentHTML('beforeend', lockHTML);
         }
 
         function activateAccount(phone) {
             const code = document.getElementById('lock-code-input').value.trim();
             if(!code) return alert('لطفاً کد را وارد کنید');
-
             database.ref('activation_codes/' + code).once('value').then(snapshot => {
                 const codeData = snapshot.val();
-                
                 if (!codeData) return alert('کد وارد شده نامعتبر است!');
                 if (codeData.isUsed) return alert('این کد قبلاً استفاده شده است!');
                 if (codeData.phone !== phone) return alert('این کد مخصوص شماره شما نیست!');
-
                 const newEndDate = Date.now() + (30 * 24 * 60 * 60 * 1000);
-                database.ref('users/' + phone + '/subscription').update({
-                    status: 'active',
-                    endDate: newEndDate,
-                    warningsCount: 0
-                }).then(() => {
+                database.ref('users/' + phone + '/subscription').update({ status: 'active', endDate: newEndDate, warningsCount: 0 }).then(() => {
                     database.ref('activation_codes/' + code).update({ isUsed: true });
                     alert('حساب شما با موفقیت فعال شد!');
                     window.location.reload();
@@ -765,31 +710,17 @@
         function openShareModal(e) {
             if(e) e.preventDefault();
             toggleSidebar();
-            
             const appUrl = window.location.origin + window.location.pathname;
             document.getElementById('share-link-input').value = appUrl;
-            
             const qrContainer = document.getElementById('qrcode-container');
             qrContainer.innerHTML = '';
-            
-            new QRCode(qrContainer, {
-                text: appUrl,
-                width: 160,
-                height: 160,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
-            });
-            
+            new QRCode(qrContainer, { text: appUrl, width: 160, height: 160, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H });
             document.getElementById('share-modal').style.display = 'flex';
         }
 
         function copyShareLink() {
             const input = document.getElementById('share-link-input');
-            input.select();
-            input.setSelectionRange(0, 99999);
-            document.execCommand("copy");
-            alert("لینک کپی شد!");
+            input.select(); input.setSelectionRange(0, 99999); document.execCommand("copy"); alert("لینک کپی شد!");
         }
 
         let secretTapCount = 0;
@@ -797,12 +728,8 @@
         function handleSecretTap() {
             secretTapCount++;
             clearTimeout(secretTapTimer);
-            if (secretTapCount >= 7) {
-                window.location.href = 'admin.html';
-                secretTapCount = 0;
-            } else {
-                secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 2000);
-            }
+            if (secretTapCount >= 7) { window.location.href = 'admin.html'; secretTapCount = 0; } 
+            else { secretTapTimer = setTimeout(() => { secretTapCount = 0; }, 2000); }
         }
 
         // ================= آمار داشبورد =================
@@ -817,36 +744,19 @@
         function loadDashboardData() {
             const userPhone = localStorage.getItem('tailor_user');
             if(!userPhone || !database) return;
-
             database.ref('users/' + userPhone + '/production').once('value').then(snapshot => {
                 const data = snapshot.val();
-                let totalProdQty = 0;
-                let totalProdValue = 0;
-                let recentHtml = '';
-
+                let totalProdQty = 0, totalProdValue = 0, recentHtml = '';
                 if(data) {
                     const batches = Object.values(data).sort((a,b) => b.timestamp - a.timestamp);
                     batches.forEach(b => {
-                        if(b.items) {
-                            b.items.forEach(item => {
-                                totalProdQty += (Number(item.qty) || 0);
-                                totalProdValue += ((Number(item.qty) || 0) * (Number(item.price) || 0));
-                            });
-                        }
+                        if(b.items) { b.items.forEach(item => { totalProdQty += (Number(item.qty) || 0); totalProdValue += ((Number(item.qty) || 0) * (Number(item.price) || 0)); }); }
                     });
                     batches.slice(0, 5).forEach(b => {
                         let itemsText = b.items ? b.items.map(i => `${i.color} ${i.size}`).join(', ') : '';
-                        recentHtml += `
-                            <div class="recent-item">
-                                <div class="info">
-                                    <strong>${b.modelName || b.type || 'تولید جدید'}</strong>
-                                    <span>${b.date} | ${itemsText}</span>
-                                </div>
-                                <div class="qty">${b.totalQty || 0} عدد</div>
-                            </div>`;
+                        recentHtml += `<div class="recent-item"><div class="info"><strong>${b.modelName || b.type || 'تولید جدید'}</strong><span>${b.date} | ${itemsText}</span></div><div class="qty">${b.totalQty || 0} عدد</div></div>`;
                     });
                 }
-
                 document.getElementById('stat-total-prod').innerText = totalProdQty.toLocaleString();
                 document.getElementById('stat-total-value').innerHTML = `${totalProdValue.toLocaleString()} <span>افغانی</span>`;
                 if(recentHtml === '') recentHtml = '<p style="text-align:center; color:var(--text-muted); font-size:12px;">هیچ تولیدی ثبت نشده است.</p>';
@@ -856,24 +766,14 @@
             database.ref('users/' + userPhone + '/ledger').once('value').then(snapshot => {
                 const data = snapshot.val();
                 let totalDebt = 0;
-                if(data) {
-                    Object.values(data).forEach(t => {
-                        if(t.type === 'loan' || t.type === 'advance') totalDebt += (Number(t.amount) || 0);
-                        if(t.type === 'repay' || t.type === 'deduction') totalDebt -= (Number(t.amount) || 0);
-                    });
-                }
+                if(data) { Object.values(data).forEach(t => { if(t.type === 'loan' || t.type === 'advance') totalDebt += (Number(t.amount) || 0); if(t.type === 'repay' || t.type === 'deduction') totalDebt -= (Number(t.amount) || 0); }); }
                 document.getElementById('stat-total-debt').innerHTML = `${Math.max(0, totalDebt).toLocaleString()} <span>افغانی</span>`;
             });
 
             database.ref('users/' + userPhone + '/office').once('value').then(snapshot => {
                 const data = snapshot.val();
                 let bookBalance = 0;
-                if(data) {
-                    Object.values(data).forEach(t => {
-                        if(t.type === 'taken') bookBalance -= (Number(t.amount) || 0);
-                        if(t.type === 'given' || t.type === 'settled') bookBalance += (Number(t.amount) || 0);
-                    });
-                }
+                if(data) { Object.values(data).forEach(t => { if(t.type === 'taken') bookBalance -= (Number(t.amount) || 0); if(t.type === 'given' || t.type === 'settled') bookBalance += (Number(t.amount) || 0); }); }
                 document.getElementById('stat-book-balance').innerHTML = `${bookBalance.toLocaleString()} <span>افغانی</span>`;
             });
         }
@@ -884,13 +784,13 @@
         function d2g(jdn){var j,i,gd,gm,gy;j=4*jdn+139361631;j=j+div(div(4*jdn+183187720,146097)*3,4)*4-3908;i=div(mod(j,1461),4)*5+308;gd=div(mod(i,153),5)+1;gm=mod(div(i,153),12)+1;gy=div(j,1461)-100100+div(8-gm,6);return{gy:gy,gm:gm,gd:gd}}
         function d2j(jdn){var gy=d2g(jdn).gy,jy=gy-621,r=jalCal(jy,false),jdn1f=g2d(gy,3,r.march),jd,jm,k;k=jdn-jdn1f;if(k>=0){if(k<=185){jm=1+div(k,31);jd=mod(k,31)+1;return{jy:jy,jm:jm,jd:jd}}else k-=186}else{jy-=1;k+=179;if(r.leap===1)k+=1}jm=7+div(k,30);jd=mod(k,30)+1;return{jy:jy,jm:jm,jd:jd}}
 
+        // ================= شروع برنامه =================
         window.onload = () => {
-            if(localStorage.getItem('tailor_theme') === 'light') {
-                document.body.classList.add('light-mode');
-                document.getElementById('theme-icon').innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
-            }
+            // تنظیم اولیه آیکون تم
+            applyThemeToUI(document.documentElement.getAttribute('data-theme') === 'light');
             initDates();
 
+            // ⭐ اسپلش اسکرین: دقیقاً 500 میلی‌ثانیه (نیم ثانیه)
             setTimeout(() => {
                 document.getElementById('splash-screen').style.opacity = '0';
                 setTimeout(() => {
@@ -905,16 +805,16 @@
                     } else {
                         switchView('login');
                     }
-                }, 500);
-            }, 2000);
+                }, 300); // زمان محو شدن نرم
+            }, 500); // زمان نمایش لوگو (نیم ثانیه)
         };
     </script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg')).catch(err => console.log('SW fail'));
-    });
-  }
-</script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => console.log('SW reg')).catch(err => console.log('SW fail'));
+            });
+        }
+    </script>
 </body>
 </html>
