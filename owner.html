@@ -28,7 +28,7 @@ body.light-mode{
 body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:flex;justify-content:center;overflow-x:hidden;transition:background .3s,color .3s}
 .app-container{width:100%;max-width:460px;padding:15px;padding-bottom:90px;position:relative;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
 
-/* Main View Switcher (Wholesale vs Retail) */
+/* Main View Switcher */
 .main-switch{display:flex;background:var(--input-bg);border-radius:12px;padding:4px;margin-bottom:15px;border:1px solid var(--border)}
 .main-switch button{flex:1;padding:10px;border:none;background:transparent;color:var(--text-muted);font-size:13px;font-weight:bold;border-radius:8px;cursor:pointer;transition:0.3s}
 .main-switch button.active{background:linear-gradient(90deg,var(--gold-light),var(--gold));color:#000;box-shadow:0 2px 8px rgba(212,175,55,.3)}
@@ -131,6 +131,7 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 .variant-row .vr-bottom input{flex:1;min-width:60px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:7px;color:var(--text-main);font-size:11px;outline:none}
 .vr-remove{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger);border-radius:6px;padding:0 10px;font-size:14px;cursor:pointer;height:32px;line-height:30px}
 .vr-sum{color:var(--gold);font-size:10px;font-weight:bold;padding:0 6px;white-space:nowrap}
+.vt-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed rgba(128,128,128,.1);font-size:11px;}
 
 /* Material row */
 .mat-row{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:8px;position:relative}
@@ -189,6 +190,14 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 .mt-8{margin-top:8px}.mb-8{margin-bottom:8px}.text-center{text-align:center}.text-muted{color:var(--text-muted)}
 .flex{display:flex}.gap-6{gap:6px}.items-center{align-items:center}.justify-between{justify-content:space-between}.flex-1{flex:1}
 .w-100{width:100%}.flex-wrap{flex-wrap:wrap}
+
+/* Timer Styles */
+.timer-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; margin-top: 5px;
+}
+.timer-safe { background: rgba(46,213,115,0.15); color: var(--success); border: 1px solid var(--success); }
+.timer-warning { background: rgba(243,156,18,0.15); color: var(--warning); border: 1px solid var(--warning); }
+.timer-danger { background: rgba(255,71,87,0.15); color: var(--danger); border: 1px solid var(--danger); }
 </style>
 </head>
 <body>
@@ -212,7 +221,7 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
   </div>
 
   <!-- ==============================================
-       WHOLESALE VIEWS (کدهای قبلی)
+       WHOLESALE VIEWS (کدهای قبلی بدون تغییر)
   ============================================== -->
   <div id="wholesale-wrapper">
     <!-- ============ VIEW: DASHBOARD ============ -->
@@ -325,7 +334,6 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
        RETAIL VIEWS (بخش جدید پرچون)
   ============================================== -->
   <div id="retail-wrapper" style="display:none;">
-    <!-- VIEW: RETAIL DASHBOARD / LIST -->
     <section class="view active" id="view-retail-main">
       <div class="top-bar">
         <a href="index.html" class="back-btn"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
@@ -333,8 +341,9 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
         <button class="theme-toggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       </div>
 
-      <div class="form-group" style="position:relative;">
-        <input type="text" id="retail-search" placeholder="جستجوی کد ۵ رقمی، نام یا شماره..." oninput="renderRetailList()" style="padding-right:35px;">
+      <!-- Search Engine -->
+      <div class="form-group" style="position:relative; display:flex; gap:8px;">
+        <input type="text" id="retail-search" placeholder="جستجوی کد ۵ رقمی، نام یا شماره..." oninput="renderRetailList()" style="padding-right:35px; flex:1;">
         <svg viewBox="0 0 24 24" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); width:18px; height:18px; stroke:var(--gold); fill:none; stroke-width:2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
 
@@ -626,7 +635,7 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 </div>
 
 <!-- ==============================================
-     MODAL: RETAIL ORDER FORM (NEW)
+     MODAL: RETAIL ORDER FORM
 ============================================== -->
 <div class="modal-overlay" id="modal-retail">
   <div class="modal-box">
@@ -637,17 +646,17 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 
     <div class="card" style="margin-bottom:10px; padding:10px; border-color:var(--info); background:rgba(52,152,219,.05);">
       <div class="flex justify-between items-center">
-        <span style="font-size:11px; color:var(--info);">کد سفارش (۵ رقمی):</span>
+        <span style="font-size:11px; color:var(--info);">کد اختصاصی سفارش:</span>
         <strong id="r-code-display" style="font-size:16px; color:var(--gold); font-family:monospace; letter-spacing:2px;">10000</strong>
       </div>
     </div>
 
     <div class="grid-2">
       <div class="form-group"><label>نام مشتری *</label><input type="text" id="r-name" placeholder="نام و تخلص"></div>
-      <div class="form-group"><label>شماره تماس</label><input type="tel" id="r-phone" placeholder="07XXXXXXXX"></div>
+      <div class="form-group"><label>شماره تماس *</label><input type="tel" id="r-phone" placeholder="07XXXXXXXX"></div>
     </div>
     
-    <div class="form-group"><label>شماره واتساپ</label><input type="tel" id="r-whatsapp" placeholder="93XXXXXXXXX"></div>
+    <div class="form-group"><label>شماره واتساپ (اختیاری)</label><input type="tel" id="r-whatsapp" placeholder="93XXXXXXXXX"></div>
 
     <div class="grid-2">
       <div class="form-group">
@@ -670,7 +679,7 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
     </div>
 
     <div class="form-group">
-      <label>تاریخ سفارش</label>
+      <label>تاریخ ثبت سفارش</label>
       <div class="grid-3">
         <div class="custom-dropdown" id="dd-r-day">
           <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-day')"><span id="val-r-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
@@ -683,6 +692,25 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
         <div class="custom-dropdown" id="dd-r-year">
           <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-year')"><span id="val-r-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
           <div class="dropdown-options" id="opt-r-year"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🟢 NEW: Delivery Date for Timer 🟢 -->
+    <div class="form-group" style="border:1px dashed var(--danger); padding:10px; border-radius:10px; background:rgba(255,71,87,0.05);">
+      <label style="color:var(--danger);">تاریخ تحویل (برای تایمر دوخت)</label>
+      <div class="grid-3">
+        <div class="custom-dropdown" id="dd-del-day">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-del-day')"><span id="val-del-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-del-day"></div>
+        </div>
+        <div class="custom-dropdown" id="dd-del-month">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-del-month')"><span id="val-del-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-del-month"></div>
+        </div>
+        <div class="custom-dropdown" id="dd-del-year">
+          <div class="dropdown-trigger" onclick="toggleDropdown('dd-del-year')"><span id="val-del-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="dropdown-options" id="opt-del-year"></div>
         </div>
       </div>
     </div>
@@ -702,9 +730,7 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 </div>
 
 
-<!-- ==============================================
-     BOTTOM NAV (Wholesale only)
-============================================== -->
+<!-- Bottom Nav (Wholesale only) -->
 <nav class="bottom-nav" id="bottom-nav-wholesale">
   <button class="nav-item active" data-nav="dashboard" onclick="showView('dashboard')">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -744,6 +770,8 @@ const db = firebase.database();
 const userPhone = localStorage.getItem('tailor_user') || 'demo_user';
 
 /* ==================== CONSTANTS & STATE ==================== */
+const shamsiMonths = ["حمل", "ثور", "جوزا", "سرطان", "اسد", "سنبله", "میزان", "عقرب", "قوس", "جدی", "دلو", "حوت"];
+
 const STATUS_MAP = {
   sample_received:     { label: "نمونه دریافت شد", color: "info" },
   sample_sewing:       { label: "نمونه در حال دوخت", color: "warning" },
@@ -796,12 +824,55 @@ const state = {
   selectedRetailGarment: ''
 };
 
+/* ==================== DATE ENGINE (Robust Shamsi) ==================== */
+function gregorian_to_jalali(gy, gm, gd) {
+    var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    var jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) + (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * (parseInt(days / 12053));
+    days %= 12053;
+    jy += 4 * (parseInt(days / 1461));
+    days %= 1461;
+    jy += parseInt((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+    var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    return [jy, jm, jd];
+}
+
+function jalali_to_gregorian(jy, jm, jd) {
+    var gy = (jy <= 979) ? 621 : 1600;
+    jy -= (jy <= 979) ? 0 : 979;
+    var days = (365 * jy) + ((parseInt(jy / 33)) * 8) + parseInt(((jy % 33) + 3) / 4) + 78 + jd + ((jm < 7) ? (jm - 1) * 31 : ((jm - 7) * 30) + 186);
+    gy += 400 * (parseInt(days / 146097));
+    days %= 146097;
+    if (days > 36524) {
+        gy += 100 * (parseInt(--days / 36524));
+        days %= 36524;
+        if (days >= 365) days++;
+    }
+    gy += 4 * (parseInt(days / 1461));
+    days %= 1461;
+    if (days > 365) {
+        gy += parseInt((days - 1) / 365);
+        days = (days - 1) % 365;
+    }
+    var gd = days + 1;
+    var sal_a = [0, 31, ((gy % 4 == 0 && gy % 100 != 0) || (gy % 400 == 0)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    var gm = 0;
+    for (gm = 0; gm < 13 && gd > sal_a[gm]; gm++) gd -= sal_a[gm];
+    return [gy, gm, gd];
+}
+
 /* ==================== UTILS ==================== */
 function fmt(n){ return Number(n || 0).toLocaleString('fa-AF'); }
 function uid(prefix='id'){ return prefix + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
 function todayStr(){
   const d = new Date();
-  return d.toLocaleDateString('fa-AF-u-nu-latn') || (d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate());
+  const j = gregorian_to_jalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+  return `${j[0]}/${String(j[1]).padStart(2, '0')}/${String(j[2]).padStart(2, '0')}`;
 }
 function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -827,7 +898,7 @@ function toggleTheme(){
   localStorage.setItem('tailor_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
 }
 
-/* ==================== MAIN TAB SWITCHING (WHOLESALE vs RETAIL) ==================== */
+/* ==================== MAIN TAB SWITCHING ==================== */
 function switchMainTab(tab) {
   document.getElementById('btn-switch-wholesale').classList.toggle('active', tab === 'wholesale');
   document.getElementById('btn-switch-retail').classList.toggle('active', tab === 'retail');
@@ -841,7 +912,6 @@ function switchMainTab(tab) {
   }
 }
 
-/* ==================== VIEW SWITCHING (Wholesale) ==================== */
 function showView(name){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
@@ -853,7 +923,6 @@ function showView(name){
   if(name === 'reports') renderReports();
 }
 
-/* ==================== CUSTOM DROPDOWN (General) ==================== */
 function toggleDropdown(id) {
     document.querySelectorAll('.dropdown-options').forEach(el => {
         if(el.parentElement.id !== id) {
@@ -898,7 +967,6 @@ window.addEventListener('click', function(e) {
     }
 });
 
-/* ==================== DATA LOADING (Wholesale) ==================== */
 function loadAllData(cb){
   Promise.all([
     db.ref('users/' + userPhone + '/contracts').once('value'),
@@ -916,7 +984,6 @@ function loadAllData(cb){
   }).catch(err => showAlert('error', 'خطا در بارگذاری', err.message));
 }
 
-/* ==================== FINANCIAL CALC (Wholesale) ==================== */
 function recalcContractFinancials(contract){
   let totalContractValue = 0, totalInvoiced = 0;
   Object.values(contract.variants || {}).forEach(v => {
@@ -924,45 +991,21 @@ function recalcContractFinancials(contract){
     totalInvoiced += (Number(v.deliveredQuantity)||0) * (Number(v.pricePerPiece)||0);
   });
   const totalPaid = Number(contract.financials?.totalPaid) || 0;
-  return {
-    totalContractValue,
-    totalInvoiced,
-    totalPaid,
-    totalRemaining: totalInvoiced - totalPaid
-  };
+  return { totalContractValue, totalInvoiced, totalPaid, totalRemaining: totalInvoiced - totalPaid };
 }
 
-function contractTotalQty(contract){
-  let q = 0;
-  Object.values(contract.variants || {}).forEach(v => q += (Number(v.quantity)||0));
-  return q;
-}
-function contractProducedQty(contract){
-  let q = 0;
-  Object.values(contract.variants || {}).forEach(v => q += (Number(v.producedQuantity)||0));
-  return q;
-}
-function contractDeliveredQty(contract){
-  let q = 0;
-  Object.values(contract.variants || {}).forEach(v => q += (Number(v.deliveredQuantity)||0));
-  return q;
-}
+function contractTotalQty(contract){ let q = 0; Object.values(contract.variants || {}).forEach(v => q += (Number(v.quantity)||0)); return q; }
+function contractProducedQty(contract){ let q = 0; Object.values(contract.variants || {}).forEach(v => q += (Number(v.producedQuantity)||0)); return q; }
+function contractDeliveredQty(contract){ let q = 0; Object.values(contract.variants || {}).forEach(v => q += (Number(v.deliveredQuantity)||0)); return q; }
 
-/* ==================== RENDER: DASHBOARD (Wholesale) ==================== */
 function renderDashboard(){
   const contracts = Object.values(state.contracts);
   document.getElementById('kpi-total').innerHTML = contracts.length + ' <span>مورد</span>';
-  
   const inProd = contracts.filter(c => c.status === 'in_production' || c.status === 'ready_for_delivery').length;
   document.getElementById('kpi-production').innerHTML = inProd + ' <span>قرارداد</span>';
-  
   let totalDebt = 0;
-  contracts.forEach(c => {
-    const f = recalcContractFinancials(c);
-    if(f.totalRemaining > 0) totalDebt += f.totalRemaining;
-  });
+  contracts.forEach(c => { const f = recalcContractFinancials(c); if(f.totalRemaining > 0) totalDebt += f.totalRemaining; });
   document.getElementById('kpi-debt').innerHTML = fmt(totalDebt) + ' <span>افغانی</span>';
-  
   const urgent = contracts.filter(c => isUrgent(c)).length;
   document.getElementById('kpi-urgent').innerHTML = urgent + ' <span>قرارداد</span>';
   
@@ -996,7 +1039,6 @@ function isUrgent(c){
   return false;
 }
 
-/* ==================== RENDER: CONTRACTS LIST (Wholesale) ==================== */
 function renderContractsList(){
   const tabsEl = document.getElementById('status-filter-tabs');
   if(!tabsEl.dataset.built){
@@ -1023,12 +1065,9 @@ function renderContractsList(){
       Object.values(c.variants||{}).some(v => (v.modelName||'').toLowerCase().includes(search))
     );
   }
-  
   list.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
-  
   const box = document.getElementById('contracts-list-box');
   if(!list.length){ box.innerHTML = '<div class="empty">هیچ قراردادی یافت نشد</div>'; return; }
-  
   box.innerHTML = list.map(c => {
     const st = STATUS_MAP[c.status] || { label: '?', color: 'muted' };
     const f = recalcContractFinancials(c);
@@ -1036,7 +1075,6 @@ function renderContractsList(){
     const producedQ = contractProducedQty(c);
     const progress = totalQ ? Math.round(producedQ / totalQ * 100) : 0;
     const models = [...new Set(Object.values(c.variants||{}).map(v => v.modelName))].join('، ');
-    
     return `
       <div class="contract-card" onclick="openContractDetail('${c.id}')">
         <div class="cc-header">
@@ -1066,27 +1104,22 @@ function renderContractsList(){
 
 function setStatusFilter(s){ state.statusFilter = s; renderContractsList(); }
 
-/* ==================== CONTRACT FORM (Wholesale) ==================== */
 function openContractForm(contractId){
   const isEdit = !!contractId;
   document.getElementById('contract-form-title').textContent = isEdit ? 'ویرایش قرارداد' : 'ثبت قرارداد جدید';
   document.getElementById('f-contract-id').value = contractId || '';
-  
   let custHtml = '';
   Object.entries(state.customers).forEach(([id,c]) => {
       custHtml += `<div class="dropdown-option" onclick="selectOption('dd-customer', '${esc(c.name)}', '${id}')">${esc(c.name)}</div>`;
   });
   document.getElementById('opt-customer').innerHTML = custHtml || '<div class="dropdown-option">مشتری ثبت نشده</div>';
-  
   let stHtml = '';
   Object.entries(STATUS_MAP).forEach(([k,v]) => {
       stHtml += `<div class="dropdown-option" onclick="selectOption('dd-status', '${v.label}', '${k}')">${v.label}</div>`;
   });
   document.getElementById('opt-status').innerHTML = stHtml;
-  
   state.editingVariants = [];
   state.editingMaterials = [];
-  
   if(isEdit && state.contracts[contractId]){
     const c = state.contracts[contractId];
     state.selectedCustomerId = c.customerId || '';
@@ -1112,7 +1145,6 @@ function openContractForm(contractId){
         producedQuantity: v.producedQuantity||0, deliveredQuantity: v.deliveredQuantity||0, rejectedQuantity: v.rejectedQuantity||0
       });
     });
-
     Object.entries(c.materials||{}).forEach(([mid,m]) => {
         state.editingMaterials.push({ id: mid, name: m.name, totalQty: m.totalQty, qtyShop: m.qtyShop, qtyTailor: m.qtyTailor });
     });
@@ -1135,38 +1167,27 @@ function openContractForm(contractId){
     state.editingVariants = [createEmptyVariant()];
     state.editingMaterials = [];
   }
-  
   switchFormTab('info');
   renderVariantRows();
   renderMaterialRows();
   openModal('modal-contract');
 }
 
-function createEmptyVariant(){
-  return { id: uid('var'), modelName:'', color:'', size:'', quantity:0, pricePerPiece:0, producedQuantity:0, deliveredQuantity:0, rejectedQuantity:0 };
-}
-
+function createEmptyVariant(){ return { id: uid('var'), modelName:'', color:'', size:'', quantity:0, pricePerPiece:0, producedQuantity:0, deliveredQuantity:0, rejectedQuantity:0 }; }
 function switchFormTab(tab){
   document.querySelectorAll('#form-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('#modal-contract .tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'form-tab-' + tab));
 }
-
 function addVariantRow(){ state.editingVariants.push(createEmptyVariant()); renderVariantRows(); }
-
 function duplicateLastVariant(){
   if(!state.editingVariants.length){ addVariantRow(); return; }
   const last = {...state.editingVariants[state.editingVariants.length-1]};
   last.id = uid('var'); last.quantity = 0; last.producedQuantity = 0; last.deliveredQuantity = 0; last.rejectedQuantity = 0;
   state.editingVariants.push(last); renderVariantRows();
 }
-
 function renderVariantRows(){
   const box = document.getElementById('variants-container');
-  if(!state.editingVariants.length){
-    box.innerHTML = '<div class="empty">مدلی اضافه نشده</div>';
-    updateVariantTotals();
-    return;
-  }
+  if(!state.editingVariants.length){ box.innerHTML = '<div class="empty">مدلی اضافه نشده</div>'; updateVariantTotals(); return; }
   box.innerHTML = state.editingVariants.map((v, idx) => `
     <div class="variant-row" data-idx="${idx}">
       <div class="vr-top">
@@ -1185,43 +1206,30 @@ function renderVariantRows(){
   `).join('');
   updateVariantTotals();
 }
-
 function updateVariant(idx, field, val){
   const v = state.editingVariants[idx]; if(!v) return;
   if(field === 'quantity' || field === 'pricePerPiece') v[field] = Number(val) || 0;
   else v[field] = val;
   updateVariantTotals();
 }
-
 function removeVariant(idx){
   const v = state.editingVariants[idx];
   if(v && v.deliveredQuantity > 0){ showAlert('error', 'امکان حذف نیست', 'این مدل تحویل‌شده دارد.'); return; }
   state.editingVariants.splice(idx, 1); renderVariantRows();
 }
-
 function updateVariantTotals(){
   let q = 0, val = 0;
-  state.editingVariants.forEach(v => {
-    q += Number(v.quantity) || 0;
-    val += (Number(v.quantity)||0) * (Number(v.pricePerPiece)||0);
-  });
+  state.editingVariants.forEach(v => { q += Number(v.quantity) || 0; val += (Number(v.quantity)||0) * (Number(v.pricePerPiece)||0); });
   document.getElementById('variants-total-qty').textContent = q;
   document.getElementById('variants-total-value').textContent = fmt(val) + ' افغانی';
   document.getElementById('contract-total-value').textContent = fmt(val) + ' افغانی';
 }
-
 function applyDefaultPrice(){
   const p = Number(document.getElementById('f-default-price').value) || 0;
   state.editingVariants.forEach(v => { if(!v.pricePerPiece) v.pricePerPiece = p; });
   renderVariantRows();
 }
-
-/* ==================== MATERIALS (Wholesale) ==================== */
-function addMaterialRow() {
-    state.editingMaterials.push({ id: uid('mat'), name: '', totalQty: 0, qtyShop: 0, qtyTailor: 0 });
-    renderMaterialRows();
-}
-
+function addMaterialRow() { state.editingMaterials.push({ id: uid('mat'), name: '', totalQty: 0, qtyShop: 0, qtyTailor: 0 }); renderMaterialRows(); }
 function renderMaterialRows() {
     const box = document.getElementById('materials-container');
     if(!state.editingMaterials.length) { box.innerHTML = '<div class="empty">لوازمی اضافه نشده است</div>'; return; }
@@ -1239,36 +1247,26 @@ function renderMaterialRows() {
         </div>
     `).join('');
 }
-
-function updateMaterial(idx, field, val) {
-    const m = state.editingMaterials[idx]; if(!m) return;
-    m[field] = (field === 'name') ? val : (Number(val) || 0);
-}
-
+function updateMaterial(idx, field, val) { const m = state.editingMaterials[idx]; if(!m) return; m[field] = (field === 'name') ? val : (Number(val) || 0); }
 function removeMaterial(idx) { state.editingMaterials.splice(idx, 1); renderMaterialRows(); }
 
-/* ==================== SAVE CONTRACT (Wholesale) ==================== */
 async function saveContract(){
   const id = document.getElementById('f-contract-id').value;
   const customer = state.customers[state.selectedCustomerId];
   if(!state.selectedCustomerId || !customer){ showAlert('error', 'خطا', 'لطفاً مشتری را انتخاب کنید'); return; }
   if(!state.editingVariants.length || state.editingVariants.every(v => !v.modelName && !v.quantity)){ showAlert('error', 'خطا', 'حداقل یک مدل با تعداد وارد کنید'); return; }
-  
   const validVariants = state.editingVariants.filter(v => v.modelName && v.quantity > 0);
   if(!validVariants.length){ showAlert('error', 'خطا', 'مدل‌های ناقص را تکمیل کنید'); return; }
-  
   for(const v of validVariants){
     if(id && state.contracts[id]?.variants?.[v.id]){
       const prevDel = state.contracts[id].variants[v.id].deliveredQuantity || 0;
       if(v.quantity < prevDel){ showAlert('error', 'خطا', `مدل ${v.modelName}: تعداد نمی‌تواند کمتر از تحویل‌شده (${prevDel}) باشد`); return; }
     }
   }
-  
   const contractId = id || uid('ctr');
   const existing = state.contracts[id];
   let code = existing?.code;
   if(!code){ const count = Object.keys(state.contracts).length + 1; code = 'C-' + (new Date().getFullYear()) + '-' + String(count).padStart(4, '0'); }
-  
   const variantsObj = {};
   validVariants.forEach(v => {
     variantsObj[v.id] = {
@@ -1277,12 +1275,8 @@ async function saveContract(){
       producedQuantity: v.producedQuantity||0, deliveredQuantity: v.deliveredQuantity||0, rejectedQuantity: v.rejectedQuantity||0
     };
   });
-
   const materialsObj = {};
-  state.editingMaterials.forEach(m => {
-      if(m.name && m.totalQty > 0) materialsObj[m.id] = { name: m.name, totalQty: m.totalQty, qtyShop: m.qtyShop, qtyTailor: m.qtyTailor };
-  });
-
+  state.editingMaterials.forEach(m => { if(m.name && m.totalQty > 0) materialsObj[m.id] = { name: m.name, totalQty: m.totalQty, qtyShop: m.qtyShop, qtyTailor: m.qtyTailor }; });
   const fabricData = {
       color: document.getElementById('f-fabric-color').value || '',
       width: Number(document.getElementById('f-fabric-width').value) || 0,
@@ -1290,7 +1284,6 @@ async function saveContract(){
       markerLength: Number(document.getElementById('f-marker-length').value) || 0,
       markerPieces: Number(document.getElementById('f-marker-pieces').value) || 0
   };
-  
   const contractData = {
     id: contractId, code, customerId: state.selectedCustomerId, customerName: customer.name, customerPhone: customer.phone || '',
     status: state.selectedStatus, responsible: document.getElementById('f-responsible').value || '',
@@ -1300,7 +1293,6 @@ async function saveContract(){
     financials: { advancePayment: Number(document.getElementById('f-advance').value)||0, totalPaid: existing?.financials?.totalPaid || 0 },
     createdAt: existing?.createdAt || Date.now(), updatedAt: Date.now()
   };
-  
   try {
     await db.ref('users/' + userPhone + '/contracts/' + contractId).set(contractData);
     await logHistory(contractId, id ? 'contract_updated' : 'contract_created', 'وضعیت: ' + STATUS_MAP[contractData.status].label);
@@ -1310,16 +1302,12 @@ async function saveContract(){
   } catch(err){ showAlert('error', 'خطا', err.message); }
 }
 
-/* ==================== CONTRACT DETAIL (Wholesale) ==================== */
-function openContractDetail(id){
-  state.currentContractId = id; renderContractDetail(); showView('contract-detail');
-}
+function openContractDetail(id){ state.currentContractId = id; renderContractDetail(); showView('contract-detail'); }
 
 function renderContractDetail(){
   const id = state.currentContractId;
   const c = state.contracts[id];
   if(!c){ document.getElementById('detail-body').innerHTML = '<div class="empty">قرارداد یافت نشد</div>'; return; }
-  
   document.getElementById('detail-title').textContent = c.code;
   const st = STATUS_MAP[c.status] || { label:'?', color:'muted' };
   const f = recalcContractFinancials(c);
@@ -1346,12 +1334,7 @@ function renderContractDetail(){
           </div>
           ${Object.keys(c.materials || {}).length ? `
             <div class="card-title" style="margin-top:10px; font-size:11px;">لوازم جانبی</div>
-            ${Object.values(c.materials).map(m => `
-              <div class="vt-row" style="border-bottom:1px dashed rgba(255,255,255,0.05); padding:5px 0;">
-                <div><strong>${esc(m.name)}</strong></div>
-                <div style="font-size:10px; color:var(--text-muted);">کل: ${m.totalQty} | دکان: ${m.qtyShop} | خودم: ${m.qtyTailor}</div>
-              </div>
-            `).join('')}
+            ${Object.values(c.materials).map(m => `<div class="vt-row"><div><strong>${esc(m.name)}</strong></div><div style="font-size:10px; color:var(--text-muted);">کل: ${m.totalQty} | دکان: ${m.qtyShop} | خودم: ${m.qtyTailor}</div></div>`).join('')}
           ` : ''}
         </div>
       `;
@@ -1360,10 +1343,7 @@ function renderContractDetail(){
   document.getElementById('detail-body').innerHTML = `
     <div class="card">
       <div class="flex justify-between items-center mb-8">
-        <div>
-          <div class="cc-customer" style="font-size:16px">${esc(c.customerName)}</div>
-          <div class="cc-model">${esc(c.customerPhone||'—')}</div>
-        </div>
+        <div><div class="cc-customer" style="font-size:16px">${esc(c.customerName)}</div><div class="cc-model">${esc(c.customerPhone||'—')}</div></div>
         <span class="chip chip-${st.color}">${st.label}</span>
       </div>
       <div class="cc-body">
@@ -1396,45 +1376,23 @@ function renderContractDetail(){
         <button class="btn btn-sm" ${!canPay?'disabled':''} onclick="openPaymentModal()">ثبت پرداخت</button>
         <button class="btn btn-sm btn-outline" ${!canDeliver?'disabled':''} onclick="openProductionModal()">ثبت تولید</button>
       </div>
-      ${nextStatuses.length ? `
-        <div class="card-title" style="margin-top:12px;font-size:11px">تغییر وضعیت</div>
-        <div class="flex gap-6 flex-wrap">
-          ${nextStatuses.map(ns => `<button class="btn btn-sm btn-outline" onclick="changeStatus('${ns}')">${STATUS_MAP[ns].label}</button>`).join('')}
-        </div>
-      ` : ''}
+      ${nextStatuses.length ? `<div class="card-title" style="margin-top:12px;font-size:11px">تغییر وضعیت</div><div class="flex gap-6 flex-wrap">${nextStatuses.map(ns => `<button class="btn btn-sm btn-outline" onclick="changeStatus('${ns}')">${STATUS_MAP[ns].label}</button>`).join('')}</div>` : ''}
     </div>
     
     <div class="card">
       <div class="card-title">مدل‌ها</div>
-      ${Object.entries(c.variants||{}).map(([vid,v]) => {
-        return `
+      ${Object.entries(c.variants||{}).map(([vid,v]) => `
           <div class="vt-row">
-            <div class="vt-info">
-              <div style="color:var(--gold);font-weight:bold">${esc(v.modelName)}</div>
-              <div style="font-size:10px;color:var(--text-muted)">${esc(v.color||'—')} • ${esc(v.size||'—')} • ${fmt(v.pricePerPiece)} افغانی/دانه</div>
-            </div>
-            <div style="text-align:left">
-              <div class="vt-qty">${v.quantity} دانه</div>
-              <div style="font-size:9px;color:var(--text-muted)">تولید: ${v.producedQuantity||0} • تحویل: ${v.deliveredQuantity||0}</div>
-            </div>
+            <div><div style="color:var(--gold);font-weight:bold">${esc(v.modelName)}</div><div style="font-size:10px;color:var(--text-muted)">${esc(v.color||'—')} • ${esc(v.size||'—')} • ${fmt(v.pricePerPiece)} افغانی/دانه</div></div>
+            <div style="text-align:left"><div style="font-weight:bold;color:var(--gold)">${v.quantity} دانه</div><div style="font-size:9px;color:var(--text-muted)">تولید: ${v.producedQuantity||0} • تحویل: ${v.deliveredQuantity||0}</div></div>
           </div>
-        `;
-      }).join('')}
+      `).join('')}
     </div>
 
-    <div class="card">
-      <div class="card-title">سابقه تولیدات (تاریخچه)</div>
-      <div id="production-log-box"><div class="empty">در حال بارگذاری...</div></div>
-    </div>
-    
-    <div class="card">
-      <div class="card-title">تاریخچه عملیات</div>
-      <div id="history-box"><div class="empty">در حال بارگذاری...</div></div>
-    </div>
+    <div class="card"><div class="card-title">سابقه تولیدات (تاریخچه)</div><div id="production-log-box"><div class="empty">در حال بارگذاری...</div></div></div>
+    <div class="card"><div class="card-title">تاریخچه عملیات</div><div id="history-box"><div class="empty">در حال بارگذاری...</div></div></div>
   `;
-  
-  loadHistory(id);
-  loadProductionLog(id);
+  loadHistory(id); loadProductionLog(id);
 }
 
 async function loadProductionLog(contractId) {
@@ -1446,23 +1404,9 @@ async function loadProductionLog(contractId) {
         if(!list.length) { box.innerHTML = '<div class="empty">هیچ تولیدی ثبت نشده است</div>'; return; }
         box.innerHTML = list.map(p => `
             <div class="prod-log-item">
-                <div class="prod-log-header">
-                    <span style="color:var(--gold); font-weight:bold;">${esc(p.date)}</span>
-                    <span class="chip chip-info" style="font-size:9px;">${p.stage === 'cutting' ? 'برش' : p.stage === 'sewing' ? 'دوخت' : p.stage === 'finishing' ? 'تکمیل' : 'بسته‌بندی'}</span>
-                </div>
-                <div class="prod-log-body">
-                    <span>تعداد: <strong>${p.totalQty} دانه</strong></span>
-                    <span>خلیفه: ${esc(p.workerName || '—')}</span>
-                    <span>دستمزد: ${fmt(p.wage)}</span>
-                </div>
-                ${Object.keys(p.items || {}).length ? `
-                  <div style="font-size:10px; color:var(--text-muted); margin-top:5px; border-top:1px dashed var(--border); padding-top:5px;">
-                    ${Object.entries(p.items).map(([vid, qty]) => {
-                        const v = state.contracts[contractId]?.variants?.[vid];
-                        return v ? `${esc(v.modelName)}: ${qty} عدد` : '';
-                    }).filter(Boolean).join(' | ')}
-                  </div>
-                ` : ''}
+                <div class="prod-log-header"><span style="color:var(--gold); font-weight:bold;">${esc(p.date)}</span><span class="chip chip-info" style="font-size:9px;">${p.stage === 'cutting' ? 'برش' : p.stage === 'sewing' ? 'دوخت' : p.stage === 'finishing' ? 'تکمیل' : 'بسته‌بندی'}</span></div>
+                <div class="prod-log-body"><span>تعداد: <strong>${p.totalQty} دانه</strong></span><span>خلیفه: ${esc(p.workerName || '—')}</span><span>دستمزد: ${fmt(p.wage)}</span></div>
+                ${Object.keys(p.items || {}).length ? `<div style="font-size:10px; color:var(--text-muted); margin-top:5px; border-top:1px dashed var(--border); padding-top:5px;">${Object.entries(p.items).map(([vid, qty]) => { const v = state.contracts[contractId]?.variants?.[vid]; return v ? `${esc(v.modelName)}: ${qty} عدد` : ''; }).filter(Boolean).join(' | ')}</div>` : ''}
             </div>
         `).join('');
     } catch(e) { console.error(e); document.getElementById('production-log-box').innerHTML = '<div class="empty">خطا در بارگذاری</div>'; }
@@ -1473,15 +1417,11 @@ async function loadHistory(contractId){
     const snap = await db.ref('users/' + userPhone + '/history/' + contractId).once('value');
     const hist = snap.val() || {};
     const list = Object.values(hist).sort((a,b) => (b.timestamp||0) - (a.timestamp||0));
-    document.getElementById('history-box').innerHTML = list.length
-      ? list.slice(0,10).map(h => `<div class="hist-item"><div class="hist-time">${new Date(h.timestamp).toLocaleString('fa-AF')}</div><div class="hist-desc">${esc(h.action)} ${h.detail?'— '+esc(h.detail):''}</div></div>`).join('')
-      : '<div class="empty">تاریخچه‌ای ثبت نشده</div>';
+    document.getElementById('history-box').innerHTML = list.length ? list.slice(0,10).map(h => `<div class="hist-item"><div class="hist-time">${new Date(h.timestamp).toLocaleString('fa-AF')}</div><div class="hist-desc">${esc(h.action)} ${h.detail?'— '+esc(h.detail):''}</div></div>`).join('') : '<div class="empty">تاریخچه‌ای ثبت نشده</div>';
   } catch(e){ console.error(e); }
 }
 
-async function logHistory(contractId, action, detail){
-  try { await db.ref('users/' + userPhone + '/history/' + contractId).push({ action, detail: detail||'', timestamp: Date.now() }); } catch(e){ console.error(e); }
-}
+async function logHistory(contractId, action, detail){ try { await db.ref('users/' + userPhone + '/history/' + contractId).push({ action, detail: detail||'', timestamp: Date.now() }); } catch(e){ console.error(e); } }
 
 async function changeStatus(newStatus){
   const id = state.currentContractId;
@@ -1492,36 +1432,25 @@ async function changeStatus(newStatus){
     await logHistory(id, 'status_changed', STATUS_MAP[c.status].label + ' به ' + STATUS_MAP[newStatus].label);
     showAlert('success', 'موفق', 'وضعیت تغییر کرد');
     const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
-    state.contracts = snap.val() || {};
-    renderContractDetail();
+    state.contracts = snap.val() || {}; renderContractDetail();
   } catch(err){ showAlert('error', 'خطا', err.message); }
 }
 
-/* ==================== DELIVERY (Wholesale) ==================== */
 function openDeliveryModal(){
   const c = state.contracts[state.currentContractId]; if(!c) return;
   document.getElementById('d-date').value = todayStr(); document.getElementById('d-receiver').value = '';
   const items = Object.entries(c.variants||{}).map(([vid,v]) => {
-    const rem = (v.quantity||0) - (v.deliveredQuantity||0);
-    if(rem <= 0) return '';
-    return `
-      <div class="variant-row" data-vid="${vid}" data-price="${v.pricePerPiece}">
-        <div style="font-size:11px;margin-bottom:4px"><strong style="color:var(--gold)">${esc(v.modelName)}</strong> — ${esc(v.color||'—')} / ${esc(v.size||'—')} <span style="color:var(--text-muted)">(باقی: ${rem})</span></div>
-        <input type="number" class="del-qty" placeholder="تعداد تحویلی (حداکثر ${rem})" max="${rem}" oninput="calcDeliveryAmount()">
-      </div>
-    `;
+    const rem = (v.quantity||0) - (v.deliveredQuantity||0); if(rem <= 0) return '';
+    return `<div class="variant-row" data-vid="${vid}" data-price="${v.pricePerPiece}"><div style="font-size:11px;margin-bottom:4px"><strong style="color:var(--gold)">${esc(v.modelName)}</strong> — ${esc(v.color||'—')} / ${esc(v.size||'—')} <span style="color:var(--text-muted)">(باقی: ${rem})</span></div><input type="number" class="del-qty" placeholder="تعداد تحویلی (حداکثر ${rem})" max="${rem}" oninput="calcDeliveryAmount()"></div>`;
   }).filter(Boolean).join('');
   document.getElementById('delivery-items').innerHTML = items || '<div class="empty">همه مدل‌ها تحویل شده‌اند</div>';
-  document.getElementById('delivery-amount').textContent = '0 افغانی';
-  openModal('modal-delivery');
+  document.getElementById('delivery-amount').textContent = '0 افغانی'; openModal('modal-delivery');
 }
 
 function calcDeliveryAmount(){
   let total = 0;
   document.querySelectorAll('#delivery-items .variant-row').forEach(row => {
-    const qty = Number(row.querySelector('.del-qty').value) || 0;
-    const price = Number(row.dataset.price) || 0;
-    total += qty * price;
+    const qty = Number(row.querySelector('.del-qty').value) || 0; const price = Number(row.dataset.price) || 0; total += qty * price;
   });
   document.getElementById('delivery-amount').textContent = fmt(total) + ' افغانی';
 }
@@ -1530,7 +1459,6 @@ async function saveDelivery(){
   const c = state.contracts[state.currentContractId]; if(!c) return;
   const date = document.getElementById('d-date').value; const receiver = document.getElementById('d-receiver').value;
   if(!date){ showAlert('error', 'خطا', 'تاریخ را وارد کنید'); return; }
-  
   const items = {}; let amount = 0, hasAny = false; let errorMsg = '';
   document.querySelectorAll('#delivery-items .variant-row').forEach(row => {
     const vid = row.dataset.vid; const qty = Number(row.querySelector('.del-qty').value) || 0;
@@ -1542,19 +1470,16 @@ async function saveDelivery(){
   });
   if(errorMsg){ showAlert('error', 'خطا', errorMsg); return; }
   if(!hasAny){ showAlert('error', 'خطا', 'حداقل یک مقدار وارد کنید'); return; }
-  
   try {
     const deliveryId = uid('del'); const receiptNum = 'R-' + Date.now().toString().slice(-6);
     await db.ref('users/' + userPhone + '/deliveries/' + deliveryId).set({ contractId: c.id, customerId: c.customerId, date, receiverName: receiver, items, amount, receiptNumber: receiptNum, createdAt: Date.now() });
     for(const [vid, qty] of Object.entries(items)){ await db.ref(`users/${userPhone}/contracts/${c.id}/variants/${vid}/deliveredQuantity`).transaction(cur => (cur||0) + qty); }
     await logHistory(c.id, 'delivery', `${Object.values(items).reduce((a,b)=>a+b,0)} دانه — ${fmt(amount)} افغانی — رسید ${receiptNum}`);
     showAlert('success', 'موفق', `تحویل ثبت شد — رسید ${receiptNum}`); closeModal('modal-delivery');
-    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
-    state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value'); state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
   } catch(err){ showAlert('error', 'خطا', err.message); }
 }
 
-/* ==================== PAYMENT (Wholesale) ==================== */
 function openPaymentModal(){
   const c = state.contracts[state.currentContractId]; if(!c) return;
   document.getElementById('p-amount').value = ''; document.getElementById('val-method').innerText = 'نقد'; document.getElementById('p-method-val').value = 'cash'; document.getElementById('p-date').value = todayStr(); document.getElementById('p-note').value = '';
@@ -1567,7 +1492,6 @@ async function savePayment(){
   const c = state.contracts[state.currentContractId]; if(!c) return;
   const amount = Number(document.getElementById('p-amount').value) || 0;
   if(amount <= 0){ showAlert('error', 'خطا', 'مبلغ معتبر وارد کنید'); return; }
-  
   const paymentId = uid('pay'); const receiptNum = 'P-' + Date.now().toString().slice(-6); const method = document.getElementById('p-method-val').value;
   try {
     await db.ref('users/' + userPhone + '/payments/' + paymentId).set({ contractId: c.id, customerId: c.customerId, amount, method, date: document.getElementById('p-date').value, note: document.getElementById('p-note').value, receiptNumber: receiptNum, createdAt: Date.now() });
@@ -1575,12 +1499,10 @@ async function savePayment(){
     await db.ref(`users/${userPhone}/contracts/${c.id}/updatedAt`).set(Date.now());
     await logHistory(c.id, 'payment', `${fmt(amount)} افغانی — رسید ${receiptNum}`);
     showAlert('success', 'موفق', 'پرداخت ثبت شد — رسید ' + receiptNum); closeModal('modal-payment');
-    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
-    state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value'); state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
   } catch(err){ showAlert('error', 'خطا', err.message); }
 }
 
-/* ==================== PRODUCTION (Wholesale) ==================== */
 function openProductionModal(){
   const c = state.contracts[state.currentContractId]; if(!c) return;
   document.getElementById('pr-date').value = todayStr(); document.getElementById('val-stage').innerText = 'دوخت'; document.getElementById('pr-stage-val').value = 'sewing'; document.getElementById('pr-rejected').value = ''; document.getElementById('pr-wage').value = '';
@@ -1588,24 +1510,16 @@ function openProductionModal(){
   Object.entries(state.workers).forEach(([id,w]) => { wHtml += `<div class="dropdown-option" onclick="selectOption('dd-worker', '${esc(w.name)}', '${id}')">${esc(w.name)}</div>`; });
   document.getElementById('opt-worker').innerHTML = wHtml; document.getElementById('val-worker').innerText = '— انتخاب —'; document.getElementById('pr-worker-id').value = '';
   const items = Object.entries(c.variants||{}).map(([vid,v]) => {
-    const rem = (v.quantity||0) - (v.producedQuantity||0);
-    if(rem <= 0) return '';
-    return `
-      <div class="variant-row" data-vid="${vid}">
-        <div style="font-size:11px;margin-bottom:4px"><strong style="color:var(--gold)">${esc(v.modelName)}</strong> — ${esc(v.color||'—')} / ${esc(v.size||'—')} <span style="color:var(--text-muted)">(باقی: ${rem})</span></div>
-        <input type="number" class="prod-qty" placeholder="تعداد تولیدی (حداکثر ${rem})" max="${rem}">
-      </div>
-    `;
+    const rem = (v.quantity||0) - (v.producedQuantity||0); if(rem <= 0) return '';
+    return `<div class="variant-row" data-vid="${vid}"><div style="font-size:11px;margin-bottom:4px"><strong style="color:var(--gold)">${esc(v.modelName)}</strong> — ${esc(v.color||'—')} / ${esc(v.size||'—')} <span style="color:var(--text-muted)">(باقی: ${rem})</span></div><input type="number" class="prod-qty" placeholder="تعداد تولیدی (حداکثر ${rem})" max="${rem}"></div>`;
   }).filter(Boolean).join('');
-  document.getElementById('production-items').innerHTML = items || '<div class="empty">همه مدل‌ها تولید شده‌اند</div>';
-  openModal('modal-production');
+  document.getElementById('production-items').innerHTML = items || '<div class="empty">همه مدل‌ها تولید شده‌اند</div>'; openModal('modal-production');
 }
 
 async function saveProduction(){
   const c = state.contracts[state.currentContractId]; if(!c) return;
   const date = document.getElementById('pr-date').value; const stage = document.getElementById('pr-stage-val').value; const workerId = document.getElementById('pr-worker-id').value; const worker = state.workers[workerId]; const wage = Number(document.getElementById('pr-wage').value) || 0; const rejected = Number(document.getElementById('pr-rejected').value) || 0;
   if(!date){ showAlert('error','خطا','تاریخ را وارد کنید'); return; }
-  
   const items = {}; let hasAny = false, totalQty = 0; let errMsg = '';
   document.querySelectorAll('#production-items .variant-row').forEach(row => {
     const vid = row.dataset.vid; const qty = Number(row.querySelector('.prod-qty').value) || 0;
@@ -1616,7 +1530,6 @@ async function saveProduction(){
     }
   });
   if(errMsg){ showAlert('error','خطا',errMsg); return; } if(!hasAny){ showAlert('error','خطا','حداقل یک مقدار وارد کنید'); return; }
-  
   try {
     const prodId = uid('pr');
     await db.ref('users/' + userPhone + '/productions/' + prodId).set({ contractId: c.id, date, stage, workerId: workerId || '', workerName: worker?.name || '', items, totalQty, wage, rejected, createdAt: Date.now() });
@@ -1624,12 +1537,10 @@ async function saveProduction(){
     await db.ref(`users/${userPhone}/contracts/${c.id}/updatedAt`).set(Date.now());
     await logHistory(c.id, 'production', `${totalQty} دانه — مرحله ${stage}${worker?' — '+worker.name:''}`);
     showAlert('success','موفق',`${totalQty} دانه تولید ثبت شد`); closeModal('modal-production');
-    const snap = await db.ref('users/' + userPhone + '/contracts').once('value');
-    state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
+    const snap = await db.ref('users/' + userPhone + '/contracts').once('value'); state.contracts = snap.val() || {}; renderContractDetail(); renderDashboard();
   } catch(err){ showAlert('error','خطا',err.message); }
 }
 
-/* ==================== CUSTOMERS (Wholesale) ==================== */
 function openCustomerForm(returnToContract){
   document.getElementById('c-id').value = ''; document.getElementById('c-name').value = ''; document.getElementById('c-phone').value = ''; document.getElementById('c-address').value = ''; document.getElementById('val-ctype').innerText = 'دکان'; document.getElementById('c-type-val').value = 'shop'; document.getElementById('c-notes').value = '';
   openModal('modal-customer');
@@ -1653,18 +1564,7 @@ function renderCustomers(){
     const contracts = Object.values(state.contracts).filter(ct => ct.customerId === c.id);
     let debt = 0;
     contracts.forEach(ct => { const f = recalcContractFinancials(ct); if(f.totalRemaining > 0) debt += f.totalRemaining; });
-    return `
-      <div class="card" style="padding:12px">
-        <div class="flex justify-between items-center">
-          <div>
-            <div style="color:var(--gold);font-weight:bold;font-size:14px">${esc(c.name)}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${esc(c.phone||'—')} • ${c.type==='shop'?'دکان':c.type==='company'?'شرکت':'شخص'}</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:2px">${contracts.length} قرارداد • بدهی: <strong style="color:${debt>0?'var(--danger)':'var(--success)'}">${fmt(debt)}</strong></div>
-          </div>
-          <button class="btn btn-sm btn-outline" onclick="editCustomer('${c.id}')">ویرایش</button>
-        </div>
-      </div>
-    `;
+    return `<div class="card" style="padding:12px"><div class="flex justify-between items-center"><div><div style="color:var(--gold);font-weight:bold;font-size:14px">${esc(c.name)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(c.phone||'—')} • ${c.type==='shop'?'دکان':c.type==='company'?'شرکت':'شخص'}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">${contracts.length} قرارداد • بدهی: <strong style="color:${debt>0?'var(--danger)':'var(--success)'}">${fmt(debt)}</strong></div></div><button class="btn btn-sm btn-outline" onclick="editCustomer('${c.id}')">ویرایش</button></div></div>`;
   }).join('');
 }
 
@@ -1674,7 +1574,6 @@ function editCustomer(id){
   openModal('modal-customer');
 }
 
-/* ==================== WORKERS (Wholesale) ==================== */
 function openWorkerForm(){
   document.getElementById('w-id').value = ''; document.getElementById('w-name').value = ''; document.getElementById('w-phone').value = ''; document.getElementById('val-wrole').innerText = 'خلیفه'; document.getElementById('w-role-val').value = 'khalifa'; openModal('modal-worker');
 }
@@ -1692,17 +1591,7 @@ function renderWorkers(){
   const box = document.getElementById('workers-list-box');
   const list = Object.values(state.workers);
   if(!list.length){ box.innerHTML = '<div class="empty">خلیفه‌ای ثبت نشده</div>'; return; }
-  box.innerHTML = list.map(w => `
-    <div class="card" style="padding:12px">
-      <div class="flex justify-between items-center">
-        <div>
-          <div style="color:var(--gold);font-weight:bold">${esc(w.name)}</div>
-          <div style="font-size:11px;color:var(--text-muted)">${esc(w.phone||'—')} • ${w.role==='khalifa'?'خلیفه':w.role==='shagerd'?'شاگرد':'دیگر'}</div>
-        </div>
-        <button class="btn btn-sm btn-outline" onclick="editWorker('${w.id}')">ویرایش</button>
-      </div>
-    </div>
-  `).join('');
+  box.innerHTML = list.map(w => `<div class="card" style="padding:12px"><div class="flex justify-between items-center"><div><div style="color:var(--gold);font-weight:bold">${esc(w.name)}</div><div style="font-size:11px;color:var(--text-muted)">${esc(w.phone||'—')} • ${w.role==='khalifa'?'خلیفه':w.role==='shagerd'?'شاگرد':'دیگر'}</div></div><button class="btn btn-sm btn-outline" onclick="editWorker('${w.id}')">ویرایش</button></div></div>`).join('');
 }
 
 function editWorker(id){
@@ -1710,26 +1599,21 @@ function editWorker(id){
   document.getElementById('w-id').value = id; document.getElementById('w-name').value = w.name || ''; document.getElementById('w-phone').value = w.phone || ''; document.getElementById('val-wrole').innerText = w.role==='khalifa'?'خلیفه':w.role==='shagerd'?'شاگرد':'دیگر'; document.getElementById('w-role-val').value = w.role || 'khalifa'; openModal('modal-worker');
 }
 
-/* ==================== REPORTS (Wholesale) ==================== */
 async function renderReports(){
   const contracts = Object.values(state.contracts);
   let totalContract = 0, totalInvoiced = 0, totalPaid = 0, totalRemaining = 0;
   contracts.forEach(c => { const f = recalcContractFinancials(c); totalContract += f.totalContractValue; totalInvoiced += f.totalInvoiced; totalPaid += f.totalPaid; if(f.totalRemaining > 0) totalRemaining += f.totalRemaining; });
-  
   document.getElementById('report-finance').innerHTML = `
     <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>ارزش کل قراردادها</span><strong>${fmt(totalContract)}</strong></div>
     <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>صورت‌حساب‌شده</span><strong style="color:var(--gold)">${fmt(totalInvoiced)}</strong></div>
     <div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>پرداخت‌شده</span><strong style="color:var(--success)">${fmt(totalPaid)}</strong></div>
-    <div class="flex justify-between" style="font-size:12px;padding:6px 0;border-top:1px dashed var(--border);margin-top:4px"><span>بدهی کل</span><strong style="color:var(--danger)">${fmt(totalRemaining)}</strong></div>
-  `;
-  
+    <div class="flex justify-between" style="font-size:12px;padding:6px 0;border-top:1px dashed var(--border);margin-top:4px"><span>بدهی کل</span><strong style="color:var(--danger)">${fmt(totalRemaining)}</strong></div>`;
   try {
     const prodSnap = await db.ref('users/' + userPhone + '/productions').once('value'); const prods = prodSnap.val() || {}; const byWorker = {};
     Object.values(prods).forEach(p => { if(!p.workerId) return; if(!byWorker[p.workerId]) byWorker[p.workerId] = { name: p.workerName, qty: 0, wage: 0 }; byWorker[p.workerId].qty += p.totalQty || 0; byWorker[p.workerId].wage += p.wage || 0; });
     const arr = Object.values(byWorker).sort((a,b) => b.qty - a.qty);
     document.getElementById('report-worker').innerHTML = arr.length ? arr.map(w => `<div class="flex justify-between" style="font-size:12px;padding:6px 0"><span>${esc(w.name)}</span><strong>${w.qty} دانه • ${fmt(w.wage)} افغانی</strong></div>`).join('') : '<div class="empty">تولیدی ثبت نشده</div>';
   } catch(e){ console.error(e); }
-  
   const byCustomer = {};
   contracts.forEach(c => { const f = recalcContractFinancials(c); if(f.totalRemaining > 0){ if(!byCustomer[c.customerName]) byCustomer[c.customerName] = 0; byCustomer[c.customerName] += f.totalRemaining; } });
   const debtArr = Object.entries(byCustomer).sort((a,b) => b[1]-a[1]);
@@ -1737,13 +1621,38 @@ async function renderReports(){
 }
 
 /* ==========================================================
-   RETAIL ORDERS LOGIC (New Section)
+   RETAIL ORDERS LOGIC (New Enhanced Section)
 ========================================================== */
 function loadRetailData() {
   db.ref('users/' + userPhone + '/retail_orders').once('value').then(snap => {
     state.retailOrders = snap.val() || {};
     renderRetailList();
   });
+}
+
+// Utility to calculate the timer
+function calculateRemainingTime(deliveryStr) {
+    if(!deliveryStr) return { text: 'تاریخ تحویل ثبت نشده', color: 'var(--text-muted)', bg: 'transparent' };
+    const parts = deliveryStr.split('/');
+    if(parts.length !== 3) return { text: 'تاریخ نامعتبر', color: 'var(--danger)', bg: 'rgba(255,71,87,0.1)' };
+
+    const gy = jalali_to_gregorian(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+    const targetDate = new Date(gy[0], gy[1] - 1, gy[2], 23, 59, 59);
+    const now = new Date();
+    
+    const diff = targetDate - now;
+    if(diff < 0) {
+        return { text: 'مهلت تمام شده', color: 'var(--danger)', bg: 'rgba(255,71,87,0.15)' };
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const mins = Math.floor((diff / 1000 / 60) % 60);
+
+    if(days === 0 && hours < 24) {
+        return { text: `${hours} ساعت و ${mins} دقیقه مانده`, color: 'var(--warning)', bg: 'rgba(243,156,18,0.15)' };
+    }
+    return { text: `${days} روز و ${hours} ساعت مانده`, color: 'var(--success)', bg: 'rgba(46,213,115,0.15)' };
 }
 
 function renderRetailList() {
@@ -1755,11 +1664,12 @@ function renderRetailList() {
     list = list.filter(o => 
       (o.code && String(o.code).includes(query)) || 
       (o.name && o.name.toLowerCase().includes(query)) || 
-      (o.phone && o.phone.includes(query))
+      (o.phone && o.phone.includes(query)) ||
+      (o.garmentType && o.garmentType.includes(query))
     );
   }
   
-  // Sort descending by code (highest first)
+  // Sort descending by code
   list.sort((a, b) => Number(b.code) - Number(a.code));
 
   if (!list.length) {
@@ -1767,273 +1677,297 @@ function renderRetailList() {
     return;
   }
 
-  box.innerHTML = list.map(o => `
+  box.innerHTML = list.map(o => {
+    const timer = calculateRemainingTime(o.deliveryDate);
+    return `
     <div class="contract-card" style="cursor:default;">
       <div class="cc-header">
         <div>
-          <div class="cc-code"
-                            <div class="cc-code">کد: <strong style="color:var(--gold)">${o.code}</strong></div>
-                  <div class="cc-customer">${esc(o.name)}</div>
-                  <div class="cc-model">${esc(o.customType || o.garmentType)}</div>
-                </div>
-                <span class="chip chip-info">${esc(o.date)}</span>
-              </div>
-              <div class="cc-body">
-                <div>شماره: <strong>${esc(o.phone)}</strong></div>
-                <div>تعداد: <strong>${o.qty}</strong></div>
-                <div>متراژ: <strong>${o.fabricLen} متر</strong></div>
-                <div>رنگ: <strong>${esc(o.color)}</strong></div>
-              </div>
-              <div class="card-actions" style="margin-top:10px;">
-                <button class="btn btn-sm btn-outline" onclick="editRetailOrder('${o.code}')">مشاهده / ویرایش</button>
-                <button class="btn btn-sm btn-danger" onclick="deleteRetailOrder('${o.code}')">حذف</button>
-              </div>
-            </div>
-          `).join('');
-        }
+          <div class="cc-code">کد سفارش: <strong style="color:var(--gold); font-size:14px;">${o.code}</strong></div>
+          <div class="cc-customer">${esc(o.name)}</div>
+          <div class="cc-model">${esc(o.customType || o.garmentType)}</div>
+        </div>
+        <span class="chip chip-info">${esc(o.date)}</span>
+      </div>
+      <div class="cc-body">
+        <div>شماره: <strong>${esc(o.phone)}</strong></div>
+        <div>تعداد: <strong>${o.qty}</strong></div>
+        <div>متراژ: <strong>${o.fabricLen} متر</strong></div>
+        <div>رنگ: <strong>${esc(o.color)}</strong></div>
+      </div>
+      
+      <!-- Timer Badge -->
+      <div class="timer-badge" style="color:${timer.color}; background:${timer.bg}; border:1px solid ${timer.color}; width:100%; justify-content:center;">
+         ${timer.text}
+      </div>
 
-        // ==================== RETAIL FORM LOGIC ====================
-        let currentRetailEditingCode = null;
+      <div class="card-actions" style="margin-top:10px; display:flex; gap:8px;">
+        <button class="btn btn-sm btn-outline flex-1" onclick="editRetailOrder('${o.code}')">ویرایش اطلاعات</button>
+        <button class="btn btn-sm btn-danger flex-1" onclick="deleteRetailOrder('${o.code}')">حذف</button>
+      </div>
+    </div>
+  `}).join('');
+}
 
-        function openRetailForm(code = null) {
-          currentRetailEditingCode = code;
-          document.getElementById('retail-modal-title').innerText = code ? 'ویرایش سفارش پرچون' : 'ثبت سفارش پرچون جدید';
-          document.getElementById('r-id').value = code || '';
-          
-          // Reset fields
-          document.getElementById('r-name').value = '';
-          document.getElementById('r-phone').value = '';
-          document.getElementById('r-whatsapp').value = '';
-          document.getElementById('r-color').value = '';
-          document.getElementById('r-qty').value = '1';
-          document.getElementById('r-fabric-len').value = '';
-          document.getElementById('r-notes').value = '';
-          document.getElementById('r-custom-type').value = '';
-          document.getElementById('r-custom-type').style.display = 'none';
-          document.getElementById('retail-measure-container').innerHTML = '';
-          
-          // Setup Garment Type Dropdown
-          const typeContainer = document.getElementById('opt-retail-type');
-          let typeHtml = '';
-          Object.keys(RETAIL_GARMENTS).forEach(garment => {
-            typeHtml += `<div class="dropdown-option" onclick="selectRetailGarment('${garment}')">${garment}</div>`;
-          });
-          typeContainer.innerHTML = typeHtml;
+let currentRetailEditingCode = null;
 
-          // Setup Date Dropdowns
-          initRetailDates();
+function openRetailForm(code = null) {
+  currentRetailEditingCode = code;
+  document.getElementById('retail-modal-title').innerText = code ? 'ویرایش سفارش پرچون' : 'ثبت سفارش پرچون جدید';
+  document.getElementById('r-id').value = code || '';
+  
+  // Reset fields
+  document.getElementById('r-name').value = '';
+  document.getElementById('r-phone').value = '';
+  document.getElementById('r-whatsapp').value = '';
+  document.getElementById('r-color').value = '';
+  document.getElementById('r-qty').value = '1';
+  document.getElementById('r-fabric-len').value = '';
+  document.getElementById('r-notes').value = '';
+  document.getElementById('r-custom-type').value = '';
+  document.getElementById('r-custom-type').style.display = 'none';
+  document.getElementById('retail-measure-container').innerHTML = '';
+  
+  // Setup Garment Type Dropdown
+  const typeContainer = document.getElementById('opt-retail-type');
+  let typeHtml = '';
+  Object.keys(RETAIL_GARMENTS).forEach(garment => {
+    typeHtml += `<div class="dropdown-option" onclick="selectRetailGarment('${garment}')">${garment}</div>`;
+  });
+  typeContainer.innerHTML = typeHtml;
 
-          if (code) {
-            // Edit mode
-            const order = state.retailOrders[code];
-            if (!order) return;
-            
-            document.getElementById('r-code-display').innerText = order.code;
-            document.getElementById('r-name').value = order.name || '';
-            document.getElementById('r-phone').value = order.phone || '';
-            document.getElementById('r-whatsapp').value = order.whatsapp || '';
-            document.getElementById('r-color').value = order.color || '';
-            document.getElementById('r-qty').value = order.qty || 1;
-            document.getElementById('r-fabric-len').value = order.fabricLen || '';
-            document.getElementById('r-notes').value = order.notes || '';
-            
-            document.getElementById('val-retail-type').innerText = order.garmentType;
-            state.selectedRetailGarment = order.garmentType;
-            
-            if (order.garmentType === 'سایر') {
-              document.getElementById('r-custom-type').style.display = 'block';
-              document.getElementById('r-custom-type').value = order.customType || '';
-            }
-            
-            // Set date dropdowns
-            if (order.date) {
-              const parts = order.date.split('/');
-              if (parts.length === 3) {
-                document.getElementById('val-r-year').innerText = parts[0];
-                const monthIdx = Number(parts[1]) - 1;
-                document.getElementById('val-r-month').innerText = shamsiMonths[monthIdx] || 'حمل';
-                document.getElementById('val-r-day').innerText = parts[2];
-              }
-            }
+  // Setup Date Dropdowns
+  initRetailDates();
 
-            // Populate measurements
-            if (order.measurements) {
-              order.measurements.forEach(m => addRetailMeasureRow(m.name, m.value));
-            }
-          } else {
-            // New mode: Generate Code
-            let newCode = 10000;
-            const existingCodes = Object.keys(state.retailOrders).map(Number);
-            if (existingCodes.length > 0) {
-              newCode = Math.max(...existingCodes) + 1;
-            }
-            document.getElementById('r-code-display').innerText = newCode;
-            document.getElementById('r-code').value = newCode;
-            
-            // Default garment type
-            selectRetailGarment('پیراهن تنبان مردانه');
-          }
+  if (code) {
+    // Edit mode
+    const order = state.retailOrders[code];
+    if (!order) return;
+    
+    document.getElementById('r-code-display').innerText = order.code;
+    document.getElementById('r-name').value = order.name || '';
+    document.getElementById('r-phone').value = order.phone || '';
+    document.getElementById('r-whatsapp').value = order.whatsapp || '';
+    document.getElementById('r-color').value = order.color || '';
+    document.getElementById('r-qty').value = order.qty || 1;
+    document.getElementById('r-fabric-len').value = order.fabricLen || '';
+    document.getElementById('r-notes').value = order.notes || '';
+    
+    document.getElementById('val-retail-type').innerText = order.garmentType;
+    state.selectedRetailGarment = order.garmentType;
+    
+    if (order.garmentType === 'سایر') {
+      document.getElementById('r-custom-type').style.display = 'block';
+      document.getElementById('r-custom-type').value = order.customType || '';
+    }
+    
+    // Set order date
+    if (order.date) {
+      const parts = order.date.split('/');
+      if (parts.length === 3) {
+        document.getElementById('val-r-year').innerText = parts[0];
+        document.getElementById('val-r-month').innerText = shamsiMonths[Number(parts[1]) - 1] || 'حمل';
+        document.getElementById('val-r-day').innerText = parts[2];
+      }
+    }
 
-          openModal('modal-retail');
-        }
+    // Set delivery date (Timer)
+    if (order.deliveryDate) {
+      const parts = order.deliveryDate.split('/');
+      if (parts.length === 3) {
+        document.getElementById('val-del-year').innerText = parts[0];
+        document.getElementById('val-del-month').innerText = shamsiMonths[Number(parts[1]) - 1] || 'حمل';
+        document.getElementById('val-del-day').innerText = parts[2];
+      }
+    }
 
-        function selectRetailGarment(garment) {
-          state.selectedRetailGarment = garment;
-          document.getElementById('val-retail-type').innerText = garment;
-          
-          // Close dropdown
-          document.getElementById('dd-retail-type').querySelector('.dropdown-options').classList.remove('active');
-          document.getElementById('dd-retail-type').querySelector('.dropdown-trigger').classList.remove('active');
+    // Populate measurements
+    if (order.measurements) {
+      order.measurements.forEach(m => addRetailMeasureRow(m.name, m.value));
+    }
+  } else {
+    // New mode: Generate unique code
+    const existingCodes = Object.keys(state.retailOrders).map(Number);
+    let newCode;
+    do {
+        newCode = Math.floor(10000 + Math.random() * 90000); // 5-digit random
+    } while (existingCodes.includes(newCode));
+    
+    document.getElementById('r-code-display').innerText = newCode;
+    document.getElementById('r-code').value = newCode;
+    
+    // Default garment type
+    selectRetailGarment('پیراهن تنبان مردانه');
+  }
 
-          const customInput = document.getElementById('r-custom-type');
-          const measureContainer = document.getElementById('retail-measure-container');
-          
-          if (garment === 'سایر') {
-            customInput.style.display = 'block';
-            measureContainer.innerHTML = '';
-            // 5 empty fields for "Other"
-            for (let i = 0; i < 5; i++) addRetailMeasureRow();
-          } else {
-            customInput.style.display = 'none';
-            measureContainer.innerHTML = '';
-            const fields = RETAIL_GARMENTS[garment] || [];
-            fields.forEach(field => addRetailMeasureRow(field, ''));
-          }
-        }
+  openModal('modal-retail');
+}
 
-        function addRetailMeasureRow(name = '', value = '') {
-          const container = document.getElementById('retail-measure-container');
-          const div = document.createElement('div');
-          div.className = 'measure-row';
-          div.innerHTML = `
-            <input type="text" class="m-name" placeholder="نام اندازه (مثلا دور سینه)" value="${esc(name)}">
-            <input type="number" step="0.1" class="m-value" placeholder="مقدار (cm)" value="${value}">
-            <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
-          `;
-          container.appendChild(div);
-        }
+function selectRetailGarment(garment) {
+  state.selectedRetailGarment = garment;
+  document.getElementById('val-retail-type').innerText = garment;
+  
+  document.getElementById('dd-retail-type').querySelector('.dropdown-options').classList.remove('active');
+  document.getElementById('dd-retail-type').querySelector('.dropdown-trigger').classList.remove('active');
 
-        function initRetailDates() {
-          const dayOpt = document.getElementById('opt-r-day');
-          const monthOpt = document.getElementById('opt-r-month');
-          const yearOpt = document.getElementById('opt-r-year');
-          
-          let dHtml = '', mHtml = '', yHtml = '';
-          for(let i=1; i<=31; i++) dHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-day', '${i}', '${i}')">${i}</div>`;
-          shamsiMonths.forEach((m) => mHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-month', '${m}', '${m}')">${m}</div>`);
-          for(let y=1400; y<=1410; y++) yHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-year', '${y}', '${y}')">${y}</div>`;
-          
-          dayOpt.innerHTML = dHtml;
-          monthOpt.innerHTML = mHtml;
-          yearOpt.innerHTML = yHtml;
-          
-          // Set today
-          const today = todayStr().split('/');
-          if (today.length === 3) {
-            document.getElementById('val-r-year').innerText = today[0];
-            document.getElementById('val-r-month').innerText = shamsiMonths[parseInt(today[1]) - 1] || 'حمل';
-            document.getElementById('val-r-day').innerText = today[2];
-          }
-        }
+  const customInput = document.getElementById('r-custom-type');
+  const measureContainer = document.getElementById('retail-measure-container');
+  
+  if (garment === 'سایر') {
+    customInput.style.display = 'block';
+    measureContainer.innerHTML = '';
+    for (let i = 0; i < 5; i++) addRetailMeasureRow();
+  } else {
+    customInput.style.display = 'none';
+    measureContainer.innerHTML = '';
+    const fields = RETAIL_GARMENTS[garment] || [];
+    fields.forEach(field => addRetailMeasureRow(field, ''));
+  }
+}
 
-        async function saveRetailOrder() {
-          const code = document.getElementById('r-code').value || document.getElementById('r-code-display').innerText;
-          const name = document.getElementById('r-name').value.trim();
-          const phone = document.getElementById('r-phone').value.trim();
-          const whatsapp = document.getElementById('r-whatsapp').value.trim();
-          const garmentType = state.selectedRetailGarment;
-          const customType = document.getElementById('r-custom-type').value.trim();
-          const color = document.getElementById('r-color').value.trim();
-          const qty = Number(document.getElementById('r-qty').value) || 1;
-          const fabricLen = Number(document.getElementById('r-fabric-len').value) || 0;
-          const notes = document.getElementById('r-notes').value.trim();
-          
-          // Date
-          const y = document.getElementById('val-r-year').innerText;
-          const m = document.getElementById('val-r-month').innerText;
-          const d = document.getElementById('val-r-day').innerText;
-          const mIdx = shamsiMonths.indexOf(m) + 1;
-          const dateStr = `${y}/${String(mIdx).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
+function addRetailMeasureRow(name = '', value = '') {
+  const container = document.getElementById('retail-measure-container');
+  const div = document.createElement('div');
+  div.className = 'measure-row';
+  div.innerHTML = `
+    <input type="text" class="m-name" placeholder="نام اندازه" value="${esc(name)}">
+    <input type="number" step="0.1" class="m-value" placeholder="مقدار" value="${value}">
+    <button type="button" class="remove-btn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  container.appendChild(div);
+}
 
-          if (!name || !phone) {
-            showAlert('error', 'خطا', 'نام و شماره تماس الزامی است');
-            return;
-          }
+function initRetailDates() {
+  // Order Date
+  const dayOpt = document.getElementById('opt-r-day');
+  const monthOpt = document.getElementById('opt-r-month');
+  const yearOpt = document.getElementById('opt-r-year');
+  
+  let dHtml = '', mHtml = '', yHtml = '';
+  for(let i=1; i<=31; i++) dHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-day', '${i}', '${i}')">${i}</div>`;
+  shamsiMonths.forEach((m) => mHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-month', '${m}', '${m}')">${m}</div>`);
+  for(let y=1400; y<=1410; y++) yHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-year', '${y}', '${y}')">${y}</div>`;
+  
+  dayOpt.innerHTML = dHtml; monthOpt.innerHTML = mHtml; yearOpt.innerHTML = yHtml;
+  
+  // Delivery Date (Timer)
+  const delDayOpt = document.getElementById('opt-del-day');
+  const delMonthOpt = document.getElementById('opt-del-month');
+  const delYearOpt = document.getElementById('opt-del-year');
+  
+  delDayOpt.innerHTML = dHtml;
+  delMonthOpt.innerHTML = mHtml;
+  delYearOpt.innerHTML = yHtml;
 
-          // Gather measurements
-          const measurements = [];
-          document.querySelectorAll('#retail-measure-container .measure-row').forEach(row => {
-            const mName = row.querySelector('.m-name').value.trim();
-            const mVal = row.querySelector('.m-value').value.trim();
-            if (mName && mVal) {
-              measurements.push({ name: mName, value: Number(mVal) });
-            }
-          });
+  // Set today for Order Date
+  const today = todayStr().split('/');
+  if (today.length === 3) {
+    document.getElementById('val-r-year').innerText = today[0];
+    document.getElementById('val-r-month').innerText = shamsiMonths[parseInt(today[1]) - 1] || 'حمل';
+    document.getElementById('val-r-day').innerText = today[2];
+  }
+}
 
-          if (measurements.length === 0) {
-            showAlert('error', 'خطا', 'حداقل یک اندازه‌گیری وارد کنید');
-            return;
-          }
+async function saveRetailOrder() {
+  const code = document.getElementById('r-code').value || document.getElementById('r-code-display').innerText;
+  const name = document.getElementById('r-name').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const whatsapp = document.getElementById('r-whatsapp').value.trim();
+  const garmentType = state.selectedRetailGarment;
+  const customType = document.getElementById('r-custom-type').value.trim();
+  const color = document.getElementById('r-color').value.trim();
+  const qty = Number(document.getElementById('r-qty').value) || 1;
+  const fabricLen = Number(document.getElementById('r-fabric-len').value) || 0;
+  const notes = document.getElementById('r-notes').value.trim();
+  
+  // Dates
+  const y = document.getElementById('val-r-year').innerText;
+  const m = document.getElementById('val-r-month').innerText;
+  const d = document.getElementById('val-r-day').innerText;
+  const mIdx = shamsiMonths.indexOf(m) + 1;
+  const dateStr = `${y}/${String(mIdx).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
 
-          const orderData = {
-            code: code,
-            name: name,
-            phone: phone,
-            whatsapp: whatsapp,
-            garmentType: garmentType,
-            customType: customType,
-            color: color,
-            qty: qty,
-            fabricLen: fabricLen,
-            date: dateStr,
-            measurements: measurements,
-            notes: notes,
-            timestamp: Date.now()
-          };
+  const delY = document.getElementById('val-del-year').innerText;
+  const delM = document.getElementById('val-del-month').innerText;
+  const delD = document.getElementById('val-del-day').innerText;
+  const delMIdx = shamsiMonths.indexOf(delM) + 1;
+  const deliveryDateStr = `${delY}/${String(delMIdx).padStart(2, '0')}/${String(delD).padStart(2, '0')}`;
 
-          try {
-            await db.ref(`users/${userPhone}/retail_orders/${code}`).set(orderData);
-            showAlert('success', 'موفق', 'سفارش پرچون ذخیره شد');
-            closeModal('modal-retail');
-            loadRetailData();
-          } catch (err) {
-            showAlert('error', 'خطا', err.message);
-          }
-        }
+  if (!name || !phone) {
+    showAlert('error', 'خطا', 'نام و شماره تماس الزامی است');
+    return;
+  }
 
-        function editRetailOrder(code) {
-          openRetailForm(code);
-        }
+  // Gather measurements
+  const measurements = [];
+  document.querySelectorAll('#retail-measure-container .measure-row').forEach(row => {
+    const mName = row.querySelector('.m-name').value.trim();
+    const mVal = row.querySelector('.m-value').value.trim();
+    if (mName && mVal) {
+      measurements.push({ name: mName, value: Number(mVal) });
+    }
+  });
 
-        function deleteRetailOrder(code) {
-          if (confirm(`آیا از حذف سفارش با کد ${code} مطمئن هستید؟`)) {
-            db.ref(`users/${userPhone}/retail_orders/${code}`).remove().then(() => {
-              showAlert('success', 'حذف شد', 'سفارش پرچون حذف گردید');
-              loadRetailData();
-            }).catch(err => showAlert('error', 'خطا', err.message));
-          }
-        }
+  if (measurements.length === 0) {
+    showAlert('error', 'خطا', 'حداقل یک اندازه‌گیری وارد کنید');
+    return;
+  }
 
-        // ==================== INIT ====================
-        window.onload = () => {
-          if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
-          
-          // Initialize Wholesale
-          loadAllData();
-          
-          // Initialize Retail
-          loadRetailData();
-          initRetailDates();
-          
-          // Auto refresh interval
-          setInterval(() => {
-            db.ref('users/' + userPhone + '/contracts').once('value').then(snap => {
-              state.contracts = snap.val() || {};
-              if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
-              if(document.getElementById('view-contracts').classList.contains('active')) renderContractsList();
-            });
-          }, 60000);
-        };
-    </script>
+  const orderData = {
+    code: code,
+    name: name,
+    phone: phone,
+    whatsapp: whatsapp,
+    garmentType: garmentType,
+    customType: customType,
+    color: color,
+    qty: qty,
+    fabricLen: fabricLen,
+    date: dateStr,
+    deliveryDate: deliveryDateStr, // 🟢 Saved for timer
+    measurements: measurements,
+    notes: notes,
+    timestamp: Date.now()
+  };
+
+  try {
+    await db.ref(`users/${userPhone}/retail_orders/${code}`).set(orderData);
+    showAlert('success', 'موفق', 'سفارش پرچون ذخیره شد');
+    closeModal('modal-retail');
+    loadRetailData();
+  } catch (err) {
+    showAlert('error', 'خطا', err.message);
+  }
+}
+
+function editRetailOrder(code) {
+  openRetailForm(code);
+}
+
+function deleteRetailOrder(code) {
+  if (confirm(`آیا از حذف سفارش با کد ${code} مطمئن هستید؟`)) {
+    db.ref(`users/${userPhone}/retail_orders/${code}`).remove().then(() => {
+      showAlert('success', 'حذف شد', 'سفارش پرچون حذف گردید');
+      loadRetailData();
+    }).catch(err => showAlert('error', 'خطا', err.message));
+  }
+}
+
+// ==================== INIT ====================
+window.onload = () => {
+  if(localStorage.getItem('tailor_theme') === 'light') document.body.classList.add('light-mode');
+  loadAllData();
+  loadRetailData();
+  initRetailDates();
+  
+  setInterval(() => {
+    db.ref('users/' + userPhone + '/contracts').once('value').then(snap => {
+      state.contracts = snap.val() || {};
+      if(document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+      if(document.getElementById('view-contracts').classList.contains('active')) renderContractsList();
+    });
+  }, 60000);
+};
+</script>
 </body>
 </html>
