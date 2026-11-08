@@ -76,7 +76,25 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%}
 
-/* Custom Dropdown */
+/* Native Select for Dates (The Fix) */
+.native-select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text-main);
+    font-size: 12px;
+    outline: none;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+    text-align-last: center;
+}
+.native-select:focus { border-color: var(--gold); }
+.native-select option { background: var(--bg-panel); color: var(--text-main); }
+
+/* Custom Dropdown (For other parts) */
 .custom-dropdown { position: relative; width: 100%; user-select: none; margin-bottom: 10px; }
 .dropdown-trigger { width: 100%; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text-main); font-size: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .dropdown-trigger.active { border-color: var(--gold); }
@@ -94,7 +112,6 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
 .chip-success{background:rgba(46,213,115,.1);color:var(--success);border-color:var(--success)}
 .chip-danger{background:rgba(255,71,87,.1);color:var(--danger);border-color:var(--danger)}
 .chip-warning{background:rgba(243,156,18,.1);color:var(--warning);border-color:var(--warning)}
-.chip-muted{background:rgba(120,144,156,.1);color:var(--text-muted);border-color:var(--text-muted)}
 .chip-gold{background:rgba(212,175,55,.15);color:var(--gold);border-color:var(--gold)}
 
 /* Contract card */
@@ -678,40 +695,23 @@ body{background:var(--bg-body);color:var(--text-main);min-height:100vh;display:f
       <div class="form-group"><label>متراژ تکه (متر)</label><input type="number" step="0.1" id="r-fabric-len" placeholder="2.5"></div>
     </div>
 
+    <!-- 🟢 تاریخ ثبت سفارش (Native Select) 🟢 -->
     <div class="form-group">
       <label>تاریخ ثبت سفارش</label>
       <div class="grid-3">
-        <div class="custom-dropdown" id="dd-r-day">
-          <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-day')"><span id="val-r-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <div class="dropdown-options" id="opt-r-day"></div>
-        </div>
-        <div class="custom-dropdown" id="dd-r-month">
-          <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-month')"><span id="val-r-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <div class="dropdown-options" id="opt-r-month"></div>
-        </div>
-        <div class="custom-dropdown" id="dd-r-year">
-          <div class="dropdown-trigger" onclick="toggleDropdown('dd-r-year')"><span id="val-r-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <div class="dropdown-options" id="opt-r-year"></div>
-        </div>
+        <select id="r-day" class="native-select"></select>
+        <select id="r-month" class="native-select"></select>
+        <select id="r-year" class="native-select"></select>
       </div>
     </div>
 
-    <!-- 🟢 NEW: Delivery Date for Timer 🟢 -->
+    <!-- 🟢 تاریخ تحویل (Native Select) 🟢 -->
     <div class="form-group" style="border:1px dashed var(--danger); padding:10px; border-radius:10px; background:rgba(255,71,87,0.05);">
       <label style="color:var(--danger);">تاریخ تحویل (برای تایمر دوخت)</label>
       <div class="grid-3">
-        <div class="custom-dropdown" id="dd-del-day">
-          <div class="dropdown-trigger" onclick="toggleDropdown('dd-del-day')"><span id="val-del-day">1</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <div class="dropdown-options" id="opt-del-day"></div>
-        </div>
-        <div class="custom-dropdown" id="dd-del-month">
-          <div class="dropdown-trigger" onclick="toggleDropdown('dd-del-month')"><span id="val-del-month">حمل</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <div class="dropdown-options" id="opt-del-month"></div>
-        </div>
-        <div class="custom-dropdown" id="dd-del-year">
-          <div class="dropdown-trigger" onclick="toggleDropdown('dd-del-year')"><span id="val-del-year">1403</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
-          <div class="dropdown-options" id="opt-del-year"></div>
-        </div>
+        <select id="del-day" class="native-select"></select>
+        <select id="del-month" class="native-select"></select>
+        <select id="del-year" class="native-select"></select>
       </div>
     </div>
 
@@ -1765,9 +1765,9 @@ function openRetailForm(code = null) {
     if (order.date) {
       const parts = order.date.split('/');
       if (parts.length === 3) {
-        document.getElementById('val-r-year').innerText = parts[0];
-        document.getElementById('val-r-month').innerText = shamsiMonths[Number(parts[1]) - 1] || 'حمل';
-        document.getElementById('val-r-day').innerText = parts[2];
+        document.getElementById('r-year').value = parts[0];
+        document.getElementById('r-month').value = parseInt(parts[1]);
+        document.getElementById('r-day').value = parseInt(parts[2]);
       }
     }
 
@@ -1775,9 +1775,9 @@ function openRetailForm(code = null) {
     if (order.deliveryDate) {
       const parts = order.deliveryDate.split('/');
       if (parts.length === 3) {
-        document.getElementById('val-del-year').innerText = parts[0];
-        document.getElementById('val-del-month').innerText = shamsiMonths[Number(parts[1]) - 1] || 'حمل';
-        document.getElementById('val-del-day').innerText = parts[2];
+        document.getElementById('del-year').value = parts[0];
+        document.getElementById('del-month').value = parseInt(parts[1]);
+        document.getElementById('del-day').value = parseInt(parts[2]);
       }
     }
 
@@ -1838,33 +1838,36 @@ function addRetailMeasureRow(name = '', value = '') {
 }
 
 function initRetailDates() {
-  // Order Date
-  const dayOpt = document.getElementById('opt-r-day');
-  const monthOpt = document.getElementById('opt-r-month');
-  const yearOpt = document.getElementById('opt-r-year');
-  
+  const rDay = document.getElementById('r-day');
+  const rMonth = document.getElementById('r-month');
+  const rYear = document.getElementById('r-year');
+  const delDay = document.getElementById('del-day');
+  const delMonth = document.getElementById('del-month');
+  const delYear = document.getElementById('del-year');
+
   let dHtml = '', mHtml = '', yHtml = '';
-  for(let i=1; i<=31; i++) dHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-day', '${i}', '${i}')">${i}</div>`;
-  shamsiMonths.forEach((m) => mHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-month', '${m}', '${m}')">${m}</div>`);
-  for(let y=1400; y<=1410; y++) yHtml += `<div class="dropdown-option" onclick="selectOption('dd-r-year', '${y}', '${y}')">${y}</div>`;
-  
-  dayOpt.innerHTML = dHtml; monthOpt.innerHTML = mHtml; yearOpt.innerHTML = yHtml;
-  
-  // Delivery Date (Timer)
-  const delDayOpt = document.getElementById('opt-del-day');
-  const delMonthOpt = document.getElementById('opt-del-month');
-  const delYearOpt = document.getElementById('opt-del-year');
-  
-  delDayOpt.innerHTML = dHtml;
-  delMonthOpt.innerHTML = mHtml;
-  delYearOpt.innerHTML = yHtml;
+  for(let i=1; i<=31; i++) dHtml += `<option value="${i}">${i}</option>`;
+  shamsiMonths.forEach((m, i) => mHtml += `<option value="${i+1}">${m}</option>`);
+  for(let y=1400; y<=1410; y++) yHtml += `<option value="${y}">${y}</option>`;
+
+  rDay.innerHTML = dHtml; rMonth.innerHTML = mHtml; rYear.innerHTML = yHtml;
+  delDay.innerHTML = dHtml; delMonth.innerHTML = mHtml; delYear.innerHTML = yHtml;
 
   // Set today for Order Date
   const today = todayStr().split('/');
   if (today.length === 3) {
-    document.getElementById('val-r-year').innerText = today[0];
-    document.getElementById('val-r-month').innerText = shamsiMonths[parseInt(today[1]) - 1] || 'حمل';
-    document.getElementById('val-r-day').innerText = today[2];
+    rYear.value = today[0];
+    rMonth.value = parseInt(today[1]);
+    rDay.value = parseInt(today[2]);
+
+    // 🟢 Set delivery date to today + 7 days (so timer works immediately) 🟢
+    let gToday = new Date();
+    gToday.setDate(gToday.getDate() + 7);
+    const futureJ = gregorian_to_jalali(gToday.getFullYear(), gToday.getMonth() + 1, gToday.getDate());
+    
+    delYear.value = futureJ[0];
+    delMonth.value = futureJ[1];
+    delDay.value = futureJ[2];
   }
 }
 
@@ -1881,17 +1884,15 @@ async function saveRetailOrder() {
   const notes = document.getElementById('r-notes').value.trim();
   
   // Dates
-  const y = document.getElementById('val-r-year').innerText;
-  const m = document.getElementById('val-r-month').innerText;
-  const d = document.getElementById('val-r-day').innerText;
-  const mIdx = shamsiMonths.indexOf(m) + 1;
-  const dateStr = `${y}/${String(mIdx).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
+  const y = document.getElementById('r-year').value;
+  const m = document.getElementById('r-month').value;
+  const d = document.getElementById('r-day').value;
+  const dateStr = `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
 
-  const delY = document.getElementById('val-del-year').innerText;
-  const delM = document.getElementById('val-del-month').innerText;
-  const delD = document.getElementById('val-del-day').innerText;
-  const delMIdx = shamsiMonths.indexOf(delM) + 1;
-  const deliveryDateStr = `${delY}/${String(delMIdx).padStart(2, '0')}/${String(delD).padStart(2, '0')}`;
+  const delY = document.getElementById('del-year').value;
+  const delM = document.getElementById('del-month').value;
+  const delD = document.getElementById('del-day').value;
+  const deliveryDateStr = `${delY}/${String(delM).padStart(2, '0')}/${String(delD).padStart(2, '0')}`;
 
   if (!name || !phone) {
     showAlert('error', 'خطا', 'نام و شماره تماس الزامی است');
